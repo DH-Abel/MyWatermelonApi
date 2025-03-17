@@ -23,7 +23,7 @@ import { useRoute } from '@react-navigation/native';
 
 
 
-export default function Pedido() {
+export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado}) {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
  // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
@@ -42,12 +42,7 @@ export default function Pedido() {
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
   const [descuentoCredito, setDescuentoCredito] = useState(10);
 
-  const route = useRoute();
-
-
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(
-    route.params?.clienteSeleccionado || null
-  );
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
   const condicionPedido = [
     { id: 0, nombre: 'Contado' },

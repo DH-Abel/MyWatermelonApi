@@ -31,7 +31,7 @@ const SelectClientScreen = () => {
 
   const handleSelect = (cliente) => {
     // Aquí puedes guardar el cliente seleccionado en un estado global o pasarlo por params
-    navigation.replace('Pedido', { clienteSeleccionado: cliente });
+    navigation.replace('MainTabs', { clienteSeleccionado: cliente });
   };
 
   return (
