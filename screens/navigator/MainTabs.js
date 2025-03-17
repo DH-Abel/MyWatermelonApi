@@ -2,7 +2,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import SelectedCliente from '../components/selectedCliente';
-import TestApi from '../testApi';
+import Pedido from '../pedido';
 
 const Tab = createBottomTabNavigator();
 
@@ -16,7 +16,7 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name="Productos"
-        component={TestApi}
+        component={Pedido}
         options={{ title: 'Productos' }}
       />
     </Tab.Navigator>

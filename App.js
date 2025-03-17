@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import TestApi from './screens/testApi';
+import Pedido from './screens/pedido.js';
 import ConsultaPedidos from './screens/consultaPedido';
 import MyStack from './screens/navigator/stack';
 import React from 'react';

@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView, Text } from "react-native";
 import React from "react";
 import ConsultaPedidos from "../consultaPedido";
-import TestApi from "../testApi";
+import Pedido from "../pedido";
 import DetallesPedido from "../detallePedido";
 import { View } from "react-native";
 import { enableScreens } from 'react-native-screens';
@@ -22,7 +22,7 @@ export default function MyStack() {
                 <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} />
                 <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
                 <Stack.Screen name="SelectedCliente" component={SelectedCliente} options={{headerShown: false}}/>
-                <Stack.Screen name="TestApi" component={TestApi} options={{headerShown: false}}/>
+                <Stack.Screen name="Pedido" component={Pedido} options={{headerShown: false}}/>
                 <Stack.Screen name="DetallesPedido" component={DetallesPedido} />
             </Stack.Navigator>
         </NavigationContainer>

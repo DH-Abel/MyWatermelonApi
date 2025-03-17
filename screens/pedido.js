@@ -5,26 +5,25 @@ import {
   Platform
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import api from '../api/axios';
-import { database } from '../src/database/database';
-import { styles } from '../assets/styles';
+import api from '../api/axios.js';
+import { database } from '../src/database/database.js';
+import { styles } from '../assets/styles.js';
 import { Q } from '@nozbe/watermelondb';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import CambiarCantidadModal from './modal/cambiarCantidad';
-import { formatear } from '../assets/formatear';
-import ModalOptions from './modal/condicionPedido';
+import CambiarCantidadModal from './modal/cambiarCantidad.js';
+import { formatear } from '../assets/formatear.js';
+import ModalOptions from './modal/condicionPedido.js';
 import MyCheckbox from './utilities/checkbox.js';
 import sincronizarClientes from '../sincronizaciones/clientesLocal.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
-import SelectClientScreen from './components/selectClientes.js';
 import SelectedCliente from './components/selectedCliente.js';
 import { FlashList } from '@shopify/flash-list';
 import { useRoute } from '@react-navigation/native';
 
 
 
-export default function TestApi() {
+export default function Pedido() {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
  // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
@@ -187,14 +186,7 @@ export default function TestApi() {
   //para traer de pestaña selectClientes.js los datos del cliente seleccionado
 
 
-  if (!clienteSeleccionado) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Cargando datos del cliente...</Text>
-      </View>
-    );
-  }
+  
 
   // Selección de cliente si aún no se ha seleccionado
   // if (!clienteSeleccionado) {
@@ -375,7 +367,7 @@ export default function TestApi() {
         descuentoGlobal={descuentoGlobal}
         descuentoCredito={descuentoCredito}
         setDescuentoCredito={setDescuentoCredito}
-        formatear={formatear}
+  
         totalNeto={totalNeto}
       />
       </View>

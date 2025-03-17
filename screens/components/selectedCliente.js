@@ -3,6 +3,7 @@ import { View, Text, Pressable, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../../assets/styles';
 import MyCheckbox from '../utilities/checkbox.js';
+import { formatear } from '../../assets/formatear.js';
 
 
 
@@ -16,7 +17,6 @@ const SelectedCliente = ({
   descuentoGlobal,
   descuentoCredito,
   setDescuentoCredito,
-  formatear,
   totalNeto,
 }) => {
 
