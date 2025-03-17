@@ -1,12 +1,21 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import TestApi from './screens/testApi';
+import ConsultaPedidos from './screens/consultaPedido';
+import MyStack from './screens/navigator/stack';
+import React from 'react';
+import MyCheckbox from './screens/utilities/checkbox.js';
+//import { enableScreens } from 'react-native-screens';
 
+
+//enableScreens(false);
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    
+    <MyStack/>
+    //<MyCheckbox />
+  //<ConsultaPedidos/>
+  // <TestApi/>
   );
 }
 
