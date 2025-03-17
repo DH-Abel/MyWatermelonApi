@@ -99,7 +99,7 @@ export default function Pedidos({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, padding: 16 }}>
       <Pressable
-        onPress={() => navigation.navigate('TestApi')}
+        onPress={() => navigation.navigate('SelectClientScreen')}
         style={{ padding: 10, backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 }}
       >
         <Text style={{ fontSize: 18, backgroundColor: '#ccc', padding: 10, borderRadius: 8 }}>Nuevo Pedido</Text>

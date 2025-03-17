@@ -8,9 +8,10 @@ import TestApi from "../testApi";
 import DetallesPedido from "../detallePedido";
 import { View } from "react-native";
 import { enableScreens } from 'react-native-screens';
+import SelectClientScreen from "../components/selectClientes";
+import SelectedCliente from "../components/selectedCliente";
+
 enableScreens();
-
-
 
 const Stack = createNativeStackNavigator();
 
@@ -19,7 +20,9 @@ export default function MyStack() {
         <NavigationContainer>
             <Stack.Navigator>
                 <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} />
-                <Stack.Screen name="TestApi" component={TestApi} />
+                <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
+                <Stack.Screen name="SelectedCliente" component={SelectedCliente} options={{headerShown: false}}/>
+                <Stack.Screen name="TestApi" component={TestApi} options={{headerShown: false}}/>
                 <Stack.Screen name="DetallesPedido" component={DetallesPedido} />
             </Stack.Navigator>
         </NavigationContainer>

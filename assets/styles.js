@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
         paddingRight: 100,
       },
       itemText: {
-        fontSize: 16,
+        fontSize: 14,
       },
       listContainer: {
         flexDirection: 'row',
@@ -161,6 +161,21 @@ export const styles = StyleSheet.create({
       justifyContent: 'center',
       marginLeft: 10,
     },
+    button2: {
+      flex: 1,
+      height: 40, // Altura deseada
+      paddingHorizontal: 10,
+      backgroundColor: "#007AFF",
+      borderRadius: 5,
+      borderWidth: 1,
+      borderColor: "black",
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 0,  
+      marginBottom: 0,
+    },
+    
+    
     buttonB: {
       width: 150,
       height: 40,
@@ -204,6 +219,13 @@ export const styles = StyleSheet.create({
       fontSize: 12,
       fontWeight: "bold",
       textAlign: "center",
+    },
+    buttonText2: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+      borderWidth: 1,
+      borderColor: 'red',
     },
     buttonContainer: {
       marginTop: 0, // Espacio desde el final de la lista

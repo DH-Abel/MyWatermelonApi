@@ -17,13 +17,17 @@ import ModalOptions from './modal/condicionPedido';
 import MyCheckbox from './utilities/checkbox.js';
 import sincronizarClientes from '../sincronizaciones/clientesLocal.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
+import SelectClientScreen from './components/selectClientes.js';
+import SelectedCliente from './components/selectedCliente.js';
+import { FlashList } from '@shopify/flash-list';
+import { useRoute } from '@react-navigation/native';
 
 
 
 export default function TestApi() {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+ // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [searchTextProductos, setSearchTextProductos] = useState('');
@@ -39,6 +43,19 @@ export default function TestApi() {
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
   const [descuentoCredito, setDescuentoCredito] = useState(10);
 
+  const route = useRoute();
+
+
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(
+    route.params?.clienteSeleccionado || null
+  );
+
+  const condicionPedido = [
+    { id: 0, nombre: 'Contado' },
+    { id: 1, nombre: 'Crédito' },
+    { id: 2, nombre: 'Contra entrega' },
+    { id: 3, nombre: 'Vuelta viaje' },
+  ];
 
   // Carga de clientes al iniciar
   // Función para obtener clientes desde la API
@@ -167,44 +184,30 @@ export default function TestApi() {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
   }
 
-  // Selección de cliente si aún no se ha seleccionado
-  if (!clienteSeleccionado) {
-    const clientesFiltrados = clientes.filter(cliente =>
-      (cliente.f_nombre.toLowerCase().includes(searchTextClientes.toLowerCase())) ||
-      (cliente.f_id ? cliente.f_id.toString().toLowerCase() : '').includes(searchTextClientes.toLowerCase())
-    );
+  //para traer de pestaña selectClientes.js los datos del cliente seleccionado
 
+
+  if (!clienteSeleccionado) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Selecciona un Cliente</Text>
-        <Pressable title='cargar Clientes' onPress={fetchClientes}></Pressable>
-        <TextInput
-          style={styles.input}
-          placeholder="Buscar cliente..."
-          value={searchTextClientes}
-          onChangeText={setSearchTextClientes}
-        />
-        {/* Listado de clientes filtrados */}
-        <View style={styles.listContainer2}>
-          <KeyboardAwareFlatList
-            data={clientesFiltrados}
-            keyExtractor={item => item.f_id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.item}>
-                <View >
-                  <TouchableOpacity onPress={() => setClienteSeleccionado(item)}>
-                    <Text style={styles.itemText}>({item.f_id}) {item.f_nombre}</Text>
-                    <Text style={styles.itemText}>Municipio: {item.f_d_municipio}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            ListEmptyComponent={<Text>No se encontraron clientes</Text>}
-          />
-        </View>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Cargando datos del cliente...</Text>
       </View>
     );
   }
+
+  // Selección de cliente si aún no se ha seleccionado
+  // if (!clienteSeleccionado) {
+  //   return (
+  //     <SelectClientScreen
+  //       clientes={clientes}
+  //       searchTextClientes={searchTextClientes}
+  //       setSearchTextClientes={setSearchTextClientes}
+  //       fetchClientes={fetchClientes}
+  //       setClienteSeleccionado={setClienteSeleccionado}
+  //     />
+  //   )
+  // }
 
   // Filtrar productos según búsqueda
   const productosFiltrados = productos.filter(producto =>
@@ -335,15 +338,10 @@ export default function TestApi() {
   const descuentoAplicado = descuento() * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
-  const creditoDisponible = clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto;
+  const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
 
 
-  const condicionPedido = [
-    { id: 0, nombre: 'Contado' },
-    { id: 1, nombre: 'Crédito' },
-    { id: 2, nombre: 'Contra entrega' },
-    { id: 3, nombre: 'Vuelta viaje' },
-  ];
+ 
 
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
@@ -367,54 +365,19 @@ export default function TestApi() {
       </View>
 
       <View>
-        <View style={{ flexDirection: 'row', borderWidth: 1 }}>
-          <View style={{ flex: 7, borderWidth: 1, borderColor: 'red' }}>
-            <Text style={styles.title}>Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}</Text>
-          </View>
-          <View style={{ borderWidth: 1, borderColor: 'blue', flex: 1 }} >
-            <Pressable onPress={() => setClienteSeleccionado(null)} style={[styles.button, { flex: 1, marginBottom: 10 }]}>
-              <Text style={[styles.buttonText]}>✍️</Text>
-            </Pressable>
-
-          </View>
-        </View>
-        <Text>
-          Condición seleccionada:{" "}
-          {condicionSeleccionada ? condicionSeleccionada.nombre : "Ninguna"}
-        </Text>
-        <Pressable title="Mostrar opciones" onPress={() => setModalVisibleCondicion(true)} style={[styles.button]}>
-          <Text style={styles.buttonText}>condicion✍️</Text>
-        </Pressable>
-        <View style={styles.headerContainer}>
-          <View style={{ flex: 2 }}>
-            <Text style={styles.headerText}>Limite de credito: {formatear(clienteSeleccionado.f_limite_credito)}</Text>
-            <Text style={styles.headerText}>Balance: {formatear(balanceCliente)}</Text>
-            <Text style={styles.headerText}>Disponible: {formatear(creditoDisponible)}</Text>
-            <Text style={styles.headerText}>{/*Descuento: {(clienteSeleccionado.f_descuento1)}*/} Descuento Global: {descuentoGlobal} Descuento Credito: {descuentoCredito}{/*Descuento contado: {clienteSeleccionado.f_descuento_maximo}*/}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Descuento"
-              value={descuentoCredito}
-              onChangeText={setDescuentoCredito}
-            />
-            <MyCheckbox />
-
-            <Text style={styles.title}>Total del pedido: {formatear(totalNeto)}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-
-
-            {/*<Pressable onPress={cargarProductosLocales} style={styles.button}>
-            <Text style={styles.buttonText}>Cargar productos localess</Text>
-          </Pressable>*/}
-
-            <TextInput>
-
-            </TextInput>
-
-
-          </View>
-        </View>
+       <SelectedCliente
+        clienteSeleccionado={clienteSeleccionado}
+        setClienteSeleccionado={setClienteSeleccionado}
+        condicionSeleccionada={condicionSeleccionada}
+        setModalVisibleCondicion={setModalVisibleCondicion}
+        balanceCliente={balanceCliente}
+        creditoDisponible={creditoDisponible}
+        descuentoGlobal={descuentoGlobal}
+        descuentoCredito={descuentoCredito}
+        setDescuentoCredito={setDescuentoCredito}
+        formatear={formatear}
+        totalNeto={totalNeto}
+      />
       </View>
       <View style={{ alignItems: 'center' }}>
         <TextInput
@@ -428,10 +391,11 @@ export default function TestApi() {
 
       {/* Listado de productos hacer pedido*/}
       <View style={styles.listContainer2}>
-        <KeyboardAwareFlatList
+        <FlashList
+          removeClippedSubviews={false}
           data={productosFiltrados}
           keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
-          keyboardShouldPersistTaps="always"
+         // keyboardShouldPersistTaps="always"
           extraScrollHeight={20}
           renderItem={({ item }) => (
             <View style={styles.listContainer}>
@@ -440,7 +404,7 @@ export default function TestApi() {
                   ({item.f_referencia}) - {item.f_referencia_suplidor}
                 </Text>
                 <Text style={styles.itemText}>{item.f_descripcion}</Text>
-                <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'   '} Precio credito: {descuentoCredito ? formatear((item.f_precio5 + (item.f_precio5 * 0.18)) - (item.f_precio5) * (Number(descuentoCredito) / 100)) : formatear(item.f_precio5 + (item.f_precio5 * 0.18))}</Text>
+                <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'    '}credito: {descuentoCredito ? formatear((item.f_precio5 + (item.f_precio5 * 0.18)) - (item.f_precio5) * (Number(descuentoCredito) / 100)) : formatear(item.f_precio5 + (item.f_precio5 * 0.18))}</Text>
                 <Text style={styles.itemText}>Existencia: {item.f_existencia}</Text>
               </View>
               <TextInput
