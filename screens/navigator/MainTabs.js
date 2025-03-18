@@ -10,13 +10,28 @@ const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
   const route = useRoute();
-  const { clienteSeleccionado } = route.params;
+
+  const {
+    clienteSeleccionado = {},
+    balanceCliente = 0,
+    descuentoGlobal = 0,
+    descuentoCredito = 0,
+    condicionSeleccionada = null,
+    creditoDisponible = 0
+  } = route.params || {};
 
   return (
     <Tab.Navigator>
       <Tab.Screen
         name="Cliente"
-        children={() => <SelectedCliente clienteSeleccionado={clienteSeleccionado} />}
+        children={() => <SelectedCliente 
+          clienteSeleccionado={clienteSeleccionado}
+          balanceCliente={balanceCliente}
+          descuentoGlobal={descuentoGlobal}
+          descuentoCredito={descuentoCredito}
+          condicionSeleccionada={condicionSeleccionada}
+          creditoDisponible={creditoDisponible}
+          />}
         options={{ title: 'Cliente' }}
       />
       <Tab.Screen

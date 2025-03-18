@@ -19,14 +19,14 @@ import sincronizarClientes from '../sincronizaciones/clientesLocal.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
 import SelectedCliente from './components/selectedCliente.js';
 import { FlashList } from '@shopify/flash-list';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 
 
-export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado}) {
+export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado }) {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
- // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [searchTextProductos, setSearchTextProductos] = useState('');
@@ -44,6 +44,29 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
+  const navigation = useNavigation(); 
+  const parentNavigation = navigation.getParent(); // Accedemos al padre
+
+
+  useEffect(() => {
+    parentNavigation.setParams({
+      clienteSeleccionado,
+      balanceCliente,
+      descuentoGlobal,
+      descuentoCredito,
+      condicionSeleccionada,
+      creditoDisponible
+    });
+  }, [
+    clienteSeleccionado,
+    balanceCliente,
+    descuentoGlobal,
+    descuentoCredito,
+    condicionSeleccionada,
+    creditoDisponible,
+    parentNavigation
+  ]);
+
   const condicionPedido = [
     { id: 0, nombre: 'Contado' },
     { id: 1, nombre: 'Crédito' },
@@ -53,23 +76,10 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
 
   // Carga de clientes al iniciar
   // Función para obtener clientes desde la API
-  const fetchClientes = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/clientes');
-      setClientes(response.data);
-    } catch (error) {
-      console.error('❌ Error al obtener clientes:', error);
-      Alert.alert('Error', 'No se pudo obtener la lista de clientes. Verifica tu conexión.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // Cargar clientes al iniciar el componente
-  useEffect(() => {
-    fetchClientes();
-  }, []);
+
   // Buscar cuenta por cobrar del cliente seleccionado
   useEffect(() => {
     if (clienteSeleccionado) {
@@ -103,15 +113,7 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
     }
   };
 
-  const cargarClientesLocales = async () => {
-    try {
-      const clientesLocales = await database.collections.get('t_clientes').query().fetch();
-      setClientes(clientesLocales);
-    } catch (error) {
-      console.error('Error al cargar clientes locales:', error);
-    }
 
-  }
 
   // Función que decide si sincronizar o cargar localmente según la conexión
   const cargarProductos = async () => {
@@ -141,17 +143,6 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
     return () => clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    // Cargar clientes locales de inmediato
-    cargarClientesLocales();
-
-    // Verificar la conexión y sincronizar si es posible
-    NetInfo.fetch().then(netState => {
-      if (netState.isConnected) {
-        sincronizarClientes();
-      }
-    });
-  }, []);
 
 
   // Al seleccionar un cliente, carga los productos (sincronizando o desde la base local)
@@ -181,7 +172,7 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
   //para traer de pestaña selectClientes.js los datos del cliente seleccionado
 
 
-  
+
 
   // Selección de cliente si aún no se ha seleccionado
   // if (!clienteSeleccionado) {
@@ -328,7 +319,7 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
   const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
 
 
- 
+
 
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
@@ -352,19 +343,18 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
       </View>
 
       <View>
-       <SelectedCliente
-        clienteSeleccionado={clienteSeleccionado}
-        setClienteSeleccionado={setClienteSeleccionado}
-        condicionSeleccionada={condicionSeleccionada}
-        setModalVisibleCondicion={setModalVisibleCondicion}
-        balanceCliente={balanceCliente}
-        creditoDisponible={creditoDisponible}
-        descuentoGlobal={descuentoGlobal}
-        descuentoCredito={descuentoCredito}
-        setDescuentoCredito={setDescuentoCredito}
-  
-        totalNeto={totalNeto}
-      />
+        <SelectedCliente
+          clienteSeleccionado={clienteSeleccionado}
+          setClienteSeleccionado={setClienteSeleccionado}
+          condicionSeleccionada={condicionSeleccionada}
+          balanceCliente={balanceCliente}
+          creditoDisponible={creditoDisponible}
+          descuentoGlobal={descuentoGlobal}
+          descuentoCredito={descuentoCredito}
+          setDescuentoCredito={setDescuentoCredito}
+
+          totalNeto={totalNeto}
+        />
       </View>
       <View style={{ alignItems: 'center' }}>
         <TextInput
@@ -382,7 +372,7 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
           removeClippedSubviews={false}
           data={productosFiltrados}
           keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
-         // keyboardShouldPersistTaps="always"
+          // keyboardShouldPersistTaps="always"
           extraScrollHeight={20}
           renderItem={({ item }) => (
             <View style={styles.listContainer}>
