@@ -8,18 +8,13 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../api/axios.js';
 import { database } from '../src/database/database.js';
 import { styles } from '../assets/styles.js';
-import { Q } from '@nozbe/watermelondb';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import { formatear } from '../assets/formatear.js';
 import ModalOptions from './modal/condicionPedido.js';
-import MyCheckbox from './utilities/checkbox.js';
-import sincronizarClientes from '../sincronizaciones/clientesLocal.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
 import SelectedCliente from './components/selectedCliente.js';
 import { FlashList } from '@shopify/flash-list';
-import { useRoute } from '@react-navigation/native';
 
 
 
@@ -139,18 +134,6 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
 
     // Limpia el intervalo cuando el componente se desmonte
     return () => clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    // Cargar clientes locales de inmediato
-    cargarClientesLocales();
-
-    // Verificar la conexión y sincronizar si es posible
-    NetInfo.fetch().then(netState => {
-      if (netState.isConnected) {
-        sincronizarClientes();
-      }
-    });
   }, []);
 
 

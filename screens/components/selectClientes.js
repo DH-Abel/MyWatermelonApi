@@ -3,8 +3,19 @@ import { View, Text, TextInput, Pressable, TouchableOpacity } from 'react-native
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
+import NetInfo from '@react-native-community/netinfo';
+import { Q } from '@nozbe/watermelondb';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
+import { database } from '../../src/database/database';
+import { sincronizarClientes } from '../../sincronizaciones/clientesLocal';
 
+
+const condicionPedidoElegida = (option) => {
+  // Aquí puedes usar tanto el id como el name de la opción seleccionada
+  console.log("Seleccionaste:", option.id, option.nombre);
+  setCondicionSeleccionada(option);
+  setModalVisibleCondicion(false);
+};
 const SelectClientScreen = () => {
   const navigation = useNavigation();
   const [clientes, setClientes] = useState([]);
@@ -19,6 +30,29 @@ const SelectClientScreen = () => {
       console.error('❌ Error al obtener clientes:', error);
     }
   };
+  
+
+    const cargarClientesLocales = async () => {
+      try {
+        const clientesLocales = await database.collections.get('t_clientes').query().fetch();
+        setClientes(clientesLocales);
+      } catch (error) {
+        console.error('Error al cargar clientes locales:', error);
+      }
+  
+    }
+
+    useEffect(() => {
+      // Cargar clientes locales de inmediato
+      cargarClientesLocales();
+  
+      // Verificar la conexión y sincronizar si es posible
+      NetInfo.fetch().then(netState => {
+        if (netState.isConnected) {
+          sincronizarClientes();
+        }
+      });
+    }, []);
 
   useEffect(() => {
     fetchClientes();

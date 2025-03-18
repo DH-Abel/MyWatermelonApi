@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../../assets/styles';
 import MyCheckbox from '../utilities/checkbox.js';
 import { formatear } from '../../assets/formatear.js';
 
+
+const condicionPedido = [
+  { id: 0, nombre: 'Contado' },
+  { id: 1, nombre: 'Crédito' },
+  { id: 2, nombre: 'Contra entrega' },
+  { id: 3, nombre: 'Vuelta viaje' },
+];
 
 
 const SelectedCliente = ({
@@ -19,6 +26,18 @@ const SelectedCliente = ({
   setDescuentoCredito,
   totalNeto,
 }) => {
+  useEffect(() => {
+
+    if (clienteSeleccionado && clienteSeleccionado.f_termino !== undefined) {
+      const defaultCondicion = condicionPedido.find(
+        item => item.id === clienteSeleccionado.f_termino
+      );
+      if (defaultCondicion) {
+        setCondicionSeleccionada2(defaultCondicion);
+      }
+    }
+  }, [clienteSeleccionado]);
+  
 
   const navigation = useNavigation();
 
@@ -41,7 +60,7 @@ const SelectedCliente = ({
       </View>
       <Text>
         Condición seleccionada:{" "}
-        {condicionSeleccionada ? condicionSeleccionada.nombre : "Ninguna"}
+        {condicionSeleccionada2 ? condicionSeleccionada2.nombre : "Ninguna"}
       </Text>
       <Pressable
         title="Mostrar opciones"
