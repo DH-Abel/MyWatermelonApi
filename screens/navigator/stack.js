@@ -10,7 +10,6 @@ import { View } from "react-native";
 import { enableScreens } from 'react-native-screens';
 import SelectClientScreen from "../components/selectClientes";
 import SelectedCliente from "../components/selectedCliente";
-import MainTabs from "./MainTabs";
 
 enableScreens();
 
@@ -21,14 +20,9 @@ export default function MyStack() {
         <NavigationContainer>
             <Stack.Navigator>
                 <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} />
-                <Stack.Screen
-                    name="MainTabs"
-                    component={MainTabs}
-                    options={{ headerShown: false }}
-                />
-                <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{ headerShown: false }} />
-                <Stack.Screen name="SelectedCliente" component={SelectedCliente} options={{ headerShown: false }} />
-                <Stack.Screen name="Pedido" component={Pedido} options={{ headerShown: false }} />
+                <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
+                <Stack.Screen name="SelectedCliente" component={SelectedCliente} options={{headerShown: false}}/>
+                <Stack.Screen name="Pedido" component={Pedido} options={{headerShown: false}}/>
                 <Stack.Screen name="DetallesPedido" component={DetallesPedido} />
             </Stack.Navigator>
         </NavigationContainer>

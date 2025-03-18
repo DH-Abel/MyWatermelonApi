@@ -18,7 +18,7 @@ import { FlashList } from '@shopify/flash-list';
 
 
 
-export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado}) {
+export default function Pedido() {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
  // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
@@ -37,7 +37,12 @@ export default function Pedido( {clienteSeleccionado: initialClienteSeleccionado
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
   const [descuentoCredito, setDescuentoCredito] = useState(10);
 
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
+  const route = useRoute();
+
+
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(
+    route.params?.clienteSeleccionado || null
+  );
 
   const condicionPedido = [
     { id: 0, nombre: 'Contado' },
