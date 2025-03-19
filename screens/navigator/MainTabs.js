@@ -10,11 +10,13 @@ const Tab = createBottomTabNavigator();
 const MainTabs = () => {
 
   
+    const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
+    const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
+  
   const route = useRoute();
   const {
     clienteSeleccionado = {},
     balanceCliente = 0,
-    condicionSeleccionada = null,
   } = route.params || {};
 
   const [creditoDisponible, setCreditoDisponible] = useState(
@@ -22,6 +24,20 @@ const MainTabs = () => {
   );
   // Inicializa el descuento como string para que el TextInput lo maneje bien
   const [descuentoCredito, setDescuentoCredito] = useState("10");
+
+  const condicionPedido = [
+    { id: 0, nombre: 'Contado' },
+    { id: 1, nombre: 'Crédito' },
+    { id: 2, nombre: 'Contra entrega' },
+    { id: 3, nombre: 'Vuelta viaje' },
+  ];
+
+  const condicionPedidoElegida = (option) => {
+    // Aquí puedes usar tanto el id como el name de la opción seleccionada
+    console.log("Seleccionaste:", option.id, option.nombre);
+    setCondicionSeleccionada(option);
+    setModalVisibleCondicion(false);
+  };
 
 
   const descuento = () => {
@@ -36,6 +52,18 @@ const MainTabs = () => {
   };
 
   const descuentoGlobal = descuento();
+
+
+   useEffect(() => {
+      if (clienteSeleccionado && clienteSeleccionado.f_termino !== undefined) {
+        const defaultCondicion = condicionPedido.find(
+          item => item.id === clienteSeleccionado.f_termino
+        );
+        if (defaultCondicion) {
+          setCondicionSeleccionada(defaultCondicion);
+        }
+      }
+    }, [clienteSeleccionado]);
 
   
 
@@ -53,6 +81,10 @@ const MainTabs = () => {
             condicionSeleccionada={condicionSeleccionada}
             creditoDisponible={creditoDisponible}
             setCreditoDisponible={setCreditoDisponible}
+            condicionPedido={condicionPedido}
+            condicionPedidoElegida={condicionPedidoElegida}
+            modalVisibleCondicion={modalVisibleCondicion}
+            setModalVisibleCondicion={setModalVisibleCondicion}
           />
         )}
         options={{ title: 'Cliente' }}
@@ -66,6 +98,8 @@ const MainTabs = () => {
             setCreditoDisponible={setCreditoDisponible}
             descuentoCredito={descuentoCredito}
             setDescuentoCredito={setDescuentoCredito}
+            modalVisibleCondicion={modalVisibleCondicion}
+            setModalVisibleCondicion={setModalVisibleCondicion}
           />
         )}
         options={{ title: 'Productos' }}

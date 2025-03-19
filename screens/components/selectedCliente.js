@@ -18,10 +18,13 @@ const SelectedCliente = ({
   setDescuentoCredito,
   descuentoGlobal,
   totalNeto,
+  condicionSeleccionada,
+  condicionPedido,
+  condicionPedidoElegida,
+  setModalVisibleCondicion,
+  modalVisibleCondicion,
 }) => {
 
-  const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
-  const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [balanceCliente, setBalanceCliente] = useState(0);
@@ -36,19 +39,6 @@ const SelectedCliente = ({
   }, [clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
   
-  const condicionPedido = [
-    { id: 0, nombre: 'Contado' },
-    { id: 1, nombre: 'Crédito' },
-    { id: 2, nombre: 'Contra entrega' },
-    { id: 3, nombre: 'Vuelta viaje' },
-  ];
-
-  const condicionPedidoElegida = (option) => {
-    // Aquí puedes usar tanto el id como el name de la opción seleccionada
-    console.log("Seleccionaste:", option.id, option.nombre);
-    setCondicionSeleccionada(option);
-    setModalVisibleCondicion(false);
-  };
 
   useEffect(() => {
     if (clienteSeleccionado) {
@@ -67,16 +57,7 @@ const SelectedCliente = ({
     }
   }, [clienteSeleccionado]);
 
-  useEffect(() => {
-    if (clienteSeleccionado && clienteSeleccionado.f_termino !== undefined) {
-      const defaultCondicion = condicionPedido.find(
-        item => item.id === clienteSeleccionado.f_termino
-      );
-      if (defaultCondicion) {
-        setCondicionSeleccionada(defaultCondicion);
-      }
-    }
-  }, [clienteSeleccionado]);
+ 
   
 
 
@@ -131,7 +112,7 @@ const SelectedCliente = ({
             onChangeText={setDescuentoCredito}
           />
           <MyCheckbox />
-          <Text style={styles.title}>Total del pedido: {formatear(totalNeto)}</Text>
+         
         </View>
         <View style={{ flex: 1 }}>
           <TextInput />
