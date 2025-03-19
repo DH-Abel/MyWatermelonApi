@@ -8,20 +8,25 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../api/axios.js';
 import { database } from '../src/database/database.js';
 import { styles } from '../assets/styles.js';
+import { Q } from '@nozbe/watermelondb';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import { formatear } from '../assets/formatear.js';
 import ModalOptions from './modal/condicionPedido.js';
+import MyCheckbox from './utilities/checkbox.js';
+import sincronizarClientes from '../sincronizaciones/clientesLocal.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
 import SelectedCliente from './components/selectedCliente.js';
 import { FlashList } from '@shopify/flash-list';
+import { useNavigation } from '@react-navigation/native';
 
 
 
-export default function Pedido() {
+export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado, creditoDisponible,setCreditoDisponible = () => {} }) {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
- // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [searchTextProductos, setSearchTextProductos] = useState('');
@@ -37,12 +42,30 @@ export default function Pedido() {
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
   const [descuentoCredito, setDescuentoCredito] = useState(10);
 
-  const route = useRoute();
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
+
+  const navigation = useNavigation(); 
+  const parentNavigation = navigation.getParent(); // Accedemos al padre
+
+  const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
 
 
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(
-    route.params?.clienteSeleccionado || null
-  );
+  useEffect(() => {
+    parentNavigation.setParams({
+      clienteSeleccionado,
+      balanceCliente,
+      descuentoCredito,
+      condicionSeleccionada,
+      creditoDisponible
+    });
+  }, [
+    clienteSeleccionado,
+    balanceCliente,
+    descuentoCredito,
+    condicionSeleccionada,
+    creditoDisponible,
+    parentNavigation
+  ]);
 
   const condicionPedido = [
     { id: 0, nombre: 'Contado' },
@@ -51,26 +74,6 @@ export default function Pedido() {
     { id: 3, nombre: 'Vuelta viaje' },
   ];
 
-  // Carga de clientes al iniciar
-  // Función para obtener clientes desde la API
-  const fetchClientes = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/clientes');
-      setClientes(response.data);
-    } catch (error) {
-      console.error('❌ Error al obtener clientes:', error);
-      Alert.alert('Error', 'No se pudo obtener la lista de clientes. Verifica tu conexión.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Cargar clientes al iniciar el componente
-  useEffect(() => {
-    fetchClientes();
-  }, []);
-  // Buscar cuenta por cobrar del cliente seleccionado
   useEffect(() => {
     if (clienteSeleccionado) {
       const fetchClientesCxc = async () => {
@@ -88,6 +91,19 @@ export default function Pedido() {
     }
   }, [clienteSeleccionado]);
 
+  useEffect(() => {
+    // Si el total del pedido cambia, actualizamos el crédito disponible
+    // Por ejemplo, si el crédito disponible se reduce en función del total del pedido:
+    const nuevoCredito = (clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente);
+    setCreditoDisponible(nuevoCredito);
+  }, [totalBruto, clienteSeleccionado,balanceCliente, setCreditoDisponible]);
+
+
+  // Cargar clientes al iniciar el componente
+
+  // Buscar cuenta por cobrar del cliente seleccionado
+  
+
 
   // Función para cargar productos desde la base de datos local
   const cargarProductosLocales = async () => {
@@ -103,15 +119,7 @@ export default function Pedido() {
     }
   };
 
-  const cargarClientesLocales = async () => {
-    try {
-      const clientesLocales = await database.collections.get('t_clientes').query().fetch();
-      setClientes(clientesLocales);
-    } catch (error) {
-      console.error('Error al cargar clientes locales:', error);
-    }
 
-  }
 
   // Función que decide si sincronizar o cargar localmente según la conexión
   const cargarProductos = async () => {
@@ -142,6 +150,7 @@ export default function Pedido() {
   }, []);
 
 
+
   // Al seleccionar un cliente, carga los productos (sincronizando o desde la base local)
   useEffect(() => {
     if (clienteSeleccionado) {
@@ -169,7 +178,7 @@ export default function Pedido() {
   //para traer de pestaña selectClientes.js los datos del cliente seleccionado
 
 
-  
+
 
   // Selección de cliente si aún no se ha seleccionado
   // if (!clienteSeleccionado) {
@@ -294,7 +303,6 @@ export default function Pedido() {
   };
 
 
-  const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
 
 
 
@@ -313,10 +321,10 @@ export default function Pedido() {
   const descuentoAplicado = descuento() * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
-  const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
+  //const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
 
 
- 
+
 
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
@@ -340,21 +348,30 @@ export default function Pedido() {
       </View>
 
       <View>
-       <SelectedCliente
-        clienteSeleccionado={clienteSeleccionado}
-        setClienteSeleccionado={setClienteSeleccionado}
-        condicionSeleccionada={condicionSeleccionada}
-        setModalVisibleCondicion={setModalVisibleCondicion}
-        balanceCliente={balanceCliente}
-        creditoDisponible={creditoDisponible}
-        descuentoGlobal={descuentoGlobal}
-        descuentoCredito={descuentoCredito}
-        setDescuentoCredito={setDescuentoCredito}
-  
-        totalNeto={totalNeto}
-      />
+        {/* <SelectedCliente
+          clienteSeleccionado={clienteSeleccionado}
+          setClienteSeleccionado={setClienteSeleccionado}
+          condicionSeleccionada={condicionSeleccionada}
+          balanceCliente={balanceCliente}
+          creditoDisponible={creditoDisponible}
+          setCreditoDisponible={setCreditoDisponible}
+          descuentoGlobal={descuentoGlobal}
+          descuentoCredito={descuentoCredito}
+          setDescuentoCredito={setDescuentoCredito}
+
+          totalNeto={totalNeto}
+        /> */}
       </View>
-      <View style={{ alignItems: 'center' }}>
+      <View style={{ alignItems: 'center'}}>
+        <Text style={{flex: 2, textAlign: 'center'}}>
+          Credito disponible: {formatear(creditoDisponible)}
+        </Text>
+        <TextInput
+                    style={{borderWidth: 1, borderColor: 'black' , width: 100, height: 40, textAlign: 'center'} }
+                    placeholder="Descuento"
+                    value={descuentoCredito}
+                    onChangeText={setDescuentoCredito}
+                  />
         <TextInput
           style={styles.input}
           placeholder="Buscar por nombre o referencia"
@@ -367,10 +384,11 @@ export default function Pedido() {
       {/* Listado de productos hacer pedido*/}
       <View style={styles.listContainer2}>
         <FlashList
+          estimatedItemSize={93}
           removeClippedSubviews={false}
           data={productosFiltrados}
           keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
-         // keyboardShouldPersistTaps="always"
+          // keyboardShouldPersistTaps="always"
           extraScrollHeight={20}
           renderItem={({ item }) => (
             <View style={styles.listContainer}>

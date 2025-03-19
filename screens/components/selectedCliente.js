@@ -1,43 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import { React, useState, useEffect } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../../assets/styles';
 import MyCheckbox from '../utilities/checkbox.js';
 import { formatear } from '../../assets/formatear.js';
+import api from '../../api/axios';
+import  ModalOptions  from '../modal/condicionPedido';
 
-
-const condicionPedido = [
-  { id: 0, nombre: 'Contado' },
-  { id: 1, nombre: 'Crédito' },
-  { id: 2, nombre: 'Contra entrega' },
-  { id: 3, nombre: 'Vuelta viaje' },
-];
 
 
 const SelectedCliente = ({
   clienteSeleccionado,
   setClienteSeleccionado,
-  condicionSeleccionada,
-  setModalVisibleCondicion,
-  balanceCliente,
   creditoDisponible,
-  descuentoGlobal,
+  setCreditoDisponible,
   descuentoCredito,
   setDescuentoCredito,
   totalNeto,
 }) => {
-  useEffect(() => {
 
+  const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
+  const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [balanceCliente, setBalanceCliente] = useState(0);
+
+  const descuento = () => {
+    if (clienteSeleccionado && condicionSeleccionada) {
+      if (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2) {
+        return clienteSeleccionado.f_descuento_maximo
+      } else {
+        return clienteSeleccionado.f_descuento1;
+      }
+    }
+    return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
+  };
+  const descuentoGlobal = descuento();
+
+  useEffect(() => {
+    if (clienteSeleccionado) {
+      // Por ejemplo: límite de crédito menos el balance
+      const nuevoCredito = clienteSeleccionado.f_limite_credito - balanceCliente;
+      setCreditoDisponible(nuevoCredito);
+    }
+  }, [clienteSeleccionado, balanceCliente, setCreditoDisponible]);
+
+  
+  const condicionPedido = [
+    { id: 0, nombre: 'Contado' },
+    { id: 1, nombre: 'Crédito' },
+    { id: 2, nombre: 'Contra entrega' },
+    { id: 3, nombre: 'Vuelta viaje' },
+  ];
+
+  const condicionPedidoElegida = (option) => {
+    // Aquí puedes usar tanto el id como el name de la opción seleccionada
+    console.log("Seleccionaste:", option.id, option.nombre);
+    setCondicionSeleccionada(option);
+    setModalVisibleCondicion(false);
+  };
+
+  useEffect(() => {
+    if (clienteSeleccionado) {
+      const fetchClientesCxc = async () => {
+        try {
+          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id}`);
+          setBalanceCliente(response.data.f_balance || 0);
+        } catch (error) {
+          console.error('❌ Error al obtener cxc:', error);
+          setBalanceCliente(0);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchClientesCxc();
+    }
+  }, [clienteSeleccionado]);
+
+  useEffect(() => {
     if (clienteSeleccionado && clienteSeleccionado.f_termino !== undefined) {
       const defaultCondicion = condicionPedido.find(
         item => item.id === clienteSeleccionado.f_termino
       );
       if (defaultCondicion) {
-        setCondicionSeleccionada2(defaultCondicion);
+        setCondicionSeleccionada(defaultCondicion);
       }
     }
   }, [clienteSeleccionado]);
   
+
 
   const navigation = useNavigation();
 
@@ -51,7 +102,7 @@ const SelectedCliente = ({
         </View>
         <View style={{ borderWidth: 1, borderColor: 'blue', flex: 1 }}>
           <Pressable
-            onPress={() => { navigation.replace('SelectClientScreen')}}
+            onPress={() => { navigation.replace('SelectClientScreen') }}
             style={[styles.button2, { marginBottom: 10 }]}
           >
             <Text style={styles.buttonText2}>✍️</Text>
@@ -60,7 +111,7 @@ const SelectedCliente = ({
       </View>
       <Text>
         Condición seleccionada:{" "}
-        {condicionSeleccionada2 ? condicionSeleccionada2.nombre : "Ninguna"}
+        {condicionSeleccionada ? condicionSeleccionada.nombre : "Ninguna"}
       </Text>
       <Pressable
         title="Mostrar opciones"
@@ -96,7 +147,16 @@ const SelectedCliente = ({
           <TextInput />
         </View>
       </View>
+      <ModalOptions
+          modalVisibleCondicion={modalVisibleCondicion}
+          setModalVisibleCondicion={setModalVisibleCondicion}
+          condicionPedido={condicionPedido}
+          condicionPedidoElegida={condicionPedidoElegida}
+        />
     </View>
+
+
+
   );
 };
 

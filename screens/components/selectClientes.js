@@ -4,58 +4,58 @@ import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
-import { Q } from '@nozbe/watermelondb';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
+import { Q } from '@nozbe/watermelondb';
+import { useDatabase } from '@nozbe/watermelondb/hooks';
 import { sincronizarClientes } from '../../sincronizaciones/clientesLocal';
 
-
-const condicionPedidoElegida = (option) => {
-  // Aquí puedes usar tanto el id como el name de la opción seleccionada
-  console.log("Seleccionaste:", option.id, option.nombre);
-  setCondicionSeleccionada(option);
-  setModalVisibleCondicion(false);
-};
 const SelectClientScreen = () => {
   const navigation = useNavigation();
-  const [clientes, setClientes] = useState([]);
   const [searchTextClientes, setSearchTextClientes] = useState('');
+  const [clientes, setClientes] = useState([]);
 
-  // Función para obtener clientes desde la API
   const fetchClientes = async () => {
+    setLoading(true);
     try {
       const response = await api.get('/clientes');
       setClientes(response.data);
     } catch (error) {
       console.error('❌ Error al obtener clientes:', error);
+      Alert.alert('Error', 'No se pudo obtener la lista de clientes. Verifica tu conexión.');
+    } finally {
+      setLoading(false);
     }
   };
-  
 
-    const cargarClientesLocales = async () => {
-      try {
-        const clientesLocales = await database.collections.get('t_clientes').query().fetch();
-        setClientes(clientesLocales);
-      } catch (error) {
-        console.error('Error al cargar clientes locales:', error);
-      }
-  
+
+
+  const cargarClientesLocales = async () => {
+    try {
+      const clientesLocales = await database.collections.get('t_clientes').query().fetch();
+      setClientes(clientesLocales);
+    } catch (error) {
+      console.error('Error al cargar clientes locales:', error);
     }
 
-    useEffect(() => {
-      // Cargar clientes locales de inmediato
-      cargarClientesLocales();
-  
-      // Verificar la conexión y sincronizar si es posible
-      NetInfo.fetch().then(netState => {
-        if (netState.isConnected) {
-          sincronizarClientes();
-        }
-      });
-    }, []);
+  }
 
+
+  // Función para obtener clientes desde la API
   useEffect(() => {
     fetchClientes();
+  }, []);
+
+  useEffect(() => {
+    // Cargar clientes locales de inmediato
+    cargarClientesLocales();
+
+    // Verificar la conexión y sincronizar si es posible
+    NetInfo.fetch().then(netState => {
+      if (netState.isConnected) {
+        sincronizarClientes();
+      }
+    });
   }, []);
 
   const clientesFiltrados = clientes.filter(cliente =>
@@ -65,7 +65,7 @@ const SelectClientScreen = () => {
 
   const handleSelect = (cliente) => {
     // Aquí puedes guardar el cliente seleccionado en un estado global o pasarlo por params
-    navigation.replace('Pedido', { clienteSeleccionado: cliente });
+    navigation.replace('MainTabs', { clienteSeleccionado: cliente });
   };
 
   return (
