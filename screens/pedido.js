@@ -304,9 +304,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   };
 
 
-
-
-
   const descuento = () => {
     if (clienteSeleccionado && condicionSeleccionada) {
       if (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2) {
@@ -318,7 +315,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
   };
 
-  const descuentoGlobal = descuento();
   const descuentoAplicado = descuento() * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);

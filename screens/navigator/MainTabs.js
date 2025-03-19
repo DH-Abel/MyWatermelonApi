@@ -14,7 +14,6 @@ const MainTabs = () => {
   const {
     clienteSeleccionado = {},
     balanceCliente = 0,
-    descuentoGlobal = 0,
     condicionSeleccionada = null,
   } = route.params || {};
 
@@ -23,6 +22,20 @@ const MainTabs = () => {
   );
   // Inicializa el descuento como string para que el TextInput lo maneje bien
   const [descuentoCredito, setDescuentoCredito] = useState("10");
+
+
+  const descuento = () => {
+    if (clienteSeleccionado && condicionSeleccionada) {
+      if (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2) {
+        return clienteSeleccionado.f_descuento_maximo
+      } else {
+        return clienteSeleccionado.f_descuento1;
+      }
+    }
+    return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
+  };
+
+  const descuentoGlobal = descuento();
 
   
 
