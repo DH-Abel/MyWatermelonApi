@@ -13,7 +13,7 @@ const SelectedCliente = ({
   clienteSeleccionado,
   setClienteSeleccionado,
   creditoDisponible,
-  descuentoGlobal,
+  setCreditoDisponible,
   descuentoCredito,
   setDescuentoCredito,
   totalNeto,
@@ -22,15 +22,36 @@ const SelectedCliente = ({
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
   const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
   const [loading, setLoading] = useState(true);
-  
 
+  const [balanceCliente, setBalanceCliente] = useState(0);
+
+  const descuento = () => {
+    if (clienteSeleccionado && condicionSeleccionada) {
+      if (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2) {
+        return clienteSeleccionado.f_descuento_maximo
+      } else {
+        return clienteSeleccionado.f_descuento1;
+      }
+    }
+    return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
+  };
+  const descuentoGlobal = descuento();
+
+  useEffect(() => {
+    if (clienteSeleccionado) {
+      // Por ejemplo: límite de crédito menos el balance
+      const nuevoCredito = clienteSeleccionado.f_limite_credito - balanceCliente;
+      setCreditoDisponible(nuevoCredito);
+    }
+  }, [clienteSeleccionado, balanceCliente, setCreditoDisponible]);
+
+  
   const condicionPedido = [
     { id: 0, nombre: 'Contado' },
     { id: 1, nombre: 'Crédito' },
     { id: 2, nombre: 'Contra entrega' },
     { id: 3, nombre: 'Vuelta viaje' },
   ];
-  const [balanceCliente, setBalanceCliente] = useState(0);
 
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada

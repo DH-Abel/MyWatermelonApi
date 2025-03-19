@@ -23,7 +23,7 @@ import { useNavigation } from '@react-navigation/native';
 
 
 
-export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado }) {
+export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado, creditoDisponible,setCreditoDisponible = () => {} }) {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
   // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
@@ -47,12 +47,13 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const navigation = useNavigation(); 
   const parentNavigation = navigation.getParent(); // Accedemos al padre
 
+  const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
+
 
   useEffect(() => {
     parentNavigation.setParams({
       clienteSeleccionado,
       balanceCliente,
-      descuentoGlobal,
       descuentoCredito,
       condicionSeleccionada,
       creditoDisponible
@@ -60,7 +61,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   }, [
     clienteSeleccionado,
     balanceCliente,
-    descuentoGlobal,
     descuentoCredito,
     condicionSeleccionada,
     creditoDisponible,
@@ -74,13 +74,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     { id: 3, nombre: 'Vuelta viaje' },
   ];
 
-  // Carga de clientes al iniciar
-  // Función para obtener clientes desde la API
-
-
-  // Cargar clientes al iniciar el componente
-
-  // Buscar cuenta por cobrar del cliente seleccionado
   useEffect(() => {
     if (clienteSeleccionado) {
       const fetchClientesCxc = async () => {
@@ -97,6 +90,19 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       fetchClientesCxc();
     }
   }, [clienteSeleccionado]);
+
+  useEffect(() => {
+    // Si el total del pedido cambia, actualizamos el crédito disponible
+    // Por ejemplo, si el crédito disponible se reduce en función del total del pedido:
+    const nuevoCredito = (clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente);
+    setCreditoDisponible(nuevoCredito);
+  }, [totalBruto, clienteSeleccionado,balanceCliente, setCreditoDisponible]);
+
+
+  // Cargar clientes al iniciar el componente
+
+  // Buscar cuenta por cobrar del cliente seleccionado
+  
 
 
   // Función para cargar productos desde la base de datos local
@@ -297,7 +303,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   };
 
 
-  const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
 
 
 
@@ -316,7 +321,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const descuentoAplicado = descuento() * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
-  const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
+  //const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
 
 
 
@@ -343,20 +348,30 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       </View>
 
       <View>
-        <SelectedCliente
+        {/* <SelectedCliente
           clienteSeleccionado={clienteSeleccionado}
           setClienteSeleccionado={setClienteSeleccionado}
           condicionSeleccionada={condicionSeleccionada}
           balanceCliente={balanceCliente}
           creditoDisponible={creditoDisponible}
+          setCreditoDisponible={setCreditoDisponible}
           descuentoGlobal={descuentoGlobal}
           descuentoCredito={descuentoCredito}
           setDescuentoCredito={setDescuentoCredito}
 
           totalNeto={totalNeto}
-        />
+        /> */}
       </View>
-      <View style={{ alignItems: 'center' }}>
+      <View style={{ alignItems: 'center'}}>
+        <Text style={{flex: 2, textAlign: 'center'}}>
+          Credito disponible: {formatear(creditoDisponible)}
+        </Text>
+        <TextInput
+                    style={{borderWidth: 1, borderColor: 'black' , width: 100, height: 40, textAlign: 'center'} }
+                    placeholder="Descuento"
+                    value={descuentoCredito}
+                    onChangeText={setDescuentoCredito}
+                  />
         <TextInput
           style={styles.input}
           placeholder="Buscar por nombre o referencia"
@@ -369,6 +384,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       {/* Listado de productos hacer pedido*/}
       <View style={styles.listContainer2}>
         <FlashList
+          estimatedItemSize={93}
           removeClippedSubviews={false}
           data={productosFiltrados}
           keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
