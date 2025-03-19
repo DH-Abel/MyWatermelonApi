@@ -23,7 +23,11 @@ import { useNavigation } from '@react-navigation/native';
 
 
 
-export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado, creditoDisponible,setCreditoDisponible = () => {} }) {
+export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado,
+   creditoDisponible,setCreditoDisponible = () => {},
+    descuentoCredito, setDescuentoCredito
+  
+  }) {
   // Estados para clientes y productos
   const [clientes, setClientes] = useState([]);
   // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
@@ -40,7 +44,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const [isSaving, setIsSaving] = useState(false);
   const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
-  const [descuentoCredito, setDescuentoCredito] = useState(10);
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
@@ -54,14 +57,12 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     parentNavigation.setParams({
       clienteSeleccionado,
       balanceCliente,
-      descuentoCredito,
       condicionSeleccionada,
       creditoDisponible
     });
   }, [
     clienteSeleccionado,
     balanceCliente,
-    descuentoCredito,
     condicionSeleccionada,
     creditoDisponible,
     parentNavigation

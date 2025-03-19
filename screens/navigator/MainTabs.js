@@ -15,16 +15,16 @@ const MainTabs = () => {
     clienteSeleccionado = {},
     balanceCliente = 0,
     descuentoGlobal = 0,
-    descuentoCredito = 0,
     condicionSeleccionada = null,
   } = route.params || {};
 
-  
-
-  // Levantamos el estado de crédito disponible en el padre
   const [creditoDisponible, setCreditoDisponible] = useState(
     clienteSeleccionado.f_limite_credito ? clienteSeleccionado.f_limite_credito - balanceCliente : 0
   );
+  // Inicializa el descuento como string para que el TextInput lo maneje bien
+  const [descuentoCredito, setDescuentoCredito] = useState("10");
+
+  
 
   return (
     <Tab.Navigator>
@@ -36,6 +36,7 @@ const MainTabs = () => {
             balanceCliente={balanceCliente}
             descuentoGlobal={descuentoGlobal}
             descuentoCredito={descuentoCredito}
+            setDescuentoCredito={setDescuentoCredito}
             condicionSeleccionada={condicionSeleccionada}
             creditoDisponible={creditoDisponible}
             setCreditoDisponible={setCreditoDisponible}
@@ -50,6 +51,8 @@ const MainTabs = () => {
             clienteSeleccionado={clienteSeleccionado} 
             creditoDisponible={creditoDisponible}
             setCreditoDisponible={setCreditoDisponible}
+            descuentoCredito={descuentoCredito}
+            setDescuentoCredito={setDescuentoCredito}
           />
         )}
         options={{ title: 'Productos' }}
