@@ -2,8 +2,6 @@ import api from '../api/axios';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 
-
-
 let syncClientesInProgress = false;
 const normalizeString = (value) => {
   if (value === null || value === undefined) return '';
@@ -15,7 +13,9 @@ const normalizeNumber = (value) => {
   return Number(value);
 };
 const sincronizarClientes = async () => {
-    if (syncClientesInProgress) return; // Evitar concurrencia
+  
+
+    if (syncClientesInProgress) return; // Evitar concusrrencia
     syncClientesInProgress = true;
     try {
       const response = await api.get('/clientes');

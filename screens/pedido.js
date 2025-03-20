@@ -162,16 +162,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   }, [clienteSeleccionado]);
 
 
-  useEffect(() => {
-    if (clienteSeleccionado && clienteSeleccionado.f_termino !== undefined) {
-      const defaultCondicion = condicionPedido.find(
-        item => item.id === clienteSeleccionado.f_termino
-      );
-      if (defaultCondicion) {
-        setCondicionSeleccionada(defaultCondicion);
-      }
-    }
-  }, [clienteSeleccionado]);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;

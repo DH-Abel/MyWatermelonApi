@@ -14,6 +14,7 @@ const SelectClientScreen = () => {
   const navigation = useNavigation();
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [clientes, setClientes] = useState([]);
+  const [loading,setLoading] = useState(false);
 
   const fetchClientes = async () => {
     setLoading(true);
@@ -28,8 +29,6 @@ const SelectClientScreen = () => {
     }
   };
 
-
-
   const cargarClientesLocales = async () => {
     try {
       const clientesLocales = await database.collections.get('t_clientes').query().fetch();
@@ -41,19 +40,20 @@ const SelectClientScreen = () => {
   }
 
 
-  // Función para obtener clientes desde la API
+  //Función para obtener clientes desde la API
   useEffect(() => {
-    fetchClientes();
-  }, []);
+  fetchClientes();
+ }, []);
 
   useEffect(() => {
-    // Cargar clientes locales de inmediato
     cargarClientesLocales();
-
-    // Verificar la conexión y sincronizar si es posible
+    console.log('Sincronización de clientes iniciada');
     NetInfo.fetch().then(netState => {
       if (netState.isConnected) {
-        sincronizarClientes();
+        sincronizarClientes().then(()=>{
+          console.log('Sincronización de clientes completada');
+          cargarClientesLocales();
+        })
       }
     });
   }, []);
@@ -71,7 +71,7 @@ const SelectClientScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Selecciona un Cliente</Text>
-      <Pressable title="Cargar Clientes" onPress={fetchClientes} />
+      <Pressable title="Cargar Clientes"  />
       <TextInput
         style={styles.input}
         placeholder="Buscar cliente..."
