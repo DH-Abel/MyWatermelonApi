@@ -112,7 +112,18 @@ const SelectedCliente = ({
             onChangeText={setDescuentoCredito}
           />
           <MyCheckbox />
-         
+
+          <TextInput
+            style={{
+              borderWidth: 1,
+              borderColor: 'black',
+              borderRadius: 5,
+              padding: 10,
+              marginBottom: 10,}}
+            placeholder="Nota"
+            multiline
+            numberOfLines={8}
+         />
         </View>
         <View style={{ flex: 1 }}>
           <TextInput />

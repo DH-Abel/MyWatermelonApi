@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ActivityIndicator,TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
+  View, Text, ActivityIndicator, TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,12 +20,12 @@ const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
 
 export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado,
-   creditoDisponible,setCreditoDisponible = () => {},
-    descuentoCredito, setDescuentoCredito,
-    setModalVisibleCondicion, modalVisibleCondicion,
-    descuentoGlobal
-  
-  }) {
+  creditoDisponible, setCreditoDisponible = () => { },
+  descuentoCredito, setDescuentoCredito,
+  setModalVisibleCondicion, modalVisibleCondicion,
+  descuentoGlobal
+
+}) {
   // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
   const [searchTextProductos, setSearchTextProductos] = useState('');
@@ -43,7 +43,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
   const parentNavigation = navigation.getParent(); // Accedemos al padre
   const hasLoadedPedido = React.useRef(false);
 
@@ -56,7 +56,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       balanceCliente,
       condicionSeleccionada,
       creditoDisponible
-      
+
     });
   }, [
     clienteSeleccionado,
@@ -95,13 +95,13 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     // Por ejemplo, si el crédito disponible se reduce en función del total del pedido:
     const nuevoCredito = (clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente);
     setCreditoDisponible(nuevoCredito);
-  }, [totalBruto, clienteSeleccionado,balanceCliente, setCreditoDisponible]);
+  }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
 
   // Cargar clientes al iniciar el componente
 
   // Buscar cuenta por cobrar del cliente seleccionado
-  
+
 
 
   // Función para cargar productos desde la base de datos local
@@ -176,9 +176,9 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     };
     guardarPedidoAsync();
   }, [pedido]);
-  
-  
-  
+
+
+
 
   useFocusEffect(
     React.useCallback(() => {
@@ -214,7 +214,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       cargarPedidoGuardado();
     }, [])
   );
-  
+
   useEffect(() => {
     const guardarPedidoAsync = async () => {
       try {
@@ -235,20 +235,20 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     };
     guardarPedidoAsync();
   }, [pedido]);
-  
-  
-  
-  
-  
+
+
+
+
+
 
   useEffect(() => {
     pedidoRef.current = pedido;
   }, [pedido]);
-  
-  
-  
-  
-  
+
+
+
+
+
 
 
 
@@ -256,25 +256,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
   }
 
-  //para traer de pestaña selectClientes.js los datos del cliente seleccionado
-
-
-
-
-  // Selección de cliente si aún no se ha seleccionado
-  // if (!clienteSeleccionado) {
-  //   return (
-  //     <SelectClientScreen
-  //       clientes={clientes}
-  //       searchTextClientes={searchTextClientes}
-  //       setSearchTextClientes={setSearchTextClientes}
-  //       fetchClientes={fetchClientes}
-  //       setClienteSeleccionado={setClienteSeleccionado}
-  //     />
-  //   )
-  // }
-
-  // Filtrar productos según búsqueda
   const productosFiltrados = productos.filter(producto =>
     (producto.f_descripcion || '').toLowerCase().includes(searchTextProductos.toLowerCase()) ||
     (producto.f_referencia ? producto.f_referencia.toString().toLowerCase() : '').includes(searchTextProductos.toLowerCase())
@@ -386,7 +367,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       setBalanceCliente(0);
       setDescuentoCredito(0);
 
-//RESETEAR EL STACK NAVIGATOR
+      //RESETEAR EL STACK NAVIGATOR
 
       navigation.reset({
         index: 0,
@@ -417,7 +398,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
   };
 
-  const descuentoAplicado = (descuentoGlobal/1000) * totalBruto;
+  const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
   //const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
@@ -446,34 +427,24 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
         />
       </View>
 
-      <View>
-        {/* <SelectedCliente
-          clienteSeleccionado={clienteSeleccionado}
-          setClienteSeleccionado={setClienteSeleccionado}
-          condicionSeleccionada={condicionSeleccionada}
-          balanceCliente={balanceCliente}
-          creditoDisponible={creditoDisponible}
-          setCreditoDisponible={setCreditoDisponible}
-          descuentoGlobal={descuentoGlobal}
-          descuentoCredito={descuentoCredito}
-          setDescuentoCredito={setDescuentoCredito}
 
-          totalNeto={totalNeto}
-        /> */}
-      </View>
-      <View style={{ alignItems: 'center'}}>
-        <Text style={{flex: 2, textAlign: 'center'}}>
+      <View style={{ alignItems: 'center' }}>
+        <Text style={{ flex: 2, textAlign: 'center' }}>
           Credito disponible: {formatear(creditoDisponible)}
         </Text>
         <TextInput
-                    style={{borderWidth: 1, borderColor: 'black' , width: 100, height: 40, textAlign: 'center'} }
-                    placeholder="Descuento"
-                    value={descuentoCredito}
-                    onChangeText={setDescuentoCredito}
-                  />
+          style={{ borderWidth: 1, borderColor: 'black', width: 100, height: 40, textAlign: 'center' }}
+          placeholder="Descuento"
+          value={descuentoCredito}
+          onChangeText={setDescuentoCredito}
+        />
+        <Pressable style={styles.button} onPress={() => setPedido({})}>
+          <Text>Limpiar</Text>
+        </Pressable>
+
         <TextInput
           style={styles.input}
-          placeholder="Buscar por nombre o referencia"
+          placeholder="Buscar producto"
           value={searchTextProductos}
           onChangeText={setSearchTextProductos}
         />
