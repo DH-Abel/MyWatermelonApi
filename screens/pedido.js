@@ -15,7 +15,6 @@ import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import { formatear } from '../assets/formatear.js';
 import ModalOptions from './modal/condicionPedido.js';
 import MyCheckbox from './utilities/checkbox.js';
-import sincronizarClientes from '../sincronizaciones/clientesLocal.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
 import SelectedCliente from './components/selectedCliente.js';
 import { FlashList } from '@shopify/flash-list';

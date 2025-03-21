@@ -3,8 +3,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import SelectedCliente from '../components/selectedCliente';
 import Pedido from '../pedido';
 import { useRoute } from '@react-navigation/native';
-import api from '../../api/axios';
-import { use } from 'react';
 
 const Tab = createBottomTabNavigator();
 

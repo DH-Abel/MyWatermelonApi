@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
@@ -7,14 +7,13 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
 import { Q } from '@nozbe/watermelondb';
-import { useDatabase } from '@nozbe/watermelondb/hooks';
-import { sincronizarClientes } from '../../sincronizaciones/clientesLocal';
+import  sincronizarClientes  from '../../sincronizaciones/clientesLocal';
 
 const SelectClientScreen = () => {
   const navigation = useNavigation();
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [clientes, setClientes] = useState([]);
-  const [loading,setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const fetchClientes = async () => {
     setLoading(true);
@@ -36,26 +35,28 @@ const SelectClientScreen = () => {
     } catch (error) {
       console.error('Error al cargar clientes locales:', error);
     }
+  };
 
-  }
+  // Función para sincronizar y luego cargar clientes locales
+  const cargarClientes = async () => {
+    // Primero carga la data local
+    await cargarClientesLocales();
 
-
-  //Función para obtener clientes desde la API
-  useEffect(() => {
-  fetchClientes();
- }, []);
-
-  useEffect(() => {
-    cargarClientesLocales();
-    console.log('Sincronización de clientes iniciada');
-    NetInfo.fetch().then(netState => {
-      if (netState.isConnected) {
-        sincronizarClientes().then(()=>{
-          console.log('Sincronización de clientes completada');
-          cargarClientesLocales();
-        })
+    // Luego, si hay conexión, sincroniza y recarga la data local
+    const netState = await NetInfo.fetch();
+    if (netState.isConnected) {
+      try {
+        await sincronizarClientes();
+        await cargarClientesLocales();
+      } catch (error) {
+        console.error("Error al sincronizar, se mantienen los clientes locales:", error);
       }
-    });
+    }
+  };
+
+  useEffect(() => {
+    // Elimina el fetch directo de la API si quieres que la fuente principal sea la base de datos local
+    cargarClientes();
   }, []);
 
   const clientesFiltrados = clientes.filter(cliente =>
@@ -64,14 +65,13 @@ const SelectClientScreen = () => {
   );
 
   const handleSelect = (cliente) => {
-    // Aquí puedes guardar el cliente seleccionado en un estado global o pasarlo por params
     navigation.replace('MainTabs', { clienteSeleccionado: cliente });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Selecciona un Cliente</Text>
-      <Pressable title="Cargar Clientes"  />
+      <Pressable title="Cargar Clientes" onPress={cargarClientes} />
       <TextInput
         style={styles.input}
         placeholder="Buscar cliente..."
