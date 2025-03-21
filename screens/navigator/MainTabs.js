@@ -1,4 +1,4 @@
-import React, { useState,useEffect,useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import SelectedCliente from '../components/selectedCliente';
 import Pedido from '../pedido';
@@ -8,7 +8,7 @@ const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
 
-  
+
   const route = useRoute();
   const {
     clienteSeleccionado = {},
@@ -33,18 +33,18 @@ const MainTabs = () => {
       }
     }
   }, [clienteSeleccionado]);
-  
-  const [condicionSeleccionada, setCondicionSeleccionada] = useState(() => {
-  if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
-    return condicionPedido.find(item => item.id === Number(clienteSeleccionado.f_termino)) || null;
-  }
-  return null;
-});
 
-  
-  
-    const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
-  
+  const [condicionSeleccionada, setCondicionSeleccionada] = useState(() => {
+    if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
+      return condicionPedido.find(item => item.id === Number(clienteSeleccionado.f_termino)) || null;
+    }
+    return null;
+  });
+
+
+
+  const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
+
 
   const [creditoDisponible, setCreditoDisponible] = useState(
     clienteSeleccionado.f_limite_credito ? clienteSeleccionado.f_limite_credito - balanceCliente : 0
@@ -52,7 +52,7 @@ const MainTabs = () => {
   // Inicializa el descuento como string para que el TextInput lo maneje bien
   const [descuentoCredito, setDescuentoCredito] = useState("10");
 
-  
+
 
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
@@ -73,22 +73,15 @@ const MainTabs = () => {
     }
     return 0;
   }, [clienteSeleccionado, condicionSeleccionada]);
-  
-  
 
 
-  
-  
-
-
-  
 
   return (
-    <Tab.Navigator>
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
       <Tab.Screen
         name="Cliente"
         children={() => (
-          <SelectedCliente 
+          <SelectedCliente
             clienteSeleccionado={clienteSeleccionado}
             balanceCliente={balanceCliente}
             descuentoGlobal={descuentoGlobal}
@@ -107,15 +100,17 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name="Productos"
+        headerShown={false}
         children={() => (
-          <Pedido 
-            clienteSeleccionado={clienteSeleccionado} 
+          <Pedido
+            clienteSeleccionado={clienteSeleccionado}
             creditoDisponible={creditoDisponible}
             setCreditoDisponible={setCreditoDisponible}
             descuentoCredito={descuentoCredito}
             setDescuentoCredito={setDescuentoCredito}
             modalVisibleCondicion={modalVisibleCondicion}
             setModalVisibleCondicion={setModalVisibleCondicion}
+            descuentoGlobal={descuentoGlobal}
           />
         )}
         options={{ title: 'Productos' }}

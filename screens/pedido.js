@@ -25,7 +25,8 @@ import { useNavigation } from '@react-navigation/native';
 export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado,
    creditoDisponible,setCreditoDisponible = () => {},
     descuentoCredito, setDescuentoCredito,
-    setModalVisibleCondicion, modalVisibleCondicion
+    setModalVisibleCondicion, modalVisibleCondicion,
+    descuentoGlobal
   
   }) {
   // Estados para clientes y productos
@@ -284,6 +285,17 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       Alert.alert("Éxito", "Pedido guardado localmente");
       setPedido({});
       setModalVisible(false);
+      setClienteSeleccionado(null);
+      setBalanceCliente(0);
+      setDescuentoCredito(0);
+
+//RESETEAR EL STACK NAVIGATOR
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'ConsultaPedidos' }],
+      });
+
     } catch (error) {
       console.error("Error al guardar el pedido localmente:", error);
       Alert.alert("Error", "No se pudo guardar el pedido localmente");
@@ -308,7 +320,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
   };
 
-  const descuentoAplicado = descuento() * totalBruto;
+  const descuentoAplicado = (descuentoGlobal/1000) * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
   //const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
@@ -374,7 +386,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       {/* Listado de productos hacer pedido*/}
       <View style={styles.listContainer2}>
         <FlashList
-          estimatedItemSize={93}
+          estimatedItemSize={85}
           removeClippedSubviews={false}
           data={productosFiltrados}
           keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
@@ -426,7 +438,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
               <Text>Crédito Disponible: {formatear(creditoDisponible)}</Text>
               <View style={styles.modalHeader}>
                 <Text>Total bruto: {formatear(totalBruto)}</Text>
-                <Text>Descuento: {formatear(totalBruto * descuento)}</Text>
+                <Text>Descuento: {formatear(descuentoAplicado)}</Text>
                 <Text>ITBIS: {formatear(itbis)}</Text>
                 <Text style={styles.title}>
                   Total del pedido: {formatear(totalNeto)}
