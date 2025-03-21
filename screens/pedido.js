@@ -188,7 +188,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           const pedidoGuardadoJSON = await AsyncStorage.getItem(CLAVE_PEDIDO_GUARDADO);
           if (pedidoGuardadoJSON) {
             const pedidoGuardado = JSON.parse(pedidoGuardadoJSON);
-            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0) {
+            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0 && pedido.length === 0) {
               Alert.alert(
                 'PEDIDO GUARDADO ENCONTRADO',
                 '¿Desea cargar el pedido guardado?',
@@ -310,8 +310,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     } catch (error) {
       console.error('Error al eliminar el pedido guardado de AsyncStorage:', error);
     }
-
-
     if (isSaving) return;
     setIsSaving(true);
     // Convertir el objeto 'pedido' en un array de detalles
@@ -340,13 +338,15 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           record.f_cliente = clienteSeleccionado.f_id;
           record.f_documento = documento;
           record.f_tipodoc = 'PEDO';
-          record.f_nodoc = 1; // Ajusta según tu lógica
+          record.f_nodoc = new Date().toISOString(); // Ajusta según tu lógica
           record.f_fecha = new Date().toISOString();
           record.f_itbis = itbis; // Calculado previamente
-          record.f_descuento = 0;
-          record.f_porc_descuento = 0;
+          record.f_descuento = descuentoAplicado;
+          record.f_porc_descuento = descuentoGlobal;
           record.f_monto = totalNeto; // Total neto del pedido
-          record.f_condicion = 1; // Por ejemplo, 1 para contado
+          record.f_condicion = condicionSeleccionada;
+          record.f_monto_bruto = totalBruto;
+          record.f_nota = '';
         });
 
         // Insertar cada detalle del pedido
@@ -384,63 +384,44 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   };
 
 
-
-
-
-  const descuento = () => {
-    if (clienteSeleccionado && condicionSeleccionada) {
-      if (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2) {
-        return clienteSeleccionado.f_descuento_maximo
-      } else {
-        return clienteSeleccionado.f_descuento1;
-      }
-    }
-    return 0; // En caso de que clienteSeleccionado o condicionSeleccionada sean null
-  };
-
   const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
   //const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
 
 
-
-
-  const condicionPedidoElegida = (option) => {
-    // Aquí puedes usar tanto el id como el name de la opción seleccionada
-    console.log("Seleccionaste:", option.id, option.nombre);
-    setCondicionSeleccionada(option);
-    setModalVisibleCondicion(false);
-  };
-
-
-
   return (
 
     <SafeAreaView style={styles.container}>
-      <View>
-        <ModalOptions
-          modalVisibleCondicion={modalVisibleCondicion}
-          setModalVisibleCondicion={setModalVisibleCondicion}
-          condicionPedido={condicionPedido}
-          condicionPedidoElegida={condicionPedidoElegida}
-        />
-      </View>
-
-
       <View style={{ alignItems: 'center' }}>
-        <Text style={{ flex: 2, textAlign: 'center' }}>
-          Credito disponible: {formatear(creditoDisponible)}
-        </Text>
-        <TextInput
-          style={{ borderWidth: 1, borderColor: 'black', width: 100, height: 40, textAlign: 'center' }}
-          placeholder="Descuento"
-          value={descuentoCredito}
-          onChangeText={setDescuentoCredito}
-        />
-        <Pressable style={styles.button} onPress={() => setPedido({})}>
-          <Text>Limpiar</Text>
-        </Pressable>
+        <View flexDirection="row">
+          <View >
+            <Text>
+              Descuento:
+            </Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: 'black', width: 50, height: 30, textAlign: 'center' }}
+              placeholder="Desc.%"
+              value={descuentoCredito}
+              onChangeText={setDescuentoCredito}
+            />
+            <Pressable style={styles.button} onPress={() => setPedido({})}>
+              <Text>Limpiar</Text>
+            </Pressable>
+          </View>
+        </View>
+        <View flexDirection="row">
+          <Pressable onPress={() => setModalVisible(true)} style={styles.buttonB}>
+            <Text style={styles.buttonText}>VER PEDIDO</Text>
+          </Pressable>
+          <View flexDirection="center">
+            <Text style={{ flex: 2, textAlign: 'center' }}>
+              Credito disponible: {formatear(creditoDisponible)}
+            </Text>
+            <Text style={{ flex: 2, textAlign: 'center', fontWeight: 'bold' }}>Total del pedido {formatear(totalNeto)}</Text>
+
+          </View>
+        </View>
 
         <TextInput
           style={styles.input}
@@ -483,11 +464,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           ListEmptyComponent={<Text>No se encontraron productos</Text>}
         />
       </View>
-      <View style={styles.buttonContainer}>
-        <Pressable onPress={() => setModalVisible(true)} style={styles.buttonB}>
-          <Text style={styles.buttonText}>VER PEDIDO</Text>
-        </Pressable>
-      </View>
+
 
       <Modal
         animationType="slide"

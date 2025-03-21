@@ -62,8 +62,10 @@ export const mySchema = appSchema({
             { name: 'f_itbis', type: 'number' },
             { name: 'f_descuento', type: 'number'},
             {name: 'f_porc_descuento', type: 'number'},
+            { name: 'f_monto_bruto', type: 'number' },
             { name: 'f_monto', type: 'number' },
-            { name: 'f_condicion', type: 'number' }
+            { name: 'f_condicion', type: 'number' },
+            { name: 'f_nota', type: 'string' }
           ],
         }),
         tableSchema({

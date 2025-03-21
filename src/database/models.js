@@ -52,11 +52,13 @@ export class FacturaPedido extends Model {
   @text('f_tipodoc') f_tipodoc;
   @field('f_nodoc') f_nodoc;
   @text('f_fecha') f_fecha;  
+  @field('f_monto_bruto') f_monto_bruto;
   @field('f_monto') f_monto;  
   @field('f_itbis') f_itbis;
   @field('f_descuento') f_descuento;
   @field('f_porc_descuento') f_porc_descuento;
   @field('f_condicion') f_condicion;
+  @field('f_nota') f_nota;
 }
 
 export class DetalleFacturaPedido extends Model {

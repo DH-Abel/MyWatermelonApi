@@ -25,8 +25,9 @@ const SelectedCliente = ({
   modalVisibleCondicion,
 }) => {
 
+  const navigation = useNavigation();
+  
   const [loading, setLoading] = useState(true);
-
   const [balanceCliente, setBalanceCliente] = useState(0);
 
 
@@ -57,11 +58,6 @@ const SelectedCliente = ({
     }
   }, [clienteSeleccionado]);
 
- 
-  
-
-
-  const navigation = useNavigation();
 
   return (
     <View>
