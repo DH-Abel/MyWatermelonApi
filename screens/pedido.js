@@ -1,25 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, FlatList, ActivityIndicator,
-  TextInput, Button, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
-  Platform
+  View, Text, ActivityIndicator,TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/axios.js';
 import { database } from '../src/database/database.js';
 import { styles } from '../assets/styles.js';
-import { Q } from '@nozbe/watermelondb';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import { formatear } from '../assets/formatear.js';
 import ModalOptions from './modal/condicionPedido.js';
 import MyCheckbox from './utilities/checkbox.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
-import SelectedCliente from './components/selectedCliente.js';
 import { FlashList } from '@shopify/flash-list';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
+const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
 
 export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado,
@@ -29,11 +26,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     descuentoGlobal
   
   }) {
-  // Estados para clientes y productos
-  const [clientes, setClientes] = useState([]);
   // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
-  const [searchTextClientes, setSearchTextClientes] = useState('');
   const [searchTextProductos, setSearchTextProductos] = useState('');
   const [pedido, setPedido] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
@@ -44,11 +38,14 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const [nuevaCantidad, setNuevaCantidad] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
+  const pedidoRef = React.useRef(pedido);
+
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
   const navigation = useNavigation(); 
   const parentNavigation = navigation.getParent(); // Accedemos al padre
+  const hasLoadedPedido = React.useRef(false);
 
   const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
 
@@ -161,6 +158,98 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     }
   }, [clienteSeleccionado]);
 
+  useEffect(() => {
+    const guardarPedidoAsync = async () => {
+      try {
+        if (Object.keys(pedido).length > 0) {
+          const pedidoJSON = JSON.stringify(pedido);
+          await AsyncStorage.setItem(CLAVE_PEDIDO_GUARDADO, pedidoJSON);
+          console.log('Pedido guardado en Async Storage:', pedidoJSON);
+        } else {
+          // No se elimina el pedido guardado si el estado "pedido" está vacío,
+          // lo dejamos intacto para que, al cargar la pantalla, se pueda preguntar al usuario.
+          console.log('Pedido vacío, pero no se elimina AsyncStorage para preservar el pedido guardado.');
+        }
+      } catch (error) {
+        console.error('Error al guardar el pedido en Async Storage:', error);
+      }
+    };
+    guardarPedidoAsync();
+  }, [pedido]);
+  
+  
+  
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const cargarPedidoGuardado = async () => {
+        console.log('Cargando pedido guardado Async Storage...');
+        try {
+          const pedidoGuardadoJSON = await AsyncStorage.getItem(CLAVE_PEDIDO_GUARDADO);
+          if (pedidoGuardadoJSON) {
+            const pedidoGuardado = JSON.parse(pedidoGuardadoJSON);
+            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0) {
+              Alert.alert(
+                'PEDIDO GUARDADO ENCONTRADO',
+                '¿Desea cargar el pedido guardado?',
+                [
+                  { text: 'No', style: 'cancel' },
+                  {
+                    text: 'Sí',
+                    onPress: () => {
+                      setPedido(pedidoGuardado);
+                    },
+                  },
+                ]
+              );
+            }
+          }
+        } catch (error) {
+          console.error('Error al leer el pedido guardado de AsyncStorage:', error);
+        } finally {
+          // Marcamos que ya se intentó cargar el pedido
+          hasLoadedPedido.current = true;
+        }
+      };
+      cargarPedidoGuardado();
+    }, [])
+  );
+  
+  useEffect(() => {
+    const guardarPedidoAsync = async () => {
+      try {
+        if (Object.keys(pedido).length > 0) {
+          const pedidoJSON = JSON.stringify(pedido);
+          await AsyncStorage.setItem(CLAVE_PEDIDO_GUARDADO, pedidoJSON);
+          console.log('Pedido guardado en Async Storage:', pedidoJSON);
+        } else {
+          // Solo eliminamos el pedido si ya se intentó cargar
+          if (hasLoadedPedido.current) {
+            await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
+            console.log('Pedido vacío, se eliminó de Async Storage.');
+          }
+        }
+      } catch (error) {
+        console.error('Error al guardar el pedido en Async Storage:', error);
+      }
+    };
+    guardarPedidoAsync();
+  }, [pedido]);
+  
+  
+  
+  
+  
+
+  useEffect(() => {
+    pedidoRef.current = pedido;
+  }, [pedido]);
+  
+  
+  
+  
+  
+
 
 
   if (loading) {
@@ -234,6 +323,14 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   };
 
   const realizarPedidoLocal = async () => {
+    try {
+      // (Suponiendo que aquí ya se guardó el pedido exitosamente)
+      await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
+    } catch (error) {
+      console.error('Error al eliminar el pedido guardado de AsyncStorage:', error);
+    }
+
+
     if (isSaving) return;
     setIsSaving(true);
     // Convertir el objeto 'pedido' en un array de detalles
