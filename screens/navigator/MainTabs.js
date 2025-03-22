@@ -8,6 +8,9 @@ const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
 
+  const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
+  const [descuentoCredito, setDescuentoCredito] = useState("10");
+  const [nota,setNota] = useState("");
 
   const route = useRoute();
   const {
@@ -23,17 +26,6 @@ const MainTabs = () => {
     { id: 3, nombre: 'Vuelta viaje' },
   ];
 
-  useEffect(() => {
-    if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
-      const defaultCondicion = condicionPedido.find(
-        item => item.id === Number(clienteSeleccionado.f_termino)
-      );
-      if (defaultCondicion) {
-        setCondicionSeleccionada(defaultCondicion);
-      }
-    }
-  }, [clienteSeleccionado]);
-
   const [condicionSeleccionada, setCondicionSeleccionada] = useState(() => {
     if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
       return condicionPedido.find(item => item.id === Number(clienteSeleccionado.f_termino)) || null;
@@ -41,18 +33,9 @@ const MainTabs = () => {
     return null;
   });
 
-
-
-  const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
-
-
   const [creditoDisponible, setCreditoDisponible] = useState(
     clienteSeleccionado.f_limite_credito ? clienteSeleccionado.f_limite_credito - balanceCliente : 0
   );
-  // Inicializa el descuento como string para que el TextInput lo maneje bien
-  const [descuentoCredito, setDescuentoCredito] = useState("10");
-
-
 
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
@@ -74,6 +57,20 @@ const MainTabs = () => {
     return 0;
   }, [clienteSeleccionado, condicionSeleccionada]);
 
+  useEffect(() => {
+    if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
+      const defaultCondicion = condicionPedido.find(
+        item => item.id === Number(clienteSeleccionado.f_termino)
+      );
+      if (defaultCondicion) {
+        setCondicionSeleccionada(defaultCondicion);
+      }
+    }
+  }, [clienteSeleccionado]);
+
+
+
+
 
 
   return (
@@ -94,6 +91,8 @@ const MainTabs = () => {
             condicionPedidoElegida={condicionPedidoElegida}
             modalVisibleCondicion={modalVisibleCondicion}
             setModalVisibleCondicion={setModalVisibleCondicion}
+            nota={nota}
+            setNota={setNota}
           />
         )}
         options={{ title: 'Cliente' }}
@@ -111,6 +110,8 @@ const MainTabs = () => {
             modalVisibleCondicion={modalVisibleCondicion}
             setModalVisibleCondicion={setModalVisibleCondicion}
             descuentoGlobal={descuentoGlobal}
+            nota = {nota}
+            setNota={setNota}
           />
         )}
         options={{ title: 'Productos' }}

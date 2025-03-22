@@ -23,8 +23,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   creditoDisponible, setCreditoDisponible = () => { },
   descuentoCredito, setDescuentoCredito,
   setModalVisibleCondicion, modalVisibleCondicion,
-  descuentoGlobal
-
+  descuentoGlobal,
+  setNota, nota
 }) {
   // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
@@ -346,7 +346,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           record.f_monto = totalNeto; // Total neto del pedido
           record.f_condicion = condicionSeleccionada;
           record.f_monto_bruto = totalBruto;
-          record.f_nota = '';
+          record.f_nota = nota;
         });
 
         // Insertar cada detalle del pedido
@@ -488,6 +488,14 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
                 <Text style={styles.title}>
                   Total del pedido: {formatear(totalNeto)}
                 </Text>
+              </View>
+              <View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nota"
+                  value={nota}
+                  onChangeText={setNota}
+                />
               </View>
               <Text style={styles.title}>Detalle del pedido:</Text>
             </View>

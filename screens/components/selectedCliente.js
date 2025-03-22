@@ -23,6 +23,7 @@ const SelectedCliente = ({
   condicionPedidoElegida,
   setModalVisibleCondicion,
   modalVisibleCondicion,
+  nota, setNota
 }) => {
 
   const navigation = useNavigation();
@@ -111,12 +112,15 @@ const SelectedCliente = ({
 
           <TextInput
             style={{
+              width: '100%',
               borderWidth: 1,
               borderColor: 'black',
               borderRadius: 5,
               padding: 10,
               marginBottom: 10,}}
             placeholder="Nota"
+            onChangeText={setNota}
+            value= {nota}
             multiline
             numberOfLines={8}
          />
