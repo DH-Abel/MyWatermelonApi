@@ -116,7 +116,7 @@ export default function Pedidos({ navigation }) {
         onPress={() => navigation.navigate('SelectClientScreen')}
         style={{ padding: 10, backgroundColor: '#f0f0f0', borderRadius: 8, marginBottom: 16 }}
       >
-        <Text style={{ fontSize: 18, backgroundColor: '#ccc', padding: 10, borderRadius: 8 }}>Nuevo Pedido</Text>
+        <Text style={{ fontSize: 18, backgroundColor: '#ADD8E6', padding: 10, borderRadius: 8 }}>Nuevo Pedido</Text>
       </Pressable>
       <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Pedidos Realizados</Text>
       <FlatList
@@ -168,6 +168,7 @@ export default function Pedidos({ navigation }) {
                 <Text style={{ fontSize: 18 }}>Subtotal: {formatear((selectedPedido.f_monto)-(selectedPedido.f_itbis))}</Text>
                 <Text style={{ fontSize: 18 }}>ITBIS: {formatear(selectedPedido.f_itbis)}</Text>
                 <Text style={{ fontSize: 18 }}>Total: {formatear(selectedPedido.f_monto)}</Text>
+                <Text style={{ fontSize: 18 }}>Nota: {(selectedPedido.f_nota)}</Text>
                 {/* Agrega más campos según necesites */}
                 
                 <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 16 }}>Productos del Pedido:</Text>
