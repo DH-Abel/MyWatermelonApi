@@ -112,6 +112,7 @@ const MainTabs = () => {
             descuentoGlobal={descuentoGlobal}
             nota = {nota}
             setNota={setNota}
+            condicionSeleccionada={condicionSeleccionada}
           />
         )}
         options={{ title: 'Productos' }}

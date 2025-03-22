@@ -24,7 +24,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   descuentoCredito, setDescuentoCredito,
   setModalVisibleCondicion, modalVisibleCondicion,
   descuentoGlobal,
-  setNota, nota
+  setNota, nota,
+  condicionSeleccionada
 }) {
   // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productos, setProductos] = useState([]);
@@ -37,7 +38,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const [productoParaEditar, setProductoParaEditar] = useState(null);
   const [nuevaCantidad, setNuevaCantidad] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [condicionSeleccionada, setCondicionSeleccionada] = useState(null);
   const pedidoRef = React.useRef(pedido);
 
 
@@ -54,14 +54,12 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     parentNavigation.setParams({
       clienteSeleccionado,
       balanceCliente,
-      condicionSeleccionada,
       creditoDisponible
 
     });
   }, [
     clienteSeleccionado,
     balanceCliente,
-    condicionSeleccionada,
     creditoDisponible,
     parentNavigation
   ]);
@@ -344,7 +342,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           record.f_descuento = descuentoAplicado;
           record.f_porc_descuento = descuentoGlobal;
           record.f_monto = totalNeto; // Total neto del pedido
-          record.f_condicion = condicionSeleccionada;
+          record.f_condicion = condicionSeleccionada ? condicionSeleccionada.id : null;
+
           record.f_monto_bruto = totalBruto;
           record.f_nota = nota;
         });
@@ -380,6 +379,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     }
     finally {
       setIsSaving(false);
+      console.log("Pedido guardado localmente" + JSON.stringify(pedido));
     }
   };
 

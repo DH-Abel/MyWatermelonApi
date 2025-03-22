@@ -17,6 +17,20 @@ export default function Pedidos({ navigation }) {
 
   const [productosMap, setProductosMap] = useState({});
   const [clientesMap, setClientesMap] = useState({});
+  
+  const condicionPedido = [
+    { id: 0, nombre: 'Contado' },
+    { id: 1, nombre: 'Crédito' },
+    { id: 2, nombre: 'Contra entrega' },  
+    { id: 3, nombre: 'Vuelta viaje' },
+  ]
+
+  const condicionPedidoMap = {};
+  condicionPedido.forEach(item => {
+    condicionPedidoMap[item.id] = item;
+  });
+
+
 
   const cargarProductosMap = async () =>{
     try {
@@ -149,6 +163,7 @@ export default function Pedidos({ navigation }) {
                 <Text style={{ fontSize: 18 }}>Cliente: {selectedPedido.f_cliente}</Text>
                 <Text style={{ fontSize: 18 }}>Tipo: {selectedPedido.f_tipodoc}</Text>
                 <Text style={{ fontSize: 18 }}>Fecha: {selectedPedido.f_fecha}</Text>
+                <Text style={{ fontSize: 18 }}>Condicion pedido: {condicionPedido[selectedPedido.f_condicion].nombre} </Text>
                 <Text style={{ fontSize: 18 }}>Estado: {selectedPedido.f_estado}</Text>
                 <Text style={{ fontSize: 18 }}>Subtotal: {formatear((selectedPedido.f_monto)-(selectedPedido.f_itbis))}</Text>
                 <Text style={{ fontSize: 18 }}>ITBIS: {formatear(selectedPedido.f_itbis)}</Text>
