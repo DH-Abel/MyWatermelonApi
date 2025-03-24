@@ -13,6 +13,7 @@ import { formatear } from '../assets/formatear.js';
 import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
@@ -37,7 +38,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const [isSaving, setIsSaving] = useState(false);
   const pedidoRef = React.useRef(pedido);
 
-
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
   const navigation = useNavigation();
@@ -46,6 +46,23 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
 
   const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
 
+  const realizarPedidoLocalWrapper = async () => {
+    await realizarPedidoLocal({
+      pedido,
+      totalBruto,
+      clienteSeleccionado,
+      descuentoGlobal,
+      nota,
+      condicionSeleccionada,
+      setIsSaving,
+      setPedido,
+      setModalVisible,
+      setClienteSeleccionado,
+      setBalanceCliente,
+      setDescuentoCredito,
+      navigation,
+    });
+  };
 
   useEffect(() => {
     parentNavigation.setParams({
@@ -61,12 +78,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     parentNavigation
   ]);
 
-  const condicionPedido = [
-    { id: 0, nombre: 'Contado' },
-    { id: 1, nombre: 'Crédito' },
-    { id: 2, nombre: 'Contra entrega' },
-    { id: 3, nombre: 'Vuelta viaje' },
-  ];
 
   useEffect(() => {
     if (clienteSeleccionado) {
@@ -93,13 +104,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
 
-  // Cargar clientes al iniciar el componente
-
-  // Buscar cuenta por cobrar del cliente seleccionado
-
-
-
-  // Función para cargar productos desde la base de datos local
   const cargarProductosLocales = async () => {
     try {
       const productosLocales = await database.collections
@@ -112,8 +116,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       console.error('Error al cargar productos locales:', error);
     }
   };
-
-
 
   // Función que decide si sincronizar o cargar localmente según la conexión
   const cargarProductos = async () => {
@@ -171,8 +173,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     };
     guardarPedidoAsync();
   }, [pedido]);
-
-
 
 
   useFocusEffect(
@@ -233,19 +233,9 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
 
 
 
-
-
-
   useEffect(() => {
     pedidoRef.current = pedido;
   }, [pedido]);
-
-
-
-
-
-
-
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
@@ -298,116 +288,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     setModalEditVisible(true);
   };
 
-  const realizarPedidoLocal = async () => {
-    if (isSaving || Object.keys(pedido).length === 0) {
-      Alert.alert("Error", "No has seleccionado ningún producto");
-      return;
-    }
-    setIsSaving(true);
-  
-    // Convertir el objeto 'pedido' en un array de detalles
-    const productosPedido = Object.entries(pedido).map(([f_referencia, data]) => ({
-      f_referencia: parseInt(f_referencia, 10),
-      cantidad: data.cantidad,
-      f_precio: data.f_precio5,
-    }));
-    if (productosPedido.length === 0) {
-      Alert.alert("Error", "No has seleccionado ningún producto");
-      setIsSaving(false);
-      return;
-    }
-  
-    // Calcula totales (asegúrate que totalBruto ya esté definido en tu componente)
-    const computedDescuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
-    const computedItbis = Number(totalBruto - computedDescuentoAplicado) * 0.18;
-    const computedTotalNeto = Number(totalBruto) + Number(computedItbis) - Number(computedDescuentoAplicado);
-  
-    // Genera identificador y fecha
-    const documento = `PEDO-${Date.now()}`;
-    const fechaActual = new Date().toISOString();
-  
-    try {
-      // Primero guarda localmente en la base de datos
-      await database.write(async () => {
-        const facturaCollection = database.collections.get('t_factura_pedido');
-        const detalleCollection = database.collections.get('t_detalle_factura_pedido');
-  
-        // Guarda el encabezado del pedido
-        await facturaCollection.create(record => {
-          record.f_cliente = clienteSeleccionado.f_id;
-          record.f_documento = documento;
-          record.f_tipodoc = 'PEDO';
-          record.f_nodoc = fechaActual; // Puedes ajustar esto según tu lógica
-          record.f_fecha = fechaActual;
-          record.f_itbis = computedItbis;
-          record.f_descuento = computedDescuentoAplicado;
-          record.f_porc_descuento = descuentoGlobal;
-          record.f_monto = computedTotalNeto;
-          record.f_condicion = condicionSeleccionada ? condicionSeleccionada.id : null;
-          record.f_monto_bruto = totalBruto;
-          record.f_nota = nota;
-        });
-  
-        // Guarda cada detalle del pedido
-        for (const item of productosPedido) {
-          await detalleCollection.create(record => {
-            record.f_documento = documento;
-            record.f_referencia = item.f_referencia;
-            record.f_cantidad = item.cantidad;
-            record.f_precio = item.f_precio;
-          });
-        }
-      });
-  
-      console.log("Pedido guardado localmente con éxito");
-  
-      // Luego, enviar el pedido a la API
-      const responsePedido = await api.post('/pedidos/pedido', {
-        f_cliente: clienteSeleccionado.f_id,
-        f_documento: documento,
-        f_tipodoc: 'PED',
-        f_nodoc: parseInt(fechaActual, 10),
-        f_fecha: fechaActual,
-        f_itbis: computedItbis,
-        f_descuento: computedDescuentoAplicado,
-        f_porc_descuento: descuentoGlobal,
-        f_monto: computedTotalNeto,
-        f_condicion: condicionSeleccionada ? condicionSeleccionada.id : null,
-      });
-      console.log("Pedido enviado a la API:", responsePedido.data);
-  
-      // Enviar los detalles uno por uno
-      for (const item of productosPedido) {
-        const responseDetalle = await api.post('/pedidos/detalle-pedido', {
-          f_documento: documento,
-          f_referencia: item.f_referencia,
-          f_cantidad: item.cantidad,
-          f_precio: item.f_precio,
-        });
-        console.log("Detalle enviado a la API:", responseDetalle.data);
-      }
-  
-      Alert.alert("Éxito", "Pedido guardado localmente y enviado a la API");
-      // Reiniciar estados y navegar
-      setPedido({});
-      setModalVisible(false);
-      setClienteSeleccionado(null);
-      setBalanceCliente(0);
-      setDescuentoCredito(0);
-  
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'ConsultaPedidos' }],
-      });
-    } catch (error) {
-      console.error("Error al guardar o enviar el pedido:", error);
-      Alert.alert("Error", "No se pudo guardar o enviar el pedido a la API");
-    } finally {
-      setIsSaving(false);
-      console.log("Pedido procesado:", JSON.stringify(pedido));
-    }
-  };
-  
+
+
 
 
   const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
@@ -572,7 +454,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
               <Text style={styles.buttonText}>Agregar productos</Text>
             </Pressable>
             <Pressable
-              onPress={realizarPedidoLocal}
+              onPress={realizarPedidoLocalWrapper}
               style={[styles.buttonRow, isSaving && { opacity: 0.6 }]}
               disabled={isSaving}
             >
