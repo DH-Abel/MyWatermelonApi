@@ -1,11 +1,38 @@
-import api from '../api/axios';
-import { database } from '../src/database/database';
+import api from '../../api/axios';
+import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
+import { syncHistory } from './syncHistory';
 
 let syncInProgress = false;
 
+const getLastSync = async (nombreTabla) => {
+  try {
+    const syncCollection = database.collections.get('t_sync');
+    const registros = await syncCollection.query(Q.where('f_tabla', nombreTabla)).fetch();
+    if (registros.length > 0) {
+      // Convierte el string a número y crea un objeto Date para mostrarlo o usarlo en comparaciones
+      const timestamp = parseInt(registros[0].f_fecha, 10);
+      console.log("Fecha de la última sincronización: " + new Date(timestamp).toLocaleString());
+      return timestamp;
+    }
+    console.log('No se encontraron registros de sincronización para la tabla ' + nombreTabla);
+  } catch (error) {
+    console.error('Error al obtener el historial de sincronización:', error);
+  }
+  return 0;
+};
+
+
+
 const sincronizarProductos = async () => {
   if (syncInProgress) return; // Evitar operaciones concurrentes
+  const intervalMS = 3600000
+  const lastSync = await getLastSync('t_productos_sucursal');
+
+  if (Date.now() - lastSync < intervalMS) {
+  console.log('Se realizo hace menos de 1 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
+  return
+  }
   syncInProgress = true;
   try {
     // Obtén los productos desde la API
@@ -81,10 +108,13 @@ const sincronizarProductos = async () => {
         }
       }
     });
+    await syncHistory('t_productos_sucursal');
 
   } catch (error) {
     console.error('Error en la sincronización de productos:', error);
-  } finally {
+  } 
+  finally {
+  console.log('Sincronización de productos completada. 2' + lastSync);
     syncInProgress = false;
   }
 };

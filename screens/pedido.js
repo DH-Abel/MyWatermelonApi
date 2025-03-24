@@ -10,7 +10,7 @@ import { styles } from '../assets/styles.js';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import { formatear } from '../assets/formatear.js';
-import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
+import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
@@ -183,7 +183,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           const pedidoGuardadoJSON = await AsyncStorage.getItem(CLAVE_PEDIDO_GUARDADO);
           if (pedidoGuardadoJSON) {
             const pedidoGuardado = JSON.parse(pedidoGuardadoJSON);
-            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0 && pedido.length === 0) {
+            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0 && Object.keys(pedido).length === 0) {
               Alert.alert(
                 'PEDIDO GUARDADO ENCONTRADO',
                 '¿Desea cargar el pedido guardado?',
@@ -299,13 +299,17 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   };
 
   const realizarPedidoLocal = async () => {
+    
     try {
       // (Suponiendo que aquí ya se guardó el pedido exitosamente)
       await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
     } catch (error) {
       console.error('Error al eliminar el pedido guardado de AsyncStorage:', error);
     }
-    if (isSaving) return;
+    if (isSaving || !Object.keys(pedido).length){
+      Alert.alert("Error", "No has seleccionado ningun producto");
+      return;
+    } 
     setIsSaving(true);
     // Convertir el objeto 'pedido' en un array de detalles
     const productosPedido = Object.entries(pedido).map(([f_referencia, data]) => ({
@@ -333,8 +337,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           record.f_cliente = clienteSeleccionado.f_id;
           record.f_documento = documento;
           record.f_tipodoc = 'PEDO';
-          record.f_nodoc = new Date().toISOString(); // Ajusta según tu lógica
-          record.f_fecha = new Date().toISOString();
+          record.f_nodoc = new Date().toString(); // Ajusta según tu lógica
+          record.f_fecha = new Date().toString();
           record.f_itbis = itbis; // Calculado previamente
           record.f_descuento = descuentoAplicado;
           record.f_porc_descuento = descuentoGlobal;

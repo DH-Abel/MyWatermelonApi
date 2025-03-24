@@ -1,8 +1,25 @@
-import api from '../api/axios';
-import { database } from '../src/database/database';
+import api from '../../api/axios';
+import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
 
 let syncInProgress = false;
+
+const getLastSync = async (nombreTabla) => {
+  try {
+    const syncCollection = database.collections.get('t_sync');
+    const registros = await syncCollection.query(Q.where('f_tabla', nombreTabla)).fetch();
+    if (registros.length > 0) {
+      // Convierte el string a número y crea un objeto Date para mostrarlo o usarlo en comparaciones
+      const timestamp = parseInt(registros[0].f_fecha, 10);
+      console.log("Fecha de la última sincronización: " + new Date(timestamp).toLocaleString());
+      return timestamp;
+    }
+    console.log('No se encontraron registros de sincronización para la tabla ' + nombreTabla);
+  } catch (error) {
+    console.error('Error al obtener el historial de sincronización:', error);
+  }
+  return 0;
+};
 
 const normalizeText = (value) => {
   return value == null ? "" : String(value).trim();
@@ -16,6 +33,14 @@ const normalizeNumberField = (value) => {
 
 const sincronizarClientes = async () => {
   if (syncInProgress) return; // Evitar operaciones concurrentes
+  const intervalMS = 14400000; // 4 hora en milisegundos
+  const lastSync = await getLastSync('t_clientes');
+
+  if (Date.now() - lastSync < intervalMS) {
+    console.log('Se realizo hace menos de 1 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
+    return;
+  }
+
   syncInProgress = true;
   try {
     // Obtén los clientes desde la API

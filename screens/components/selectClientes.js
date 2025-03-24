@@ -6,27 +6,13 @@ import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
-import { Q } from '@nozbe/watermelondb';
-import  sincronizarClientes  from '../../sincronizaciones/clientesLocal';
+import  sincronizarClientes  from '../../src/sincronizaciones/clientesLocal.js';
 
 const SelectClientScreen = () => {
   const navigation = useNavigation();
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const fetchClientes = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/clientes');
-      setClientes(response.data);
-    } catch (error) {
-      console.error('❌ Error al obtener clientes:', error);
-      Alert.alert('Error', 'No se pudo obtener la lista de clientes. Verifica tu conexión.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const cargarClientesLocales = async () => {
     try {
