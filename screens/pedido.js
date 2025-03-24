@@ -10,8 +10,6 @@ import { styles } from '../assets/styles.js';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import { formatear } from '../assets/formatear.js';
-import ModalOptions from './modal/condicionPedido.js';
-import MyCheckbox from './utilities/checkbox.js';
 import sincronizarProductos from '../sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -22,7 +20,6 @@ const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado,
   creditoDisponible, setCreditoDisponible = () => { },
   descuentoCredito, setDescuentoCredito,
-  setModalVisibleCondicion, modalVisibleCondicion,
   descuentoGlobal,
   setNota, nota,
   condicionSeleccionada
@@ -394,8 +391,8 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
 
     <SafeAreaView style={styles.container}>
       <View style={{ alignItems: 'center' }}>
-        <View flexDirection="row">
-          <View >
+        <View>
+          <View flexDirection="row" alignItems="center" justifyContent="space-between">
             <Text>
               Descuento:
             </Text>

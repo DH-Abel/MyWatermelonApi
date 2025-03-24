@@ -3,12 +3,14 @@ import { schemaMigrations, addColumns } from '@nozbe/watermelondb/Schema/migrati
 export const migrations = schemaMigrations({
   migrations: [
     {
-      toVersion: 5,
+      toVersion: 6,
       steps: [
         addColumns({
-          table: 't_factura_pedido',
+          table: 't_sync',
           columns: [
-            { name: 'f_monto_bruto', type: 'number' }
+            { name: 'f_id', type: 'number' },
+            { name: 'f_fecha', type: 'string' },
+            { name: 'f_tabla', type: 'string' },
           ],
         }),
       ],

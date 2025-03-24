@@ -69,4 +69,11 @@ export class DetalleFacturaPedido extends Model {
   @field('f_precio') f_precio;
 }
 
+export class Sync extends Model {
+  static table = 't_sync';
+  @field('f_id') f_id;
+  @field('f_fecha') f_fecha;
+  @field('f_tabla') f_tabla;
+}
+
 
