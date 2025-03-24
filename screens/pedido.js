@@ -299,90 +299,115 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   };
 
   const realizarPedidoLocal = async () => {
-    
-    try {
-      // (Suponiendo que aquí ya se guardó el pedido exitosamente)
-      await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
-    } catch (error) {
-      console.error('Error al eliminar el pedido guardado de AsyncStorage:', error);
-    }
-    if (isSaving || !Object.keys(pedido).length){
-      Alert.alert("Error", "No has seleccionado ningun producto");
+    if (isSaving || Object.keys(pedido).length === 0) {
+      Alert.alert("Error", "No has seleccionado ningún producto");
       return;
-    } 
+    }
     setIsSaving(true);
+  
     // Convertir el objeto 'pedido' en un array de detalles
     const productosPedido = Object.entries(pedido).map(([f_referencia, data]) => ({
       f_referencia: parseInt(f_referencia, 10),
       cantidad: data.cantidad,
       f_precio: data.f_precio5,
     }));
-
     if (productosPedido.length === 0) {
       Alert.alert("Error", "No has seleccionado ningún producto");
+      setIsSaving(false);
       return;
     }
-
+  
+    // Calcula totales (asegúrate que totalBruto ya esté definido en tu componente)
+    const computedDescuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
+    const computedItbis = Number(totalBruto - computedDescuentoAplicado) * 0.18;
+    const computedTotalNeto = Number(totalBruto) + Number(computedItbis) - Number(computedDescuentoAplicado);
+  
+    // Genera identificador y fecha
+    const documento = `PEDO-${Date.now()}`;
+    const fechaActual = new Date().toISOString();
+  
     try {
+      // Primero guarda localmente en la base de datos
       await database.write(async () => {
-        // Obtener las colecciones correspondientes
         const facturaCollection = database.collections.get('t_factura_pedido');
         const detalleCollection = database.collections.get('t_detalle_factura_pedido');
-
-        // Generar un identificador único para el documento del pedido
-        const documento = `PEDO-${Date.now()}`;
-
-        // Insertar el encabezado (factura del pedido)
+  
+        // Guarda el encabezado del pedido
         await facturaCollection.create(record => {
           record.f_cliente = clienteSeleccionado.f_id;
           record.f_documento = documento;
           record.f_tipodoc = 'PEDO';
-          record.f_nodoc = new Date().toString(); // Ajusta según tu lógica
-          record.f_fecha = new Date().toString();
-          record.f_itbis = itbis; // Calculado previamente
-          record.f_descuento = descuentoAplicado;
+          record.f_nodoc = fechaActual; // Puedes ajustar esto según tu lógica
+          record.f_fecha = fechaActual;
+          record.f_itbis = computedItbis;
+          record.f_descuento = computedDescuentoAplicado;
           record.f_porc_descuento = descuentoGlobal;
-          record.f_monto = totalNeto; // Total neto del pedido
+          record.f_monto = computedTotalNeto;
           record.f_condicion = condicionSeleccionada ? condicionSeleccionada.id : null;
-
           record.f_monto_bruto = totalBruto;
           record.f_nota = nota;
         });
-
-        // Insertar cada detalle del pedido
+  
+        // Guarda cada detalle del pedido
         for (const item of productosPedido) {
           await detalleCollection.create(record => {
-            record.f_documento = documento; // Relaciona el detalle con el encabezado
+            record.f_documento = documento;
             record.f_referencia = item.f_referencia;
             record.f_cantidad = item.cantidad;
             record.f_precio = item.f_precio;
           });
         }
       });
-
-      Alert.alert("Éxito", "Pedido guardado localmente");
+  
+      console.log("Pedido guardado localmente con éxito");
+  
+      // Luego, enviar el pedido a la API
+      const responsePedido = await api.post('/pedidos/pedido', {
+        f_cliente: clienteSeleccionado.f_id,
+        f_documento: documento,
+        f_tipodoc: 'PED',
+        f_nodoc: parseInt(fechaActual, 10),
+        f_fecha: fechaActual,
+        f_itbis: computedItbis,
+        f_descuento: computedDescuentoAplicado,
+        f_porc_descuento: descuentoGlobal,
+        f_monto: computedTotalNeto,
+        f_condicion: condicionSeleccionada ? condicionSeleccionada.id : null,
+      });
+      console.log("Pedido enviado a la API:", responsePedido.data);
+  
+      // Enviar los detalles uno por uno
+      for (const item of productosPedido) {
+        const responseDetalle = await api.post('/pedidos/detalle-pedido', {
+          f_documento: documento,
+          f_referencia: item.f_referencia,
+          f_cantidad: item.cantidad,
+          f_precio: item.f_precio,
+        });
+        console.log("Detalle enviado a la API:", responseDetalle.data);
+      }
+  
+      Alert.alert("Éxito", "Pedido guardado localmente y enviado a la API");
+      // Reiniciar estados y navegar
       setPedido({});
       setModalVisible(false);
       setClienteSeleccionado(null);
       setBalanceCliente(0);
       setDescuentoCredito(0);
-
-      //RESETEAR EL STACK NAVIGATOR
-
+  
       navigation.reset({
         index: 0,
         routes: [{ name: 'ConsultaPedidos' }],
       });
-
     } catch (error) {
-      console.error("Error al guardar el pedido localmente:", error);
-      Alert.alert("Error", "No se pudo guardar el pedido localmente");
-    }
-    finally {
+      console.error("Error al guardar o enviar el pedido:", error);
+      Alert.alert("Error", "No se pudo guardar o enviar el pedido a la API");
+    } finally {
       setIsSaving(false);
-      console.log("Pedido guardado localmente" + JSON.stringify(pedido));
+      console.log("Pedido procesado:", JSON.stringify(pedido));
     }
   };
+  
 
 
   const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
