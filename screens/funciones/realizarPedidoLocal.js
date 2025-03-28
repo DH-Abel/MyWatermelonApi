@@ -63,7 +63,9 @@ export const realizarPedidoLocal = async ({
           record.f_monto = computedTotalNeto;
           record.f_condicion = condicionSeleccionada ? condicionSeleccionada.id : null;
           record.f_monto_bruto = totalBruto;
-          record.f_nota = nota;
+          record.f_observacion = nota;
+          record.f_estado_pedido = 1;
+          record.f_vendedor = 83;
         });
 
         // Guarda cada detalle del pedido

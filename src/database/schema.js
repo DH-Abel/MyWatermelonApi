@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 6, // Cambiar la versión de la base de datos, por si agrego campos o tablas
+  version: 2, // Cambiar la versión de la base de datos, por si agrego campos o tablas
   tables: [
     tableSchema({
       name: 't_productos_sucursal',
@@ -65,7 +65,9 @@ export const mySchema = appSchema({
             { name: 'f_monto_bruto', type: 'number' },
             { name: 'f_monto', type: 'number' },
             { name: 'f_condicion', type: 'number' },
-            { name: 'f_nota', type: 'string' }
+            { name: 'f_observacion', type: 'string' },
+            { name: 'f_vendedor', type: 'number' },
+            { name: 'f_estado_pedido', type: 'number' },
           ],
         }),
         tableSchema({

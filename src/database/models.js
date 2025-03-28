@@ -58,7 +58,9 @@ export class FacturaPedido extends Model {
   @field('f_descuento') f_descuento;
   @field('f_porc_descuento') f_porc_descuento;
   @field('f_condicion') f_condicion;
-  @field('f_nota') f_nota;
+  @field('f_observacion') f_observacion;
+  @field('f_vendedor') f_vendedor;
+  @field('f_estado_pedido') f_estado_pedido;
 }
 
 export class DetalleFacturaPedido extends Model {

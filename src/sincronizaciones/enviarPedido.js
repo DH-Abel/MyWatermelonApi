@@ -40,7 +40,11 @@ export const enviarPedido = async ({
             f_descuento: computedDescuentoAplicado,
             f_porc_descuento: descuentoGlobal,
             f_monto: computedTotalNeto,
+            f_monto_bruto: totalBruto,
             f_condicion: condicionSeleccionada ? condicionSeleccionada.id : null,
+            f_estado_pedido: 1,
+            f_vendedor: 83,
+            f_observacion: nota
         });
         console.log("Pedido enviado a la API:", responsePedido.data);
 
