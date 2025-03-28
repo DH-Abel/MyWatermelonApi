@@ -117,8 +117,6 @@ export default function Pedidos({ navigation }) {
   };
 
   
-
-
   useEffect(() => {
     const fetchPedidos = async () => {
       try {

@@ -24,6 +24,10 @@ export const enviarPedido = async ({
     setIsSaving,
     pedido,
 }) => {
+
+    const state = navigation.getState();
+    const currentRouteName = state.routes[state.index].name;
+
     try {
         // Enviar encabezado a la API
         const responsePedido = await api.post('/pedidos/pedido', {
@@ -52,18 +56,21 @@ export const enviarPedido = async ({
         }
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
-        await AsyncStorage.removeItem('pedido_guardado');
+        if (currentRouteName !== 'ConsultaPedidos') {
+            await AsyncStorage.removeItem('pedido_guardado');
 
-        // Reiniciar estados y navegar a ConsultaPedidos
-        setPedido({});
-        setModalVisible(false);
-        setClienteSeleccionado(null);
-        setBalanceCliente(0);
-        setDescuentoCredito(0);
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'ConsultaPedidos' }],
-        });
+            // Reiniciar estados y navegar a ConsultaPedidos
+            setPedido({});
+            setModalVisible(false);
+            setClienteSeleccionado(null);
+            setBalanceCliente(0);
+            setDescuentoCredito(0);
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'ConsultaPedidos' }],
+            });
+        }
+
     } catch (error) {
         console.error("Error al enviar el pedido a la API:", error);
         if (error.response && error.response.data && error.response.data.error.includes("duplicate key value violates unique constraint")) {
@@ -71,13 +78,13 @@ export const enviarPedido = async ({
         } else {
             Alert.alert("Error", "El pedido se guardó localmente, pero no se pudo enviar a la API. Reintenta el envío más tarde.");
         }
-
+        if(currentRouteName !== 'ConsultaPedidos'){
         await AsyncStorage.removeItem('pedido_guardado');
         setModalVisible(false);
         navigation.reset({
             index: 0,
             routes: [{ name: 'ConsultaPedidos' }],
-        });
+        });}
     } finally {
         setIsSaving(false);
         console.log("Pedido procesado:", JSON.stringify(pedido));

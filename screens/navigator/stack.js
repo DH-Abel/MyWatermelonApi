@@ -20,7 +20,7 @@ export default function MyStack() {
     return (
         <NavigationContainer>
             <Stack.Navigator>
-                <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} />
+                <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} options={{headerShown: false}} />
                 <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
                 <Stack.Screen name="MainTabs" component={MainTabs} options={{headerShown: false}}/>
                 <Stack.Screen name="SelectedCliente" component={SelectedCliente} options={{headerShown: false}}/>
