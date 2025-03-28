@@ -99,7 +99,7 @@ const SelectedCliente = ({
             Disponible: {formatear(creditoDisponible)}
           </Text>
           <Text style={styles.headerText}>
-            Descuento Global: {descuentoGlobal} Descuento Credito: {descuentoCredito}
+            Descuento: {descuentoGlobal} %
           </Text>
           <TextInput
             style={styles.input}
