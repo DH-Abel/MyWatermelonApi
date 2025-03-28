@@ -293,7 +293,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
               const sizeGuardado = Object.keys(pedidoGuardado).length;
               const sizeActual = Object.keys(pedido).length;
               // Solo preguntar si el tamaño es diferente (es decir, si no se está trabajando con el mismo pedido)
-              if (sizeGuardado !== sizeActual) {
+              if (sizeGuardado !== sizeActual && sizeActual <= 0) {
                 Alert.alert(
                   'PEDIDO GUARDADO ENCONTRADO',
                   '¿Desea cargar el pedido guardado?',
