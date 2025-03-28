@@ -18,12 +18,23 @@ export const realizarPedidoLocal = async ({
   setBalanceCliente,
   setDescuentoCredito,
   navigation,
+  creditoDisponible
 }) => {
+
+   if(creditoDisponible <0 && (condicionSeleccionada.id === 1 || condicionSeleccionada.id === 3)){
+    Alert.alert("ALERTA", "Estas extra limitando el credito del cliente",
+    [
+      {text: "Cancelar", onPress: () => {return}},
+      {text: "Aceptar", onPress: () => {guardarPedidoLocal()}}
+    ])
+
+   
+
   if (!pedido || Object.keys(pedido).length === 0) {
     Alert.alert("Error", "No has seleccionado ningún producto");
     return;
   }
-  setIsSaving(true);
+
 
   // Convertir el objeto 'pedido' en un array de detalles
   const productosPedido = Object.entries(pedido).map(([f_referencia, data]) => ({
@@ -31,11 +42,7 @@ export const realizarPedidoLocal = async ({
     cantidad: data.cantidad,
     f_precio: data.f_precio5,
   }));
-  if (productosPedido.length === 0) {
-    Alert.alert("Error", "No has seleccionado ningún producto");
-    setIsSaving(false);
-    return;
-  }
+  
 
   // Calcula totales
   const computedDescuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
@@ -47,6 +54,7 @@ export const realizarPedidoLocal = async ({
   const fechaActual = new Date().toISOString();
 
   const enviarPedido = async () => {
+   
     try {
       // Enviar encabezado a la API
       const responsePedido = await api.post('/pedidos/pedido', {
@@ -104,10 +112,11 @@ export const realizarPedidoLocal = async ({
   };
 
   // --- Paso 1: Guardar localmente en WatermelonDB ---
-  try {
+  const guardarPedidoLocal = async () => {try {
     await database.write(async () => {
       const facturaCollection = database.collections.get('t_factura_pedido');
       const detalleCollection = database.collections.get('t_detalle_factura_pedido');
+
 
       // Guarda el encabezado del pedido
       await facturaCollection.create(record => {
@@ -170,10 +179,9 @@ export const realizarPedidoLocal = async ({
     Alert.alert("Error", "No se pudo guardar el pedido localmente");
     setIsSaving(false);
     return; // Si falla el guardado local, no se intenta enviar a la API
-  }
-
-  // --- Paso 2: Enviar el pedido a la API ---
-  
+  }}}
 }
+  
+
 
 

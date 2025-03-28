@@ -2,7 +2,6 @@ import { React, useState, useEffect } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../../assets/styles';
-import MyCheckbox from '../utilities/checkbox.js';
 import { formatear } from '../../assets/formatear.js';
 import api from '../../api/axios';
 import  ModalOptions  from '../modal/condicionPedido';
@@ -108,7 +107,6 @@ const SelectedCliente = ({
             value={descuentoCredito}
             onChangeText={setDescuentoCredito}
           />
-          <MyCheckbox />
 
           <TextInput
             style={{

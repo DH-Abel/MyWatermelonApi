@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import SelectedCliente from '../components/selectedCliente';
 import Pedido from '../pedido';
 import { useRoute } from '@react-navigation/native';
+import { Alert } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
@@ -13,6 +14,7 @@ const MainTabs = () => {
   const [nota,setNota] = useState("");
 
   const route = useRoute();
+
   const {
     clienteSeleccionado = {},
     balanceCliente = 0,
@@ -40,8 +42,13 @@ const MainTabs = () => {
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
     console.log("Seleccionaste:", option.id, option.nombre);
+    if((option.id ===3||option.id ===1) && clienteSeleccionado.f_bloqueo_credito == true){
+      Alert.alert("El cliente tiene bloqueo de crédito");
+      return
+    }else{
     setCondicionSeleccionada(option);
     setModalVisibleCondicion(false);
+  }
   };
 
 

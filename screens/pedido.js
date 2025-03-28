@@ -14,6 +14,7 @@ import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
+import MyCheckbox from './utilities/checkbox.js';
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
@@ -36,6 +37,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const [productoParaEditar, setProductoParaEditar] = useState(null);
   const [nuevaCantidad, setNuevaCantidad] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [checkBoxChecked, setCheckBoxChecked] = useState(false);
   const pedidoRef = React.useRef(pedido);
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
@@ -44,7 +46,13 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const parentNavigation = navigation.getParent(); // Accedemos al padre
   const hasLoadedPedido = React.useRef(false);
 
+  
   const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
+
+
+  const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
+  const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
+  const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
 
   const realizarPedidoLocalWrapper = async () => {
     await realizarPedidoLocal({
@@ -61,15 +69,134 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       setBalanceCliente,
       setDescuentoCredito,
       navigation,
+      creditoDisponible
     });
   };
+
+  const cargarProductos = async () => {
+    // Primero carga los productos locales para una respuesta inmediata
+    await cargarProductosLocales();
+
+    // Luego verifica si hay conexión a internet
+    const netState = await NetInfo.fetch();
+    if (netState.isConnected) {
+      try {
+        // Sincroniza con la API para actualizar los productos
+        await sincronizarProductos();
+        await cargarProductosLocales();
+      } catch (error) {
+        console.error("Error al sincronizar, se mantienen los productos locales:", error);
+      }
+    }
+  };
+
+  const limpiarPedido = async () => {
+    Alert.alert(
+      "Borrar pedido",
+      "¿Desea borrar el pedido?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Aceptar", onPress: async () => {
+            setPedido({});
+            try {
+              await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
+              console.log("Pedido y AsyncStorage limpios.");
+            } catch (error) {
+              console.error("Error al limpiar AsyncStorage:", error);
+            }
+          }
+        }
+      ]
+    )
+
+  };
+
+  const cargarProductosLocales = async () => {
+    try {
+      const productosLocales = await database.collections
+        .get('t_productos_sucursal')
+        .query()
+        .fetch();
+      // Si es necesario, transforma los registros de WatermelonDB a objetos JS planos
+      setProductos(productosLocales);
+    } catch (error) {
+      console.error('Error al cargar productos locales:', error);
+    }
+  };
+
+  const productosFiltrados = productos.filter(producto =>
+    (producto.f_descripcion || '').toLowerCase().includes(searchTextProductos.toLowerCase()) ||
+    (producto.f_referencia ? producto.f_referencia.toString().toLowerCase() : '').includes(searchTextProductos.toLowerCase())
+  );
+
+
+
+  // Funciones para actualizar pedido y eliminar productos (se mantienen igual)
+  const actualizarCantidad = (f_referencia, cantidad, producto) => {
+    if (cantidad === '') {
+      setPedido(prevPedido => {
+        const nuevoPedido = { ...prevPedido };
+        delete nuevoPedido[f_referencia];
+        return nuevoPedido;
+      });
+    } else {
+      const cantidadNumerica = parseInt(cantidad, 10) || 0;
+      setPedido(prevPedido => ({
+        ...prevPedido,
+        [f_referencia]: prevPedido[f_referencia]
+          ? { ...prevPedido[f_referencia], cantidad: cantidadNumerica }
+          : { f_referencia: producto.f_referencia, f_precio5: producto.f_precio5, cantidad: cantidadNumerica, f_referencia_suplidor: producto.f_referencia_suplidor, f_descripcion: producto.f_descripcion, f_existencia: producto.f_existencia }
+      }));
+    }
+  };
+
+
+  const eliminarDelPedido = (f_referencia) => {
+    Alert.alert(
+      'Eliminar Producto',
+      '¿Desea eliminar el producto del pedido?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          onPress: () => {
+            setPedido(prevPedido => {
+              const nuevoPedido = { ...prevPedido };
+              delete nuevoPedido[f_referencia];
+              AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
+              console.log("Pedido y AsyncStorage limpios.");
+              return nuevoPedido;
+            });
+          },
+        },
+      ]
+    )
+  };
+
+  //funcion del modal cambiar cantidad adel resumen del pedido
+  const cambiarCantidad = (f_referencia) => {
+    const producto = pedido[f_referencia];
+    if (!producto) {
+      Alert.alert("Producto no encontrado", "El producto seleccionado no existe en el pedido.");
+      return;
+    }
+    setProductoParaEditar({ ...producto, f_referencia });
+    setNuevaCantidad(producto.cantidad.toString());
+    setModalEditVisible(true);
+  };
+
+
+
 
   useEffect(() => {
     parentNavigation.setParams({
       clienteSeleccionado,
       balanceCliente,
       creditoDisponible
-
     });
   }, [
     clienteSeleccionado,
@@ -77,6 +204,12 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     creditoDisponible,
     parentNavigation
   ]);
+
+  useEffect(()=>{
+    if(clienteSeleccionado && descuentoGlobal>0){
+      setCheckBoxChecked(true);
+    }
+  },[clienteSeleccionado, descuentoGlobal])
 
 
   useEffect(() => {
@@ -104,36 +237,9 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
 
-  const cargarProductosLocales = async () => {
-    try {
-      const productosLocales = await database.collections
-        .get('t_productos_sucursal')
-        .query()
-        .fetch();
-      // Si es necesario, transforma los registros de WatermelonDB a objetos JS planos
-      setProductos(productosLocales);
-    } catch (error) {
-      console.error('Error al cargar productos locales:', error);
-    }
-  };
 
   // Función que decide si sincronizar o cargar localmente según la conexión
-  const cargarProductos = async () => {
-    // Primero carga los productos locales para una respuesta inmediata
-    await cargarProductosLocales();
 
-    // Luego verifica si hay conexión a internet
-    const netState = await NetInfo.fetch();
-    if (netState.isConnected) {
-      try {
-        // Sincroniza con la API para actualizar los productos
-        await sincronizarProductos();
-        await cargarProductosLocales();
-      } catch (error) {
-        console.error("Error al sincronizar, se mantienen los productos locales:", error);
-      }
-    }
-  };
 
   useEffect(() => {
     // Configura el intervalo para revisar y sincronizar cada 5 minutos
@@ -183,32 +289,37 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           const pedidoGuardadoJSON = await AsyncStorage.getItem(CLAVE_PEDIDO_GUARDADO);
           if (pedidoGuardadoJSON) {
             const pedidoGuardado = JSON.parse(pedidoGuardadoJSON);
-            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0 && Object.keys(pedido).length === 0) {
-              Alert.alert(
-                'PEDIDO GUARDADO ENCONTRADO',
-                '¿Desea cargar el pedido guardado?',
-                [
-                  { text: 'No', style: 'cancel' },
-                  {
-                    text: 'Sí',
-                    onPress: () => {
-                      setPedido(pedidoGuardado);
+            if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0) {
+              const sizeGuardado = Object.keys(pedidoGuardado).length;
+              const sizeActual = Object.keys(pedido).length;
+              // Solo preguntar si el tamaño es diferente (es decir, si no se está trabajando con el mismo pedido)
+              if (sizeGuardado !== sizeActual) {
+                Alert.alert(
+                  'PEDIDO GUARDADO ENCONTRADO',
+                  '¿Desea cargar el pedido guardado?',
+                  [
+                    { text: 'No', style: 'cancel' },
+                    {
+                      text: 'Sí',
+                      onPress: () => {
+                        setPedido(pedidoGuardado);
+                      },
                     },
-                  },
-                ]
-              );
+                  ]
+                );
+              }
             }
           }
         } catch (error) {
           console.error('Error al leer el pedido guardado de AsyncStorage:', error);
         } finally {
-          // Marcamos que ya se intentó cargar el pedido
           hasLoadedPedido.current = true;
         }
       };
       cargarPedidoGuardado();
-    }, [])
+    }, [pedido])
   );
+
 
   useEffect(() => {
     const guardarPedidoAsync = async () => {
@@ -241,62 +352,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
   }
 
-  const productosFiltrados = productos.filter(producto =>
-    (producto.f_descripcion || '').toLowerCase().includes(searchTextProductos.toLowerCase()) ||
-    (producto.f_referencia ? producto.f_referencia.toString().toLowerCase() : '').includes(searchTextProductos.toLowerCase())
-  );
-
-
-
-  // Funciones para actualizar pedido y eliminar productos (se mantienen igual)
-  const actualizarCantidad = (f_referencia, cantidad, producto) => {
-    if (cantidad === '') {
-      setPedido(prevPedido => {
-        const nuevoPedido = { ...prevPedido };
-        delete nuevoPedido[f_referencia];
-        return nuevoPedido;
-      });
-    } else {
-      const cantidadNumerica = parseInt(cantidad, 10) || 0;
-      setPedido(prevPedido => ({
-        ...prevPedido,
-        [f_referencia]: prevPedido[f_referencia]
-          ? { ...prevPedido[f_referencia], cantidad: cantidadNumerica }
-          : { f_referencia: producto.f_referencia, f_precio5: producto.f_precio5, cantidad: cantidadNumerica, f_referencia_suplidor: producto.f_referencia_suplidor, f_descripcion: producto.f_descripcion, f_existencia: producto.f_existencia }
-      }));
-    }
-  };
-
-
-  const eliminarDelPedido = (f_referencia) => {
-    setPedido(prevPedido => {
-      const nuevoPedido = { ...prevPedido };
-      delete nuevoPedido[f_referencia];
-      return nuevoPedido;
-    });
-  };
-
-  //funcion del modal cambiar cantidad adel resumen del pedido
-  const cambiarCantidad = (f_referencia) => {
-    const producto = pedido[f_referencia];
-    if (!producto) {
-      Alert.alert("Producto no encontrado", "El producto seleccionado no existe en el pedido.");
-      return;
-    }
-    setProductoParaEditar({ ...producto, f_referencia });
-    setNuevaCantidad(producto.cantidad.toString());
-    setModalEditVisible(true);
-  };
-
-
-
-
-
-  const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
-  const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
-  const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
-  //const creditoDisponible = clienteSeleccionado ? clienteSeleccionado.f_limite_credito - balanceCliente - totalNeto : 0;
-
 
   return (
 
@@ -313,9 +368,13 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
               value={descuentoCredito}
               onChangeText={setDescuentoCredito}
             />
-            <Pressable style={styles.button} onPress={() => setPedido({})}>
+            <Pressable style={styles.button} onPress={() => limpiarPedido()}   >
               <Text>Limpiar</Text>
             </Pressable>
+            <MyCheckbox
+              checked={checkBoxChecked}
+              setChecked={setCheckBoxChecked}
+            />
           </View>
         </View>
         <View flexDirection="row">
@@ -347,28 +406,39 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           removeClippedSubviews={false}
           data={productosFiltrados}
           keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
+
+
           // keyboardShouldPersistTaps="always"
           extraScrollHeight={20}
-          renderItem={({ item }) => (
-            <View style={styles.listContainer}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemText}>
-                  ({item.f_referencia}) - {item.f_referencia_suplidor}
-                </Text>
-                <Text style={styles.itemText}>{item.f_descripcion}</Text>
-                <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'    '}credito: {descuentoCredito ? formatear((item.f_precio5 + (item.f_precio5 * 0.18)) - (item.f_precio5) * (Number(descuentoCredito) / 100)) : formatear(item.f_precio5 + (item.f_precio5 * 0.18))}</Text>
-                <Text style={styles.itemText}>Existencia: {item.f_existencia}</Text>
-              </View>
-              <TextInput
-                style={styles.inputP}
-                placeholder="QTY"
-                keyboardType="numeric"
-                value={pedido[item.f_referencia]?.cantidad?.toString() || ''}
-                onChangeText={(cantidad) => actualizarCantidad(item.f_referencia, cantidad, item)}
-              />
-            </View>
+          renderItem={({ item }) => {
 
-          )}
+            const precioTransp = (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100))) + (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100)))*0.18;
+            const precioNormal = (item.f_precio5+ (item.f_precio5 * 0.18)) - (item.f_precio5 * (Number(descuentoCredito) / 100));
+            
+            const precioGlobal = ()=>{if(checkBoxChecked) {return precioTransp} else {return precioNormal}}
+
+
+            return (
+              <View style={styles.listContainer}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemText}>
+                    ({item.f_referencia}) - {item.f_referencia_suplidor}
+                  </Text>
+                  <Text style={styles.itemText}>{item.f_descripcion}</Text>
+                  <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'    '}Precio neto: {formatear(precioGlobal())}</Text>
+                  <Text style={styles.itemText}>Existencia: {item.f_existencia}  </Text>
+                  
+                </View>
+                <TextInput
+                  style={styles.inputP}
+                  placeholder="QTY"
+                  keyboardType="numeric"
+                  value={pedido[item.f_referencia]?.cantidad?.toString() || ''}
+                  onChangeText={(cantidad) => actualizarCantidad(item.f_referencia, cantidad, item)}
+                />
+              </View>
+            )
+          }}
           ListEmptyComponent={<Text>No se encontraron productos</Text>}
         />
       </View>
