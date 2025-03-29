@@ -5,6 +5,11 @@ import { Q } from '@nozbe/watermelondb';
 import { formatear } from '../assets/formatear';
 import { styles } from '../assets/styles';
 import { enviarPedido } from '../src/sincronizaciones/enviarPedido';
+import NetInfo from '@react-native-community/netinfo';
+import sincronizarEstado from '../src/sincronizaciones/estadoPedido';
+
+
+
 
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([]);
@@ -31,6 +36,22 @@ export default function Pedidos({ navigation }) {
     condicionPedidoMap[item.id] = item;
   });
 
+
+  const cargarEstado = async () => {
+    console.log('Cargando estados...');
+    // Luego, si hay conexión, sincroniza y recarga la data local
+    const netState = await NetInfo.fetch();
+    if (netState.isConnected) {
+      try {
+        await sincronizarEstado();
+        const facturaCollection = database.collections.get('t_factura_pedido');
+        const allPedidos = await facturaCollection.query().fetch();
+        setPedidos(allPedidos)
+      } catch (error) {
+        console.error("Error al sincronizar, se mantienen los estados locales:", error);
+      }
+    }
+  };
 
 
   const cargarProductosMap = async () => {
@@ -88,6 +109,8 @@ export default function Pedidos({ navigation }) {
 
 
 
+
+
       // Llama a la función enviarPedido
       await enviarPedido({
         productosPedido,
@@ -116,25 +139,24 @@ export default function Pedidos({ navigation }) {
     }
   };
 
-  
-  useEffect(() => {
-    const fetchPedidos = async () => {
-      try {
-        const facturaCollection = database.collections.get('t_factura_pedido');
-        const allPedidos = await facturaCollection.query().fetch();
-        setPedidos(allPedidos);
-      } catch (error) {
-        console.error("Error al obtener los pedidos:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchPedidos();
+  useEffect(() => {
+    const facturaCollection = database.collections.get('t_factura_pedido');
+    // Nos suscribimos a los cambios en la colección
+    const subscription = facturaCollection.query().observe().subscribe((allPedidos) => {
+      setPedidos(allPedidos);
+      setLoading(false);
+    });
     cargarProductosMap();
     cargarClientesMap();
-
+  
+    return () => subscription.unsubscribe();
   }, []);
+  
+
+  useEffect(() => {
+    cargarEstado();
+  }, [])
 
   // Función para consultar los detalles del pedido seleccionado
   const fetchDetallePedido = async (f_documento) => {
@@ -173,12 +195,18 @@ export default function Pedidos({ navigation }) {
   const pedidosOrdenados = [...pedidos].sort(
     (a, b) => b._raw.f_fecha.localeCompare(a._raw.f_fecha)
   );
-  
+
   return (
     <SafeAreaView style={{ flex: 1, padding: 12 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%',height: '10%', padding: 10 }}>
-       
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10, flex: 3 }}>Pedidos Realizados</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', height: '10%', padding: 10 }}>
+
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, flex: 3 }}>Pedidos Realizados</Text>
+        <Pressable
+          onPress={() => cargarEstado()}
+          style={styles.button2}
+        >
+          <Text style={{ fontSize: 12, borderRadius: 8 }}>Sync</Text>
+        </Pressable>
         <Pressable
           onPress={() => navigation.navigate('SelectClientScreen')}
           style={styles.button2}
@@ -202,6 +230,7 @@ export default function Pedidos({ navigation }) {
               {/*<Text style={{ fontSize: 16 }}>Tipo: {item.f_tipodoc}</Text>*/}
               <Text style={{ fontSize: 16 }}>Fecha: {item.f_fecha}</Text>
               <Text style={{ fontSize: 16 }}>Total: {formatear(item.f_monto)}</Text>
+              <Text style={{ fontSize: 16 }}>Estado: {item.f_estado_pedido}</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Pressable
                   onPress={() => openDetalleModal(item)}
@@ -215,7 +244,7 @@ export default function Pedidos({ navigation }) {
                 >
                   <Text style={{ fontSize: 16 }}>Enviar Pedido</Text>
                 </Pressable>
-                
+
               </View>
             </View>
           )
