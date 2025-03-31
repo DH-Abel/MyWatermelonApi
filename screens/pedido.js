@@ -46,7 +46,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const parentNavigation = navigation.getParent(); // Accedemos al padre
   const hasLoadedPedido = React.useRef(false);
 
-  
+
   const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
 
 
@@ -205,11 +205,11 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     parentNavigation
   ]);
 
-  useEffect(()=>{
-    if(clienteSeleccionado && descuentoGlobal>0){
+  useEffect(() => {
+    if (clienteSeleccionado && descuentoGlobal > 0) {
       setCheckBoxChecked(true);
     }
-  },[clienteSeleccionado, descuentoGlobal])
+  }, [clienteSeleccionado, descuentoGlobal])
 
 
   useEffect(() => {
@@ -356,36 +356,42 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   return (
 
     <SafeAreaView style={styles.container}>
-      <View style={{ alignItems: 'center' }}>
-        <View>
-          <View flexDirection="row" alignItems="center" justifyContent="space-between">
-            <Text>
-              Descuento:
-            </Text>
-            <TextInput
-              style={{ borderWidth: 1, borderColor: 'black', width: 50, height: 30, textAlign: 'center' }}
-              placeholder="Desc.%"
-              value={descuentoCredito}
-              onChangeText={setDescuentoCredito}
-            />
-            <Pressable style={styles.button} onPress={() => limpiarPedido()}   >
-              <Text>Limpiar</Text>
-            </Pressable>
-            <MyCheckbox
-              checked={checkBoxChecked}
-              setChecked={setCheckBoxChecked}
-            />
+      <View >
+        <View style={{ borderWidth: 1, borderColor: 'black', width: '100%', padding: 10, borderRadius: 5, marginBottom: 5 }}>
+          <View>
+            <View flexDirection="row" alignItems="center" justifyContent="space-between">
+              <Text>
+                Descuento:
+              </Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: 'black', width: 50, height: 30, textAlign: 'center', borderRadius: 5 }}
+                placeholder="Desc.%"
+                value={descuentoCredito}
+                onChangeText={setDescuentoCredito}
+              />
+              <Pressable style={styles.button} onPress={() => limpiarPedido()}   >
+                <Text>Limpiar</Text>
+              </Pressable>
+              <MyCheckbox
+                checked={checkBoxChecked}
+                setChecked={setCheckBoxChecked}
+              />
+            </View>
           </View>
-        </View>
-        <View flexDirection="row">
-          <Pressable onPress={() => setModalVisible(true)} style={styles.buttonB}>
-            <Text style={styles.buttonText}>VER PEDIDO</Text>
-          </Pressable>
-          <View flexDirection="center">
-            <Text style={{ flex: 2, textAlign: 'center' }}>
-              Credito disponible: {formatear(creditoDisponible)}
-            </Text>
-            <Text style={{ flex: 2, textAlign: 'center', fontWeight: 'bold' }}>Total del pedido {formatear(totalNeto)}</Text>
+          <View flexDirection="row" >
+
+            <View style={{ flexDirection: "center", flex: 3 }}>
+              <Text style={{ textAlign: 'left' }}>
+                Cred. disponible: {formatear(creditoDisponible)}
+              </Text>
+              <Text style={{ textAlign: 'left', fontWeight: 'bold' }}>Total del pedido {formatear(totalNeto)}</Text>
+
+            </View>
+            <View flex={2}>
+              <Pressable onPress={() => setModalVisible(true)} style={styles.buttonB}>
+                <Text style={styles.buttonText}>VER PEDIDO</Text>
+              </Pressable>
+              </View>
 
           </View>
         </View>
@@ -412,22 +418,22 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           extraScrollHeight={20}
           renderItem={({ item }) => {
 
-            const precioTransp = (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100))) + (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100)))*0.18;
-            const precioNormal = (item.f_precio5+ (item.f_precio5 * 0.18)) - (item.f_precio5 * (Number(descuentoCredito) / 100));
-            
-            const precioGlobal = ()=>{if(checkBoxChecked) {return precioTransp} else {return precioNormal}}
+            const precioTransp = (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100))) + (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100))) * 0.18;
+            const precioNormal = (item.f_precio5 + (item.f_precio5 * 0.18)) - (item.f_precio5 * (Number(descuentoCredito) / 100));
+
+            const precioGlobal = () => { if (checkBoxChecked) { return precioTransp } else { return precioNormal } }
 
 
             return (
               <View style={styles.listContainer}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.itemText}>
+                  <Text style={styles.itemText2}>
                     ({item.f_referencia}) - {item.f_referencia_suplidor}
                   </Text>
-                  <Text style={styles.itemText}>{item.f_descripcion}</Text>
-                  <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'    '}Precio neto: {formatear(precioGlobal())}</Text>
+                  <Text style={styles.itemText2}>{item.f_descripcion}</Text>
+                  <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'    '} neto: {formatear(precioGlobal())}</Text>
                   <Text style={styles.itemText}>Existencia: {item.f_existencia}  </Text>
-                  
+
                 </View>
                 <TextInput
                   style={styles.inputP}

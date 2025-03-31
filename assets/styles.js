@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     input: {
         height: 40,
         width: '90%',
-      
+        borderRadius: 5,
         marginTop: 0,
         borderWidth: 1,
         padding: 5,
@@ -41,6 +41,7 @@ export const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 10,
         marginLeft: 10,
+        borderRadius: 5,
       },
       headerContainer: {
         flexDirection: 'row',
@@ -82,6 +83,10 @@ export const styles = StyleSheet.create({
       },
       itemText: {
         fontSize: 14,
+      },
+      itemText2: {
+        fontSize: 14,
+        fontWeight: 'bold',
       },
       listContainer: {
         flexDirection: 'row',
@@ -177,7 +182,7 @@ export const styles = StyleSheet.create({
     
     
     buttonB: {
-      width: 150,
+      width: '100%',
       height: 40,
       backgroundColor: "#007AFF",
       borderRadius: 5,
@@ -185,6 +190,7 @@ export const styles = StyleSheet.create({
       borderColor: "black",
       alignItems: 'center',
       justifyContent: 'center',
+      flex: 1,
     },
     buttonRow: {
       flex: '1',

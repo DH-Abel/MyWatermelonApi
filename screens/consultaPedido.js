@@ -97,6 +97,7 @@ export default function Pedidos({ navigation }) {
         const facturaCollection = database.collections.get('t_factura_pedido');
         const allPedidos = await facturaCollection.query().fetch();
         setPedidos(allPedidos)
+        filtrarPedidosPorFecha();
       } catch (error) {
         console.error("Error al sincronizar, se mantienen los estados locales:", error);
       }
@@ -359,7 +360,7 @@ export default function Pedidos({ navigation }) {
               <Text style={{ fontSize: 18 }}>Documento: {item.f_documento}</Text>
               <Text style={{ fontSize: 16 }}>Cliente: ({item.f_cliente}) {cliente.f_nombre} </Text>
               {/*<Text style={{ fontSize: 16 }}>Tipo: {item.f_tipodoc}</Text>*/}
-              <Text style={{ fontSize: 16 }}>Fecha: {item.f_fecha} hora {item.f_hora_vendedor}</Text>
+              <Text style={{ fontSize: 16 }}>Fecha: {item.f_fecha} - {item.f_hora_vendedor}</Text>
               <Text style={{ fontSize: 16 }}>Total: {formatear(item.f_monto)}</Text>
               <Text style={{ fontSize: 16 }}>Estado: {item.f_estado_pedido}</Text>
               <Text style={{ fontSize: 16 }}>factura: {item.f_factura}</Text>
