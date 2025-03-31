@@ -51,7 +51,8 @@ export class FacturaPedido extends Model {
   @text('f_documento') f_documento;
   @text('f_tipodoc') f_tipodoc;
   @field('f_nodoc') f_nodoc;
-  @text('f_fecha') f_fecha;  
+  @text('f_fecha') f_fecha; 
+  @text('f_hora_vendedor') f_hora_vendedor;
   @field('f_monto_bruto') f_monto_bruto;
   @field('f_monto') f_monto;  
   @field('f_itbis') f_itbis;

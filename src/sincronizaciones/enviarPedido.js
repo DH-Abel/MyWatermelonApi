@@ -2,11 +2,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import api from "../../api/axios";
+import { database } from "../../src/database/database";
+import { Q } from '@nozbe/watermelondb';
 
 export const enviarPedido = async ({
     productosPedido,
     documento,
     fechaActual,
+    horaActual,
     computedItbis,
     computedDescuentoAplicado,
     descuentoGlobal,
@@ -36,6 +39,7 @@ export const enviarPedido = async ({
             f_tipodoc: 'PED',
             f_nodoc: parseInt(fechaActual, 10),
             f_fecha: fechaActual,
+            f_hora_vendedor: horaActual,
             f_itbis: computedItbis,
             f_descuento: computedDescuentoAplicado,
             f_porc_descuento: descuentoGlobal,
@@ -56,18 +60,28 @@ export const enviarPedido = async ({
                 f_cantidad: item.cantidad,
                 f_precio: item.f_precio,
             });
-            console.log("Detalle enviado a la API:", responseDetalle.data);
-        }
+           // console.log("Detalle enviado a la API:", responseDetalle.data);
+        } 
 
-        const facturaCollection = database.collections.get('t_factura_pedido');
-        const pedidosLocal = await facturaCollection.query(Q.where('f_documento',documento)).fetch()
-
-        if(pedidosLocal.length >0){
-            await pedidosLocal[0].update (
-                record =>{
-                    record.f_enviado = true;
-            });
+        try {
+            const facturaCollection = database.collections.get('t_factura_pedido');
+            const pedidosLocal = await facturaCollection.query(Q.where('f_documento', documento)).fetch();
+            console.log("Pedidos locales encontrados:", pedidosLocal);
+            if (pedidosLocal.length > 0) {
+                await database.write(() => {
+                    return pedidosLocal[0].update(record => {
+                        record.f_enviado = true;
+                    });
+                });
+                
+                console.log(`Pedido(s) con documento ${documento} marcados como enviados en la base local.`);
+            } else {
+                console.log(`No se encontró ningún pedido local con f_documento ${documento}`);
+            }
+        } catch (updateError) {
+            console.log("Error al actualizar el pedido local:", updateError);
         }
+        
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
         if (currentRouteName !== 'ConsultaPedidos') {
@@ -92,15 +106,16 @@ export const enviarPedido = async ({
         } else {
             Alert.alert("Error", "El pedido se guardó localmente, pero no se pudo enviar a la API. Reintenta el envío más tarde.");
         }
-        if(currentRouteName !== 'ConsultaPedidos'){
-        await AsyncStorage.removeItem('pedido_guardado');
-        setModalVisible(false);
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'ConsultaPedidos' }],
-        });}
+        if (currentRouteName !== 'ConsultaPedidos') {
+            await AsyncStorage.removeItem('pedido_guardado');
+            setModalVisible(false);
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'ConsultaPedidos' }],
+            });
+        }
     } finally {
         setIsSaving(false);
-        console.log("Pedido procesado:", JSON.stringify(pedido));
+        //console.log("Pedido procesado:", JSON.stringify(pedido));
     }
 };

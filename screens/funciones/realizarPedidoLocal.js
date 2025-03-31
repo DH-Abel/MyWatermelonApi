@@ -38,9 +38,28 @@ export const realizarPedidoLocal = async ({
   const computedItbis = Number(totalBruto - computedDescuentoAplicado) * 0.18;
   const computedTotalNeto = Number(totalBruto) + Number(computedItbis) - Number(computedDescuentoAplicado);
 
+  // Agrega una función para formatear la fecha
+  function formatDate(date) {
+    const d = new Date(date);
+    // Restamos 4 horas en milisegundos (4 * 60 * 60 * 1000)
+    const adjusted = new Date(d.getTime() - (4 * 60 * 60 * 1000));
+    
+    // Usamos los métodos getUTC... para obtener la fecha ajustada sin interferencia de la zona local
+    let day = adjusted.getUTCDate();
+    let month = adjusted.getUTCMonth() + 1;
+    const year = adjusted.getUTCFullYear();
+  
+    if (day < 10) day = '0' + day;
+    if (month < 10) month = '0' + month;
+  
+    return `${day}/${month}/${year}`;
+  }
+  
+
   // Genera identificador y fecha
   const documento = `PED-${Date.now()}`;
-  const fechaActual = new Date().toISOString();
+  const fechaActual = formatDate(new Date());
+  const horaActual = new Date().toLocaleTimeString();
 
   // Definimos la función que guarda el pedido localmente
   const guardarPedidoLocal = async () => {
@@ -57,6 +76,7 @@ export const realizarPedidoLocal = async ({
           record.f_tipodoc = 'PED';
           record.f_nodoc = parseInt(fechaActual);
           record.f_fecha = (fechaActual);
+          record.f_hora_vendedor = horaActual;
           record.f_itbis = computedItbis;
           record.f_descuento = computedDescuentoAplicado;
           record.f_porc_descuento = descuentoGlobal;
@@ -107,6 +127,7 @@ export const realizarPedidoLocal = async ({
                 productosPedido,
                 documento,
                 fechaActual,
+                horaActual,
                 computedItbis,
                 computedDescuentoAplicado,
                 descuentoGlobal,
