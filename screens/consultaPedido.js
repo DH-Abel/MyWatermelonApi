@@ -52,6 +52,7 @@ export default function Pedidos({ navigation }) {
       }
     }
   };
+  
 
 
   const cargarProductosMap = async () => {
@@ -231,6 +232,8 @@ export default function Pedidos({ navigation }) {
               <Text style={{ fontSize: 16 }}>Fecha: {item.f_fecha}</Text>
               <Text style={{ fontSize: 16 }}>Total: {formatear(item.f_monto)}</Text>
               <Text style={{ fontSize: 16 }}>Estado: {item.f_estado_pedido}</Text>
+              <Text style={{ fontSize: 16 }}>factura: {item.f_factura}</Text> 
+              <Text style={{ fontSize: 16 }}>Enviado: {item.f_enviado}</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Pressable
                   onPress={() => openDetalleModal(item)}
@@ -243,8 +246,7 @@ export default function Pedidos({ navigation }) {
                   style={{ padding: 10, backgroundColor: '#ccc', borderRadius: 8, marginTop: 10 }}
                 >
                   <Text style={{ fontSize: 16 }}>Enviar Pedido</Text>
-                </Pressable>
-
+                </Pressable> 
               </View>
             </View>
           )

@@ -59,6 +59,16 @@ export const enviarPedido = async ({
             console.log("Detalle enviado a la API:", responseDetalle.data);
         }
 
+        const facturaCollection = database.collections.get('t_factura_pedido');
+        const pedidosLocal = await facturaCollection.query(Q.where('f_documento',documento)).fetch()
+
+        if(pedidosLocal.length >0){
+            await pedidosLocal[0].update (
+                record =>{
+                    record.f_enviado = true;
+            });
+        }
+
         Alert.alert("Éxito", "Pedido enviado a la empresa");
         if (currentRouteName !== 'ConsultaPedidos') {
             await AsyncStorage.removeItem('pedido_guardado');

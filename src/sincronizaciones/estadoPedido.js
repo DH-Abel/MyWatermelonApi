@@ -33,7 +33,6 @@ const sincronizarEstado = async () => {
 
     syncInProgress = true;
     try {
-
         const pedidoCollection = database.collections.get('t_factura_pedido');
         const pedidosLocales = await pedidoCollection.query().fetch();
 
@@ -51,11 +50,6 @@ const sincronizarEstado = async () => {
             // Obtén los clientes desde la API
             const response = await api.get('/pedidos/estado', { params: { f_documento: f_documentoLocal } });
             const estadoRemoto = response.data;
-    
-            // Crea un Set con los f_id remotos para usarlo en la eliminación
-            const remoteIds = new Set(
-                estadoRemoto.map(cli => parseInt(cli.f_estado_pedido, 10))
-            );
     
             await database.write(async () => {
                 const estadoCollection = database.collections.get('t_factura_pedido');
@@ -78,16 +72,19 @@ const sincronizarEstado = async () => {
                             updateNeeded = true;
                             differences.push(`f_estado_pedido: local (${(estadoLocal.f_estado_pedido)}) vs remoto (${cli.f_estado_pedido})`);
                         }
+                        if ((estadoLocal.f_factura) !== cli.f_factura) {
+                            updateNeeded = true;
+                            differences.push(`f_factura: local (${(estadoLocal.f_estado_pedido)}) vs remoto (${cli.f_estado_pedido})`);
+                        }
     
                         if (updateNeeded) {
                             await estadoLocal.update(record => {
                                 record.f_estado_pedido = cli.f_estado_pedido;
-    
-    
+                                record.f_factura = cli.f_factura;
                             });
                             console.log(`pedido ${cli.f_documento} actualizado. Cambios: ${differences.join(', ')}`);
                         } else {
-                            console.log(`Cliente ${cli.f_documento} sin cambios.`);
+                            console.log(`pedido ${cli.f_documento} sin cambios.`);
                         }
                     }
     

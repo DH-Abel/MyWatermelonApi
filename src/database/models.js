@@ -61,6 +61,7 @@ export class FacturaPedido extends Model {
   @field('f_observacion') f_observacion;
   @field('f_vendedor') f_vendedor;
   @field('f_estado_pedido') f_estado_pedido;
+  @field('f_enviado') f_enviado;
 }
 
 export class DetalleFacturaPedido extends Model {
