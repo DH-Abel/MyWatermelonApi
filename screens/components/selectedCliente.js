@@ -112,7 +112,7 @@ const SelectedCliente = ({
               ✅ Disponible: {formatear(creditoDisponible)}
             </Text>
             <Text style={uiStyles.infoText}>
-              🎁 Descuento por transporte: {descuentoGlobal} %
+            🏷️ Descuento: {descuentoGlobal} %
             </Text>
           </View>
   
