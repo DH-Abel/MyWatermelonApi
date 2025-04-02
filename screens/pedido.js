@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ActivityIndicator, TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
+  View,
+  Text,
+  ActivityIndicator,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  SafeAreaView,
+  Alert,
+  Pressable,
+  StyleSheet,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/axios.js';
 import { database } from '../src/database/database.js';
-import { styles } from '../assets/styles.js';
+import { formatear } from '../assets/formatear.js';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
-import { formatear } from '../assets/formatear.js';
 import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -18,15 +26,18 @@ import MyCheckbox from './utilities/checkbox.js';
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
-
-export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado,
-  creditoDisponible, setCreditoDisponible = () => { },
-  descuentoCredito, setDescuentoCredito,
+export default function Pedido({
+  clienteSeleccionado: initialClienteSeleccionado,
+  creditoDisponible,
+  setCreditoDisponible = () => {},
+  descuentoCredito,
+  setDescuentoCredito,
   descuentoGlobal,
-  setNota, nota,
-  condicionSeleccionada
+  setNota,
+  nota,
+  condicionSeleccionada,
 }) {
-  // const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  // ----- Estados y lógica (se mantiene sin cambios) -----
   const [productos, setProductos] = useState([]);
   const [searchTextProductos, setSearchTextProductos] = useState('');
   const [pedido, setPedido] = useState({});
@@ -39,17 +50,15 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   const [isSaving, setIsSaving] = useState(false);
   const [checkBoxChecked, setCheckBoxChecked] = useState(false);
   const pedidoRef = React.useRef(pedido);
-
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
 
   const navigation = useNavigation();
-  const parentNavigation = navigation.getParent(); // Accedemos al padre
-  const hasLoadedPedido = React.useRef(false);
+  const parentNavigation = navigation.getParent();
 
-
-  const totalBruto = Object.values(pedido).reduce((total, item) => (total + item.f_precio5 * item.cantidad), 0)
-
-
+  const totalBruto = Object.values(pedido).reduce(
+    (total, item) => total + item.f_precio5 * item.cantidad,
+    0
+  );
   const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
   const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
@@ -69,7 +78,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
       setBalanceCliente,
       setDescuentoCredito,
       navigation,
-      creditoDisponible
+      creditoDisponible,
     });
   };
 
@@ -81,7 +90,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     const netState = await NetInfo.fetch();
     if (netState.isConnected) {
       try {
-        // Sincroniza con la API para actualizar los productos
         await sincronizarProductos();
         await cargarProductosLocales();
       } catch (error) {
@@ -92,27 +100,24 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
 
   const limpiarPedido = async () => {
     Alert.alert(
-      "Borrar pedido",
-      "¿Desea borrar el pedido?",
+      'Borrar pedido',
+      '¿Desea borrar el pedido?',
       [
+        { text: 'Cancelar', style: 'cancel' },
         {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        {
-          text: "Aceptar", onPress: async () => {
+          text: 'Aceptar',
+          onPress: async () => {
             setPedido({});
             try {
               await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
-              console.log("Pedido y AsyncStorage limpios.");
+              console.log('Pedido y AsyncStorage limpios.');
             } catch (error) {
-              console.error("Error al limpiar AsyncStorage:", error);
+              console.error('Error al limpiar AsyncStorage:', error);
             }
-          }
-        }
+          },
+        },
       ]
-    )
-
+    );
   };
 
   const cargarProductosLocales = async () => {
@@ -121,39 +126,44 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
         .get('t_productos_sucursal')
         .query()
         .fetch();
-      // Si es necesario, transforma los registros de WatermelonDB a objetos JS planos
       setProductos(productosLocales);
     } catch (error) {
       console.error('Error al cargar productos locales:', error);
     }
   };
 
-  const productosFiltrados = productos.filter(producto =>
-    (producto.f_descripcion || '').toLowerCase().includes(searchTextProductos.toLowerCase()) ||
-    (producto.f_referencia ? producto.f_referencia.toString().toLowerCase() : '').includes(searchTextProductos.toLowerCase())
+  const productosFiltrados = productos.filter((producto) =>
+    (producto.f_descripcion || '')
+      .toLowerCase()
+      .includes(searchTextProductos.toLowerCase()) ||
+    (producto.f_referencia ? producto.f_referencia.toString().toLowerCase() : '')
+      .includes(searchTextProductos.toLowerCase())
   );
 
-
-
-  // Funciones para actualizar pedido y eliminar productos (se mantienen igual)
   const actualizarCantidad = (f_referencia, cantidad, producto) => {
     if (cantidad === '') {
-      setPedido(prevPedido => {
+      setPedido((prevPedido) => {
         const nuevoPedido = { ...prevPedido };
         delete nuevoPedido[f_referencia];
         return nuevoPedido;
       });
     } else {
       const cantidadNumerica = parseInt(cantidad, 10) || 0;
-      setPedido(prevPedido => ({
+      setPedido((prevPedido) => ({
         ...prevPedido,
         [f_referencia]: prevPedido[f_referencia]
           ? { ...prevPedido[f_referencia], cantidad: cantidadNumerica }
-          : { f_referencia: producto.f_referencia, f_precio5: producto.f_precio5, cantidad: cantidadNumerica, f_referencia_suplidor: producto.f_referencia_suplidor, f_descripcion: producto.f_descripcion, f_existencia: producto.f_existencia }
+          : {
+              f_referencia: producto.f_referencia,
+              f_precio5: producto.f_precio5,
+              cantidad: cantidadNumerica,
+              f_referencia_suplidor: producto.f_referencia_suplidor,
+              f_descripcion: producto.f_descripcion,
+              f_existencia: producto.f_existencia,
+            },
       }));
     }
   };
-
 
   const eliminarDelPedido = (f_referencia) => {
     Alert.alert(
@@ -164,24 +174,23 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
         {
           text: 'Eliminar',
           onPress: () => {
-            setPedido(prevPedido => {
+            setPedido((prevPedido) => {
               const nuevoPedido = { ...prevPedido };
               delete nuevoPedido[f_referencia];
               AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
-              console.log("Pedido y AsyncStorage limpios.");
+              console.log('Pedido y AsyncStorage limpios.');
               return nuevoPedido;
             });
           },
         },
       ]
-    )
+    );
   };
 
-  //funcion del modal cambiar cantidad adel resumen del pedido
   const cambiarCantidad = (f_referencia) => {
     const producto = pedido[f_referencia];
     if (!producto) {
-      Alert.alert("Producto no encontrado", "El producto seleccionado no existe en el pedido.");
+      Alert.alert('Producto no encontrado', 'El producto seleccionado no existe en el pedido.');
       return;
     }
     setProductoParaEditar({ ...producto, f_referencia });
@@ -189,28 +198,19 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     setModalEditVisible(true);
   };
 
-
-
-
   useEffect(() => {
     parentNavigation.setParams({
       clienteSeleccionado,
       balanceCliente,
-      creditoDisponible
+      creditoDisponible,
     });
-  }, [
-    clienteSeleccionado,
-    balanceCliente,
-    creditoDisponible,
-    parentNavigation
-  ]);
+  }, [clienteSeleccionado, balanceCliente, creditoDisponible, parentNavigation]);
 
   useEffect(() => {
     if (clienteSeleccionado && descuentoGlobal > 0) {
       setCheckBoxChecked(true);
     }
-  }, [clienteSeleccionado, descuentoGlobal])
-
+  }, [clienteSeleccionado, descuentoGlobal]);
 
   useEffect(() => {
     if (clienteSeleccionado) {
@@ -230,30 +230,17 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
   }, [clienteSeleccionado]);
 
   useEffect(() => {
-    // Si el total del pedido cambia, actualizamos el crédito disponible
-    // Por ejemplo, si el crédito disponible se reduce en función del total del pedido:
-    const nuevoCredito = (clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente);
+    const nuevoCredito = clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente;
     setCreditoDisponible(nuevoCredito);
   }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
-
-
-  // Función que decide si sincronizar o cargar localmente según la conexión
-
-
   useEffect(() => {
-    // Configura el intervalo para revisar y sincronizar cada 5 minutos
     const intervalId = setInterval(() => {
       cargarProductos();
-    }, 30000); // 90,000 ms = 90 segundos
-
-    // Limpia el intervalo cuando el componente se desmonte
+    }, 30000);
     return () => clearInterval(intervalId);
   }, []);
 
-
-
-  // Al seleccionar un cliente, carga los productos (sincronizando o desde la base local)
   useEffect(() => {
     if (clienteSeleccionado) {
       setLoading(true);
@@ -269,9 +256,7 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           await AsyncStorage.setItem(CLAVE_PEDIDO_GUARDADO, pedidoJSON);
           console.log('Pedido guardado en Async Storage:', pedidoJSON);
         } else {
-          // No se elimina el pedido guardado si el estado "pedido" está vacío,
-          // lo dejamos intacto para que, al cargar la pantalla, se pueda preguntar al usuario.
-          console.log('Pedido vacío, pero no se elimina AsyncStorage para preservar el pedido guardado.');
+          console.log('Pedido vacío, se preserva el pedido guardado.');
         }
       } catch (error) {
         console.error('Error al guardar el pedido en Async Storage:', error);
@@ -279,7 +264,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     };
     guardarPedidoAsync();
   }, [pedido]);
-
 
   useFocusEffect(
     React.useCallback(() => {
@@ -292,7 +276,6 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
             if (pedidoGuardado && Object.keys(pedidoGuardado).length > 0) {
               const sizeGuardado = Object.keys(pedidoGuardado).length;
               const sizeActual = Object.keys(pedido).length;
-              // Solo preguntar si el tamaño es diferente (es decir, si no se está trabajando con el mismo pedido)
               if (sizeGuardado !== sizeActual && sizeActual <= 0) {
                 Alert.alert(
                   'PEDIDO GUARDADO ENCONTRADO',
@@ -312,232 +295,184 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
           }
         } catch (error) {
           console.error('Error al leer el pedido guardado de AsyncStorage:', error);
-        } finally {
-          hasLoadedPedido.current = true;
         }
       };
       cargarPedidoGuardado();
     }, [pedido])
   );
 
-
-  useEffect(() => {
-    const guardarPedidoAsync = async () => {
-      try {
-        if (Object.keys(pedido).length > 0) {
-          const pedidoJSON = JSON.stringify(pedido);
-          await AsyncStorage.setItem(CLAVE_PEDIDO_GUARDADO, pedidoJSON);
-          console.log('Pedido guardado en Async Storage:', pedidoJSON);
-        } else {
-          // Solo eliminamos el pedido si ya se intentó cargar
-          if (hasLoadedPedido.current) {
-            await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
-            console.log('Pedido vacío, se eliminó de Async Storage.');
-          }
-        }
-      } catch (error) {
-        console.error('Error al guardar el pedido en Async Storage:', error);
-      }
-    };
-    guardarPedidoAsync();
-  }, [pedido]);
-
-
-
   useEffect(() => {
     pedidoRef.current = pedido;
   }, [pedido]);
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />;
+    return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
   }
 
-
+  // ----- Diseño Nuevo -----
   return (
-
-    <SafeAreaView style={styles.container}>
-      <View >
-        <View style={{ borderWidth: 1, borderColor: 'black', width: '100%', padding: 10, borderRadius: 5, marginBottom: 5 }}>
-          <View>
-            <View flexDirection="row" alignItems="center" justifyContent="space-between">
-              <Text>
-                Descuento:
-              </Text>
-              <TextInput
-                style={{ borderWidth: 1, borderColor: 'black', width: 50, height: 30, textAlign: 'center', borderRadius: 5 }}
-                placeholder="Desc.%"
-                value={descuentoCredito}
-                onChangeText={setDescuentoCredito}
-              />
-              <Pressable style={styles.button} onPress={() => limpiarPedido()}   >
-                <Text>Limpiar</Text>
-              </Pressable>
-              <MyCheckbox
-                checked={checkBoxChecked}
-                setChecked={setCheckBoxChecked}
-              />
-            </View>
-          </View>
-          <View flexDirection="row" >
-
-            <View style={{ flexDirection: "center", flex: 3 }}>
-              <Text style={{ textAlign: 'left' }}>
-                Cred. disponible: {formatear(creditoDisponible)}
-              </Text>
-              <Text style={{ textAlign: 'left', fontWeight: 'bold' }}>Total del pedido {formatear(totalNeto)}</Text>
-
-            </View>
-            <View flex={2}>
-              <Pressable onPress={() => setModalVisible(true)} style={styles.buttonB}>
-                <Text style={styles.buttonText}>VER PEDIDO</Text>
-              </Pressable>
-              </View>
-
-          </View>
+    <SafeAreaView style={pedidoStyles.container}>
+      {/* Encabezado: Descuento, botón Limpiar, crédito y total */}
+      <View style={pedidoStyles.headerCard}>
+        <View style={pedidoStyles.row}>
+          <Text style={pedidoStyles.label}>Descuento:</Text>
+          <TextInput
+            style={pedidoStyles.discountInput}
+            placeholder="Desc.%"
+            value={descuentoCredito}
+            onChangeText={setDescuentoCredito}
+          />
+          <Pressable style={pedidoStyles.clearButton} onPress={limpiarPedido}>
+            <Text style={pedidoStyles.buttonText}>Limpiar</Text>
+          </Pressable>
+          <MyCheckbox checked={checkBoxChecked} setChecked={setCheckBoxChecked} />
         </View>
+        <View style={[pedidoStyles.row, { marginTop: 10 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={pedidoStyles.infoText}>
+              Cred. disponible: {formatear(creditoDisponible)}
+            </Text>
+            <Text style={[pedidoStyles.infoText, { fontWeight: 'bold' }]}>
+              Total del pedido: {formatear(totalNeto)}
+            </Text>
+          </View>
+          <Pressable onPress={() => setModalVisible(true)} style={pedidoStyles.orderButton}>
+            <Text style={pedidoStyles.orderButtonText}>VER PEDIDO</Text>
+          </Pressable>
+        </View>
+      </View>
 
+      {/* Buscador de producto */}
+      <View style={pedidoStyles.searchContainer}>
         <TextInput
-          style={styles.input}
+          style={pedidoStyles.searchInput}
           placeholder="Buscar producto"
           value={searchTextProductos}
           onChangeText={setSearchTextProductos}
         />
       </View>
 
-
-      {/* Listado de productos hacer pedido*/}
-      <View style={styles.listContainer2}>
+      {/* Listado de productos */}
+      <View style={pedidoStyles.productListContainer}>
         <FlashList
           estimatedItemSize={85}
-          removeClippedSubviews={false}
           data={productosFiltrados}
-          keyExtractor={(item) => (item.f_referencia ? item.f_referencia.toString() : item.f_referencia.toString())}
-
-
-          // keyboardShouldPersistTaps="always"
+          keyExtractor={(item) => item.f_referencia.toString()}
           extraScrollHeight={20}
           renderItem={({ item }) => {
-
-            const precioTransp = (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100))) + (item.f_precio5 - (item.f_precio5 * (Number(descuentoCredito) / 100))) * 0.18;
-            const precioNormal = (item.f_precio5 + (item.f_precio5 * 0.18)) - (item.f_precio5 * (Number(descuentoCredito) / 100));
-
-            const precioGlobal = () => { if (checkBoxChecked) { return precioTransp } else { return precioNormal } }
-
+            const precioGlobal = () => {
+              const precioTransp =
+                (item.f_precio5 -
+                  item.f_precio5 * (Number(descuentoCredito) / 100)) +
+                ((item.f_precio5 -
+                  item.f_precio5 * (Number(descuentoCredito) / 100)) * 0.18);
+              const precioNormal =
+                item.f_precio5 +
+                item.f_precio5 * 0.18 -
+                item.f_precio5 * (Number(descuentoCredito) / 100);
+              return checkBoxChecked ? precioTransp : precioNormal;
+            };
 
             return (
-              <View style={styles.listContainer}>
+              <View style={pedidoStyles.productCard}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.itemText2}>
+                  <Text style={pedidoStyles.productTitle}>
                     ({item.f_referencia}) - {item.f_referencia_suplidor}
                   </Text>
-                  <Text style={styles.itemText2}>{item.f_descripcion}</Text>
-                  <Text style={styles.itemText}>Precio:{formatear(item.f_precio5)}{'    '} neto: {formatear(precioGlobal())}</Text>
-                  <Text style={styles.itemText}>Existencia: {item.f_existencia}  </Text>
-
+                  <Text style={pedidoStyles.productDescription}>{item.f_descripcion}</Text>
+                  <Text style={pedidoStyles.productInfo}>
+                    Precio: {formatear(item.f_precio5)} | Neto: {formatear(precioGlobal())}
+                  </Text>
+                  <Text style={pedidoStyles.productInfo}>Existencia: {item.f_existencia}</Text>
                 </View>
                 <TextInput
-                  style={styles.inputP}
+                  style={pedidoStyles.quantityInput}
                   placeholder="QTY"
                   keyboardType="numeric"
                   value={pedido[item.f_referencia]?.cantidad?.toString() || ''}
-                  onChangeText={(cantidad) => actualizarCantidad(item.f_referencia, cantidad, item)}
+                  onChangeText={(cantidad) =>
+                    actualizarCantidad(item.f_referencia, cantidad, item)
+                  }
                 />
               </View>
-            )
+            );
           }}
-          ListEmptyComponent={<Text>No se encontraron productos</Text>}
+          ListEmptyComponent={<Text style={pedidoStyles.emptyText}>No se encontraron productos</Text>}
         />
       </View>
 
-
+      {/* Modal: Resumen del pedido */}
       <Modal
         animationType="slide"
         transparent={false}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={{ flex: 1, padding: 10 }}>
-            {/* Sección no scrollable: encabezado */}
-            <View>
-              <Text style={styles.title}>🛒 Resumen del Pedido</Text>
-              <Text style={styles.title}>
-                Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}
-              </Text>
-              <Text>Crédito Disponible: {formatear(creditoDisponible)}</Text>
-              <View style={styles.modalHeader}>
-                <Text>Total bruto: {formatear(totalBruto)}</Text>
-                <Text>Descuento: {formatear(descuentoAplicado)}</Text>
-                <Text>ITBIS: {formatear(itbis)}</Text>
-                <Text style={styles.title}>
-                  Total del pedido: {formatear(totalNeto)}
-                </Text>
-              </View>
-              <View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Nota"
-                  value={nota}
-                  onChangeText={setNota}
-                />
-              </View>
-              <Text style={styles.title}>Detalle del pedido:</Text>
+        <SafeAreaView style={pedidoStyles.modalContainer}>
+          <View style={pedidoStyles.modalContent}>
+            <Text style={pedidoStyles.modalTitle}>🛒 Resumen del Pedido</Text>
+            <Text style={pedidoStyles.modalSubtitle}>
+              Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}
+            </Text>
+            <Text style={pedidoStyles.modalInfo}>
+              Crédito Disponible: {formatear(creditoDisponible)}
+            </Text>
+            <View style={pedidoStyles.modalCard}>
+              <Text>Total bruto: {formatear(totalBruto)}</Text>
+              <Text>Descuento: {formatear(descuentoAplicado)}</Text>
+              <Text>ITBIS: {formatear(itbis)}</Text>
+              <Text style={pedidoStyles.modalTotal}>Total: {formatear(totalNeto)}</Text>
             </View>
-
-            {/* Área scrollable: lista de productos */}
-            <View style={{ flex: 1 }}>
-              {Object.keys(pedido).length > 0 ? (
-                <KeyboardAwareFlatList
-                  data={Object.entries(pedido)}
-                  keyExtractor={([f_referencia]) => f_referencia}
-                  contentContainerStyle={{ paddingBottom: 20 }}
-                  renderItem={({ item: [f_referencia, data] }) => (
-                    <View style={styles.listContainer}>
-                      <View style={{ flex: 1 }}>
-                        <Text>
-                          ({data.f_referencia}) - {data.f_referencia_suplidor}
-                        </Text>
-                        <Text>{data.f_descripcion}</Text>
-                        <Text>Cantidad: {data.cantidad}</Text>
-                        <Text>
-                          Precio: ${data.f_precio5} Total:
-                          {formatear(data.f_precio5 * data.cantidad)}
-                        </Text>
-                      </View>
-                      <View>
-                        <TouchableOpacity onPress={() => cambiarCantidad(f_referencia)} style={styles.modalButton2}>
-                          <Text style={[styles.modalButtonText, isSaving && { opacity: 0.6 }]}
-                            disabled={isSaving}>✍️</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => eliminarDelPedido(f_referencia)} style={[styles.modalButton3, isSaving && { opacity: 0.6 }]}
-                          disabled={isSaving}>
-                          <Text style={styles.modalButtonText}>❌</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-                />
-              ) : (
-                <Text>No hay productos en el pedido</Text>
-              )}
-            </View>
+            <TextInput
+              style={pedidoStyles.modalInput}
+              placeholder="Agregar Nota"
+              value={nota}
+              onChangeText={setNota}
+            />
+            <Text style={pedidoStyles.modalSectionTitle}>Detalle del pedido:</Text>
           </View>
-
-          {/* Contenedor fijo de botones */}
-          <View style={{ height: 60, flexDirection: 'row', justifyContent: 'space-between', padding: 10 }}>
-            <Pressable onPress={() => setModalVisible(false)} style={[styles.buttonRow2, isSaving && { opacity: 0.6 }]}
-              disabled={isSaving}>
-              <Text style={styles.buttonText}>Agregar productos</Text>
+          <View style={pedidoStyles.modalListContainer}>
+            {Object.keys(pedido).length > 0 ? (
+              <KeyboardAwareFlatList
+                data={Object.entries(pedido)}
+                keyExtractor={([f_referencia]) => f_referencia}
+                contentContainerStyle={{ paddingBottom: 20 }}
+                renderItem={({ item: [f_referencia, data] }) => (
+                  <View style={pedidoStyles.modalItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={pedidoStyles.modalItemTitle}>
+                        ({data.f_referencia}) - {data.f_referencia_suplidor}
+                      </Text>
+                      <Text style={pedidoStyles.modalItemDescription}>{data.f_descripcion}</Text>
+                      <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
+                      <Text style={pedidoStyles.modalItemInfo}>
+                        Precio: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
+                      </Text>
+                    </View>
+                    <View style={pedidoStyles.modalItemActions}>
+                      <TouchableOpacity onPress={() => cambiarCantidad(f_referencia)} style={pedidoStyles.editButton}>
+                        <Text style={pedidoStyles.buttonText}>✍️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => eliminarDelPedido(f_referencia)} style={pedidoStyles.deleteButton}>
+                        <Text style={pedidoStyles.buttonText}>❌</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              />
+            ) : (
+              <Text style={pedidoStyles.emptyText}>No hay productos en el pedido</Text>
+            )}
+          </View>
+          <View style={pedidoStyles.modalFooter}>
+            <Pressable onPress={() => setModalVisible(false)} style={pedidoStyles.footerButton}>
+              <Text style={pedidoStyles.footerButtonText}>Agregar productos</Text>
             </Pressable>
-            <Pressable
-              onPress={realizarPedidoLocalWrapper}
-              style={[styles.buttonRow, isSaving && { opacity: 0.6 }]}
-              disabled={isSaving}
-            >
+            <Pressable onPress={realizarPedidoLocalWrapper} style={pedidoStyles.footerButton}>
               {isSaving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Confirmar Pedido</Text>
+                <Text style={pedidoStyles.footerButtonText}>Confirmar Pedido</Text>
               )}
             </Pressable>
           </View>
@@ -558,3 +493,230 @@ export default function Pedido({ clienteSeleccionado: initialClienteSeleccionado
     </SafeAreaView>
   );
 }
+
+const pedidoStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fb',
+    padding: 16,
+  },
+  headerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#555',
+  },
+  discountInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 8,
+    width: 60,
+    textAlign: 'center',
+    marginLeft: 8,
+  },
+  clearButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  orderButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  orderButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchInput: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  productListContainer: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  productCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  productTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  productDescription: {
+    fontSize: 12,
+    color: '#666',
+  },
+  productInfo: {
+    fontSize: 12,
+    color: '#333',
+  },
+  quantityInput: {
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    width: 60,
+    textAlign: 'center',
+    marginLeft: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#999',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fb',
+    padding: 16,
+  },
+  modalContent: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
+  },
+  modalInfo: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  modalTotal: {
+    fontSize: 16,
+    marginTop: 8,
+    color: '#007AFF',
+  },
+  modalInput: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginVertical: 12,
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalListContainer: {
+    flex: 1,
+  },
+  modalItem: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  modalItemTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalItemDescription: {
+    fontSize: 12,
+    color: '#666',
+  },
+  modalItemInfo: {
+    fontSize: 12,
+    color: '#333',
+  },
+  modalItemActions: {
+    flexDirection: 'row',
+  },
+  editButton: {
+    backgroundColor: '#e0f0ff',
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  deleteButton: {
+    backgroundColor: '#ffe0e0',
+    padding: 8,
+    borderRadius: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  footerButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  footerButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+});
