@@ -21,6 +21,7 @@ import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
 import MyCheckbox from './utilities/checkbox.js';
 
@@ -36,6 +37,7 @@ export default function Pedido({
   setNota,
   nota,
   condicionSeleccionada,
+  orderToEdit
 }) {
   // ----- Estados y lógica (se mantiene sin cambios) -----
   const [productos, setProductos] = useState([]);
@@ -55,6 +57,10 @@ export default function Pedido({
   const navigation = useNavigation();
   const parentNavigation = navigation.getParent();
 
+// ...
+//const orderToEdit = orderToEditProp || route.params?.orderToEdit;
+const isEditing = !!orderToEdit;
+
   const totalBruto = Object.values(pedido).reduce(
     (total, item) => total + item.f_precio5 * item.cantidad,
     0
@@ -64,23 +70,44 @@ export default function Pedido({
   const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
 
   const realizarPedidoLocalWrapper = async () => {
-    await realizarPedidoLocal({
-      pedido,
-      totalBruto,
-      clienteSeleccionado,
-      descuentoGlobal,
-      nota,
-      condicionSeleccionada,
-      setIsSaving,
-      setPedido,
-      setModalVisible,
-      setClienteSeleccionado,
-      setBalanceCliente,
-      setDescuentoCredito,
-      navigation,
-      creditoDisponible,
-    });
+    if (isEditing) {
+      try {
+        await database.write(async () => {
+          // Asumiendo que orderToEdit tiene un campo "id" que identifica el registro en la colección
+          const orderRecord = await database.collections.get('t_factura_pedido').find(orderToEdit.id);
+          await orderRecord.update(record => {
+            record.f_monto = totalNeto; // Actualiza los campos correspondientes
+            record.f_descuento = descuentoAplicado;
+            record.f_observacion = nota;
+            // Actualiza otros campos según corresponda (productos, fecha, etc.)
+          });
+        });
+        Alert.alert("Pedido actualizado con éxito");
+        navigation.goBack();
+      } catch (error) {
+        console.error("Error al actualizar el pedido:", error);
+        Alert.alert("Ocurrió un error al actualizar el pedido");
+      }
+    } else {
+      await realizarPedidoLocal({
+        pedido,
+        totalBruto,
+        clienteSeleccionado,
+        descuentoGlobal,
+        nota,
+        condicionSeleccionada,
+        setIsSaving,
+        setPedido,
+        setModalVisible,
+        setClienteSeleccionado,
+        setBalanceCliente,
+        setDescuentoCredito,
+        navigation,
+        creditoDisponible,
+      });
+    }
   };
+
 
   const cargarProductos = async () => {
     // Primero carga los productos locales para una respuesta inmediata
@@ -199,6 +226,16 @@ export default function Pedido({
   };
 
   useEffect(() => {
+    if (isEditing) {
+      // Supongamos que en orderToEdit tienes un objeto con la estructura similar al estado "pedido"
+      setPedido(orderToEdit.pedido); // Asegúrate de tener la estructura necesaria
+      setNota(orderToEdit.f_observacion);
+      // Aquí puedes precargar otros estados relevantes (cliente, descuento, etc.)
+    }
+  }, [isEditing]);
+
+  
+  useEffect(() => {
     parentNavigation.setParams({
       clienteSeleccionado,
       balanceCliente,
@@ -305,9 +342,10 @@ export default function Pedido({
     pedidoRef.current = pedido;
   }, [pedido]);
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
-  }
+  // if (loading) {
+  //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
+  // }
+  
 
   // ----- Diseño Nuevo -----
   return (

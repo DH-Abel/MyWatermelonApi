@@ -59,7 +59,7 @@ export const realizarPedidoLocal = async ({
   // Genera identificador y fecha
   const documento = `PED-${Date.now()}`;
   const fechaActual = formatDate(new Date());
-  const horaActual = new Date().toLocaleTimeString();
+  const horaActual = new Date().toLocaleTimeString('en-GB');
 
   // Definimos la función que guarda el pedido localmente
   const guardarPedidoLocal = async () => {
