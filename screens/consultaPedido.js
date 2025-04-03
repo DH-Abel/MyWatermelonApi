@@ -432,7 +432,9 @@ export default function Pedidos({ navigation }) {
                   </Pressable>
                   
 
-                  <Pressable onPress={() => handleEnviarPedido(item)} style={consultaStyles.pedidoSmallButton}>
+                  <Pressable onPress={() => {
+                    handleEnviarPedido(item) ;cargarEstado()
+                    }} style={consultaStyles.pedidoSmallButton}>
                     <Ionicons name="send-outline" size={23} color="#fff" />
                   </Pressable>
                 </View>

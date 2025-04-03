@@ -1,16 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ActivityIndicator,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  SafeAreaView,
-  Alert,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
+  View, Text, ActivityIndicator, TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView
+}
+  from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/axios.js';
@@ -31,14 +24,15 @@ const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 export default function Pedido({
   clienteSeleccionado: initialClienteSeleccionado,
   creditoDisponible,
-  setCreditoDisponible = () => {},
+  setCreditoDisponible = () => { },
   descuentoCredito,
   setDescuentoCredito,
   descuentoGlobal,
   setNota,
   nota,
   condicionSeleccionada,
-  orderToEdit
+  orderToEdit, 
+  setHasPedido
 }) {
   // ----- Estados y lógica (se mantiene sin cambios) -----
   const [productos, setProductos] = useState([]);
@@ -58,9 +52,9 @@ export default function Pedido({
   const navigation = useNavigation();
   const parentNavigation = navigation.getParent();
 
-// ...
-//const orderToEdit = orderToEditProp || route.params?.orderToEdit;
-const isEditing = !!orderToEdit;
+  // ...
+  //const orderToEdit = orderToEditProp || route.params?.orderToEdit;
+  const isEditing = !!orderToEdit;
 
   const totalBruto = Object.values(pedido).reduce(
     (total, item) => total + item.f_precio5 * item.cantidad,
@@ -212,13 +206,13 @@ const isEditing = !!orderToEdit;
         [f_referencia]: prevPedido[f_referencia]
           ? { ...prevPedido[f_referencia], cantidad: cantidadNumerica }
           : {
-              f_referencia: producto.f_referencia,
-              f_precio5: producto.f_precio5,
-              cantidad: cantidadNumerica,
-              f_referencia_suplidor: producto.f_referencia_suplidor,
-              f_descripcion: producto.f_descripcion,
-              f_existencia: producto.f_existencia,
-            },
+            f_referencia: producto.f_referencia,
+            f_precio5: producto.f_precio5,
+            cantidad: cantidadNumerica,
+            f_referencia_suplidor: producto.f_referencia_suplidor,
+            f_descripcion: producto.f_descripcion,
+            f_existencia: producto.f_existencia,
+          },
       }));
     }
   };
@@ -265,7 +259,7 @@ const isEditing = !!orderToEdit;
     }
   }, [isEditing]);
 
-  
+
   useEffect(() => {
     parentNavigation.setParams({
       clienteSeleccionado,
@@ -373,10 +367,14 @@ const isEditing = !!orderToEdit;
     pedidoRef.current = pedido;
   }, [pedido]);
 
+  useEffect(()=>{
+    setHasPedido(Object.keys(pedido).length>0)
+  },[pedido])
+
   // if (loading) {
   //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
   // }
-  
+
 
   // ----- Diseño Nuevo -----
   return (
@@ -477,75 +475,86 @@ const isEditing = !!orderToEdit;
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={pedidoStyles.modalContainer}>
-          <View style={pedidoStyles.modalContent}>
-            <Text style={pedidoStyles.modalTitle}>🛒 Resumen del Pedido</Text>
-            <Text style={pedidoStyles.modalSubtitle}>
-              Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}
-            </Text>
-            <Text style={pedidoStyles.modalInfo}>
-              Crédito Disponible: {formatear(creditoDisponible)}
-            </Text>
-            <View style={pedidoStyles.modalCard}>
-              <Text>Total bruto: {formatear(totalBruto)}</Text>
-              <Text>Descuento: {formatear(descuentoAplicado)}</Text>
-              <Text>ITBIS: {formatear(itbis)}</Text>
-              <Text style={pedidoStyles.modalTotal}>Total: {formatear(totalNeto)}</Text>
-            </View>
-            <TextInput
-              style={pedidoStyles.modalInput}
-              placeholder="Agregar Nota"
-              value={nota}
-              onChangeText={setNota}
-            />
-            <Text style={pedidoStyles.modalSectionTitle}>Detalle del pedido:</Text>
-          </View>
-          <View style={pedidoStyles.modalListContainer}>
-            {Object.keys(pedido).length > 0 ? (
-              <KeyboardAwareFlatList
-                data={Object.entries(pedido)}
-                keyExtractor={([f_referencia]) => f_referencia}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                renderItem={({ item: [f_referencia, data] }) => (
-                  <View style={pedidoStyles.modalItem}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={pedidoStyles.modalItemTitle}>
-                        ({data.f_referencia}) - {data.f_referencia_suplidor}
-                      </Text>
-                      <Text style={pedidoStyles.modalItemDescription}>{data.f_descripcion}</Text>
-                      <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
-                      <Text style={pedidoStyles.modalItemInfo}>
-                        Precio: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
-                      </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0} // Ajustá este valor según tu layout
+          style={{ flex: 1 }}
+        >
+          <SafeAreaView style={pedidoStyles.modalContainer}>
+            <KeyboardAwareFlatList
+              data={Object.keys(pedido).length > 0 ? Object.entries(pedido) : []}
+              keyExtractor={([f_referencia]) => f_referencia}
+              contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+              ListHeaderComponent={
+                <View>
+                  {/* Contenido superior: título, datos y campo para la nota */}
+                  <View style={pedidoStyles.modalContent}>
+                    <Text style={pedidoStyles.modalTitle}>🛒 Resumen del Pedido</Text>
+                    <Text style={pedidoStyles.modalSubtitle}>
+                      Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}
+                    </Text>
+                    <Text style={pedidoStyles.modalInfo}>
+                      Crédito Disponible: {formatear(creditoDisponible)}
+                    </Text>
+                    <View style={pedidoStyles.modalCard}>
+                      <Text>Total bruto: {formatear(totalBruto)}</Text>
+                      <Text>Descuento: {formatear(descuentoAplicado)}</Text>
+                      <Text>ITBIS: {formatear(itbis)}</Text>
+                      <Text style={pedidoStyles.modalTotal}>Total: {formatear(totalNeto)}</Text>
                     </View>
-                    <View style={pedidoStyles.modalItemActions}>
-                      <TouchableOpacity onPress={() => cambiarCantidad(f_referencia)} style={pedidoStyles.editButton}>
-                        <Text style={pedidoStyles.buttonText}>✍️</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => eliminarDelPedido(f_referencia)} style={pedidoStyles.deleteButton}>
-                        <Text style={pedidoStyles.buttonText}>❌</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <TextInput
+                      style={pedidoStyles.modalInput}
+                      placeholder="Agregar Nota"
+                      value={nota}
+                      onChangeText={setNota}
+                    />
+                    <Text style={pedidoStyles.modalSectionTitle}>Detalle del pedido:</Text>
                   </View>
-                )}
-              />
-            ) : (
-              <Text style={pedidoStyles.emptyText}>No hay productos en el pedido</Text>
-            )}
-          </View>
-          <View style={pedidoStyles.modalFooter}>
-            <Pressable onPress={() => setModalVisible(false)} style={pedidoStyles.footerButton}>
-              <Text style={pedidoStyles.footerButtonText}>Agregar productos</Text>
-            </Pressable>
-            <Pressable onPress={realizarPedidoLocalWrapper} style={pedidoStyles.footerButton}>
-              {isSaving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={pedidoStyles.footerButtonText}>Confirmar Pedido</Text>
+
+                  {/* En caso de no tener productos, mostrar un mensaje */}
+                  {Object.keys(pedido).length === 0 && (
+                    <Text style={pedidoStyles.emptyText}>No hay productos en el pedido</Text>
+                  )}
+                </View>
+              }
+              renderItem={({ item: [f_referencia, data] }) => (
+                <View style={pedidoStyles.modalItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={pedidoStyles.modalItemTitle}>
+                      ({data.f_referencia}) - {data.f_referencia_suplidor}
+                    </Text>
+                    <Text style={pedidoStyles.modalItemDescription}>{data.f_descripcion}</Text>
+                    <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
+                    <Text style={pedidoStyles.modalItemInfo}>
+                      Precio: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
+                    </Text>
+                  </View>
+                  <View style={pedidoStyles.modalItemActions}>
+                    <TouchableOpacity onPress={() => cambiarCantidad(f_referencia)} style={pedidoStyles.editButton}>
+                      <Text style={pedidoStyles.buttonText}>✍️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => eliminarDelPedido(f_referencia)} style={pedidoStyles.deleteButton}>
+                      <Text style={pedidoStyles.buttonText}>❌</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               )}
-            </Pressable>
-          </View>
-        </SafeAreaView>
+
+            />
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+        <View style={pedidoStyles.modalFooter}>
+          <Pressable onPress={() => setModalVisible(false)} style={pedidoStyles.footerButton}>
+            <Text style={pedidoStyles.footerButtonText}>Agregar productos</Text>
+          </Pressable>
+          <Pressable onPress={realizarPedidoLocalWrapper} style={pedidoStyles.footerButton}>
+            {isSaving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={pedidoStyles.footerButtonText}>Confirmar Pedido</Text>
+            )}
+          </Pressable>
+        </View>
       </Modal>
 
       <CambiarCantidadModal

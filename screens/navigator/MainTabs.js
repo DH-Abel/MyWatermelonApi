@@ -13,6 +13,7 @@ const MainTabs = () => {
   const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
   const [descuentoCredito, setDescuentoCredito] = useState("10");
   const [nota, setNota] = useState("");
+  const [hasPedido, setHasPedido] = useState(false)
 
   const route = useRoute();
 
@@ -66,6 +67,9 @@ const MainTabs = () => {
     return 0;
   }, [clienteSeleccionado, condicionSeleccionada]);
 
+
+
+
   useEffect(() => {
     if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
       const defaultCondicion = condicionPedido.find(
@@ -80,29 +84,31 @@ const MainTabs = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
+    if (!clienteSeleccionado || !hasPedido ) return; // Si no hay cliente, no se añade el listener
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      // Intercepta la acción de volver atrás
       e.preventDefault();
 
       Alert.alert(
         'CANCELAR PEDIDO',
         '¿Estás seguro que deseas cancelar el pedido?',
         [
-          { text: 'No', style: 'cancel', onPress: () => {} },
-          { 
-            text: 'Si, eliminar pedido', 
-            style: 'destructive', 
+          { text: 'No', style: 'cancel', onPress: () => { } },
+          {
+            text: 'Si, eliminar pedido',
+            style: 'destructive',
             onPress: () => {
-             AsyncStorage.removeItem('pedido_guardado');
-              navigation.dispatch(e.data.action)
-            } 
+              AsyncStorage.removeItem('pedido_guardado');
+              navigation.dispatch(e.data.action);
+            }
           },
         ]
       );
     });
+    
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, clienteSeleccionado,hasPedido]);
+
 
   return (
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarHideOnKeyboard: true }}>
@@ -145,6 +151,7 @@ const MainTabs = () => {
             setNota={setNota}
             condicionSeleccionada={condicionSeleccionada}
             orderToEdit={orderToEdit}
+            setHasPedido={setHasPedido}
           />
         )}
         options={{ title: 'Productos' }}
