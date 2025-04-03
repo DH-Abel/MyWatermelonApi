@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, SafeAreaView, Pressable, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, SafeAreaView, Pressable, Modal, Alert} from 'react-native';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { formatear } from '../assets/formatear';
-import { styles } from '../assets/styles';
 import { consultaStyles } from '../assets/consultaStyles';
 import { enviarPedido } from '../src/sincronizaciones/enviarPedido';
 import sincronizarEstado from '../src/sincronizaciones/estadoPedido';
@@ -103,6 +102,55 @@ export default function Pedidos({ navigation }) {
     }
   }
 
+  const handleEditarPedido = async (pedidoItem) => {
+    if (pedidoItem._raw.f_enviado) {
+      Alert.alert("Pedido en empresa", "Ya este pedido se encuentra en la empresa, no puede ser editado")
+      return;
+    }
+    try {
+      // Consulta los detalles del pedido
+      const detalleCollection = database.collections.get('t_detalle_factura_pedido');
+      const detalles = await detalleCollection.query(
+        Q.where('f_documento', pedidoItem.f_documento)
+      ).fetch();
+
+      // Convierte los detalles en el formato que usa el estado "pedido" en Pedido.js.
+      // Por ejemplo, un objeto indexado por f_referencia:
+      const pedidoEdit = {};
+      detalles.forEach(det => {
+        pedidoEdit[det.f_referencia] = {
+          f_referencia: det.f_referencia,
+          cantidad: det.f_cantidad,
+          // Usamos f_precio de la tabla de detalles; asume que es equivalente a f_precio5
+          f_precio5: det.f_precio,
+          // Si lo requieres, puedes agregar otros campos (por ejemplo, descripción) o luego se cargarán desde productos locales.
+        };
+      });
+
+      // Construye el objeto orderToEdit a partir del encabezado y el detalle.
+      const orderToEdit = {
+        id: pedidoItem.id, // Asegúrate de que este campo exista o usa pedidoItem._raw.id
+        f_documento: pedidoItem.f_documento,
+        f_fecha: pedidoItem.f_fecha,
+        f_hora_vendedor: pedidoItem.f_hora_vendedor,
+        f_monto: pedidoItem.f_monto,
+        f_descuento: pedidoItem.f_descuento,
+        f_observacion: pedidoItem.f_observacion,
+        // Agrega otros campos necesarios del encabezado si lo requieres.
+        pedido: pedidoEdit, // Aquí se guardan los detalles del pedido
+      };
+
+      // Asumiendo que ya tienes un mapping de clientes en ConsultaPedidos (por ejemplo, en clientesMap)
+      const clienteSeleccionado = clientesMap[pedidoItem.f_cliente] || {};
+
+      // Navega a MainTabs pasando el cliente y el orderToEdit en los parámetros de ruta.
+      navigation.navigate('MainTabs', { clienteSeleccionado, orderToEdit });
+    } catch (error) {
+      console.error("Error al preparar la edición del pedido:", error);
+    }
+  };
+
+
   const handleEnviarPedido = async (pedidoItem) => {
     try {
       // Obtener el detalle del pedido desde la base de datos
@@ -117,6 +165,8 @@ export default function Pedidos({ navigation }) {
         cantidad: det.f_cantidad,
         f_precio: det.f_precio,
       }));
+
+
 
       // Preparar los parámetros usando los datos del pedidoItem
       const documento = pedidoItem.f_documento;
@@ -321,7 +371,7 @@ export default function Pedidos({ navigation }) {
       <DateTimePickerModal
         isVisible={isStartPickerVisible}
         mode="date"
-        
+
         onConfirm={(date) => {
           setStartDate(date);
           setIsStartPickerVisible(false);
@@ -345,6 +395,8 @@ export default function Pedidos({ navigation }) {
         renderItem={({ item }) => {
           const cliente = clientesMap[item.f_cliente] || {};
           return (
+            <Pressable onPress={() => openDetalleModal(item)}>
+                  
             <View style={consultaStyles.pedidoCard}>
               {/* Sección de Título: Documento y Nombre del Cliente */}
               <View style={consultaStyles.pedidoTitleSection}>
@@ -367,25 +419,26 @@ export default function Pedidos({ navigation }) {
                   <Text style={consultaStyles.pedidoText}>
                     Estado: {item.f_estado_pedido} || Factura: {item.f_factura}
                   </Text>
-                
+
                   <Text style={consultaStyles.pedidoText}>
                     Enviado: {item._raw.f_enviado ? 'Sí' : 'No'}
                   </Text>
                 </View>
                 {/* Botones pequeños en columna */}
                 <View style={consultaStyles.pedidoButtonColumn}>
-                  <Pressable onPress={() => openDetalleModal(item)} style={consultaStyles.pedidoSmallButton}>
-                    <Ionicons name="eye-outline" size={20} color="#fff" />
+                 
+                  <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
+                    <Ionicons name="create-outline" size={23} color="#fff" />
                   </Pressable>
-                  <Pressable onPress={() => openDetalleModal(item)} style={consultaStyles.pedidoSmallButton}>
-                    <Ionicons name="create-outline" size={20} color="#fff" />
-                  </Pressable>
+                  
+
                   <Pressable onPress={() => handleEnviarPedido(item)} style={consultaStyles.pedidoSmallButton}>
-                    <Ionicons name="send-outline" size={20} color="#fff" />
+                    <Ionicons name="send-outline" size={23} color="#fff" />
                   </Pressable>
                 </View>
               </View>
             </View>
+            </Pressable>
 
           );
         }}

@@ -24,6 +24,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
 import MyCheckbox from './utilities/checkbox.js';
+import { Q } from '@nozbe/watermelondb';
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
@@ -79,11 +80,41 @@ const isEditing = !!orderToEdit;
             record.f_monto = totalNeto; // Actualiza los campos correspondientes
             record.f_descuento = descuentoAplicado;
             record.f_observacion = nota;
+
+            AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
             // Actualiza otros campos según corresponda (productos, fecha, etc.)
           });
+
+          const detalleCollection = database.collections.get('t_detalle_factura_pedido');
+          const detallesExistentes = await detalleCollection.query(
+            Q.where('f_documento', orderToEdit.f_documento)
+          ).fetch();
+
+          for (const detalle of detallesExistentes) {
+            await detalle.markAsDeleted();
+          }
+
+          const productosPedido = Object.entries(pedido).map(([f_referencia, data]) => ({
+            f_referencia: parseInt(f_referencia, 10),
+            cantidad: data.cantidad,
+            f_precio: data.f_precio5,
+          }));
+
+          for (const item of productosPedido) {
+            await detalleCollection.create(record => {
+              record.f_documento = orderToEdit.f_documento; // Reutilizamos el mismo documento
+              record.f_referencia = item.f_referencia;
+              record.f_cantidad = item.cantidad;
+              record.f_precio = item.f_precio;
+            });
+          }
+
         });
         Alert.alert("Pedido actualizado con éxito");
-        navigation.goBack();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'ConsultaPedidos' }]
+        });
       } catch (error) {
         console.error("Error al actualizar el pedido:", error);
         Alert.alert("Ocurrió un error al actualizar el pedido");

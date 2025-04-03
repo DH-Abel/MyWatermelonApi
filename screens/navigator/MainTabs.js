@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import SelectedCliente from '../components/selectedCliente';
 import Pedido from '../pedido';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 
@@ -11,13 +12,14 @@ const MainTabs = () => {
 
   const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
   const [descuentoCredito, setDescuentoCredito] = useState("10");
-  const [nota,setNota] = useState("");
+  const [nota, setNota] = useState("");
 
   const route = useRoute();
 
   const {
     clienteSeleccionado = {},
     balanceCliente = 0,
+    orderToEdit
   } = route.params || {};
 
 
@@ -42,13 +44,13 @@ const MainTabs = () => {
   const condicionPedidoElegida = (option) => {
     // Aquí puedes usar tanto el id como el name de la opción seleccionada
     console.log("Seleccionaste:", option.id, option.nombre);
-    if((option.id ===3||option.id ===1) && clienteSeleccionado.f_bloqueo_credito == true){
+    if ((option.id === 3 || option.id === 1) && clienteSeleccionado.f_bloqueo_credito == true) {
       Alert.alert("El cliente tiene bloqueo de crédito");
       return
-    }else{
-    setCondicionSeleccionada(option);
-    setModalVisibleCondicion(false);
-  }
+    } else {
+      setCondicionSeleccionada(option);
+      setModalVisibleCondicion(false);
+    }
   };
 
 
@@ -75,10 +77,32 @@ const MainTabs = () => {
     }
   }, [clienteSeleccionado]);
 
+  const navigation = useNavigation();
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Intercepta la acción de volver atrás
+      e.preventDefault();
 
+      Alert.alert(
+        'CANCELAR PEDIDO',
+        '¿Estás seguro que deseas cancelar el pedido?',
+        [
+          { text: 'No', style: 'cancel', onPress: () => {} },
+          { 
+            text: 'Si, eliminar pedido', 
+            style: 'destructive', 
+            onPress: () => {
+             AsyncStorage.removeItem('pedido_guardado');
+              navigation.dispatch(e.data.action)
+            } 
+          },
+        ]
+      );
+    });
 
-
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarHideOnKeyboard: true }}>
@@ -117,9 +141,10 @@ const MainTabs = () => {
             modalVisibleCondicion={modalVisibleCondicion}
             setModalVisibleCondicion={setModalVisibleCondicion}
             descuentoGlobal={descuentoGlobal}
-            nota = {nota}
+            nota={nota}
             setNota={setNota}
             condicionSeleccionada={condicionSeleccionada}
+            orderToEdit={orderToEdit}
           />
         )}
         options={{ title: 'Productos' }}
