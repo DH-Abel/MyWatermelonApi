@@ -293,17 +293,19 @@ export default function Pedidos({ navigation }) {
     setDetalleLoading(true);
     try {
       const detalleCollection = database.collections.get('t_detalle_factura_pedido');
-      // Asumiendo que en la tabla 't_detalle_factura_pedido' el campo 'f_documento' relaciona el detalle con el pedido
       const detalles = await detalleCollection.query(
         Q.where('f_documento', f_documento)
       ).fetch();
       setDetallePedido(detalles);
+      return detalles;  // Retornamos los detalles para poder usarlos en la impresión
     } catch (error) {
       console.error("Error al obtener el detalle del pedido:", error);
+      return [];
     } finally {
       setDetalleLoading(false);
     }
   };
+
 
   // Función para abrir el modal de detalles
   const openDetalleModal = (pedido) => {
@@ -314,17 +316,32 @@ export default function Pedidos({ navigation }) {
     setDetalleModalVisible(true);
   };
 
-  const imprimirPedido = () => {
-    if (!selectedPedido || detallePedido.length === 0) {
+  const imprimirPedidoDesdeLista = async (pedido) => {
+    // Usamos (pedido._raw || pedido) para asegurarnos de obtener el objeto plano
+    const pedidoPlana = pedido._raw || pedido;
+    console.log("Imprimiendo pedido:", pedidoPlana);
+    
+    const fDoc = pedidoPlana.f_documento;
+    console.log("Valor de f_documento:", fDoc);
+    
+    // Llamamos a la función que obtiene los detalles
+    const detalles = await fetchDetallePedido(fDoc);
+    console.log("Detalles obtenidos:", detalles);
+    
+    if (!pedidoPlana || !detalles || detalles.length === 0) {
       Alert.alert("Error", "No hay datos del pedido para imprimir");
       return;
     }
-
-    // Genera el reporte usando la función rPedido
-    const reporte = rPedido(selectedPedido, detallePedido, productosMap);
+    
+    // Genera el reporte utilizando la función rPedido
+    const reporte = rPedido(pedidoPlana, detalles, productosMap);
+    console.log("Reporte generado:", reporte);
+    
     // Envía el reporte a la impresora
     printTest(reporte);
   };
+  
+
 
   if (loading) {
     return (
@@ -467,7 +484,10 @@ export default function Pedidos({ navigation }) {
                     <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
                       <Ionicons name="create-outline" size={23} color="#fff" />
                     </Pressable>
-                    <Pressable onPress={imprimirPedido} style={consultaStyles.pedidoSmallButton}>
+                    <Pressable
+                      onPress={() => imprimirPedidoDesdeLista(item)}
+                      style={consultaStyles.pedidoSmallButton}
+                    >
                       <Ionicons name="print-outline" size={23} color="#fff" />
                     </Pressable>
 
