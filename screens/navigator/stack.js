@@ -22,7 +22,7 @@ export default function MyStack() {
         <NavigationContainer>
             <Stack.Navigator>
                 
-                <Stack.Screen name="PrinterExample" component={PrinterExample} options={{headerShown: false}} />
+                {/* <Stack.Screen name="PrinterExample" component={PrinterExample} options={{headerShown: false}} /> */}
                 <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} options={{headerShown: false}} />
                 <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
                 <Stack.Screen name="MainTabs" component={MainTabs} options={{headerShown: false}}/>

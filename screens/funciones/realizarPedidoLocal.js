@@ -97,6 +97,8 @@ export const realizarPedidoLocal = async ({
             record.f_precio = item.f_precio;
           });
         }
+        
+      await AsyncStorage.removeItem('pedido_guardado');
       });
       console.log("Pedido guardado localmente con éxito");
 
@@ -107,7 +109,6 @@ export const realizarPedidoLocal = async ({
           {
             text: "No",
             onPress: async () => {
-              await AsyncStorage.removeItem('pedido_guardado');
               setPedido({});
               setModalVisible(false);
               setClienteSeleccionado(null);

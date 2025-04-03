@@ -14,8 +14,10 @@ const MainTabs = () => {
   const [descuentoCredito, setDescuentoCredito] = useState("10");
   const [nota, setNota] = useState("");
   const [hasPedido, setHasPedido] = useState(false)
+  const [storageHasPedido, setStorageHasPedido] = useState(false);
 
   const route = useRoute();
+  const navigation = useNavigation();
 
   const {
     clienteSeleccionado = {},
@@ -81,10 +83,28 @@ const MainTabs = () => {
     }
   }, [clienteSeleccionado]);
 
-  const navigation = useNavigation();
+
+  
+useEffect(() => {
+  const checkStoragePedido = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('pedido_guardado');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setStorageHasPedido(Object.keys(parsed).length > 0);
+      } else {
+        setStorageHasPedido(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setStorageHasPedido(false);
+    }
+  };
+  checkStoragePedido();
+}, []);
 
   useEffect(() => {
-    if (!clienteSeleccionado || !hasPedido ) return; // Si no hay cliente, no se añade el listener
+    if (!hasPedido || !storageHasPedido) return; // Si no hay cliente, no se añade el listener
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       e.preventDefault();
 
