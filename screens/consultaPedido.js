@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, SafeAreaView, 
-        Pressable, Modal, Alert,PermissionsAndroid, } from 'react-native';
+import {
+  View, Text, FlatList, ActivityIndicator, SafeAreaView,
+  Pressable, Modal, Alert, PermissionsAndroid,
+} from 'react-native';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
@@ -10,7 +12,9 @@ import { formatear } from '../assets/formatear';
 import { consultaStyles } from '../assets/consultaStyles';
 import { enviarPedido } from '../src/sincronizaciones/enviarPedido';
 import sincronizarEstado from '../src/sincronizaciones/estadoPedido';
-import {PrinterExample} from './funciones/print'
+import { PrinterExample } from './funciones/print'
+import { printTest } from './funciones/print';
+import { rPedido } from './reportes/rPedido';
 
 
 
@@ -18,7 +22,7 @@ import {PrinterExample} from './funciones/print'
 
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([]);
-  const [fullPedidos, setFullPedidos] = useState([]); // Nuevo estado para almacenar todos los pedidos
+  const [fullPedidos, setFullPedidos] = useState([]); //Nuevo estado para almacenar todos los pedidos
   const [loading, setLoading] = useState(true);
 
   // Estados para filtro por fecha
@@ -192,7 +196,7 @@ export default function Pedidos({ navigation }) {
       const allPedidos = await facturaCollection.query().fetch();
       console.log("Todos los pedidos (f_fecha):", allPedidos.map(p => p.f_fecha || p._raw.f_fecha));
 
-      
+
 
       async function requestBluetoothPermission() {
         if (Platform.OS === 'android' && Platform.Version >= 31) {
@@ -241,7 +245,7 @@ export default function Pedidos({ navigation }) {
     }
   };
 
-  
+
 
   useEffect(() => {
     async function obtenerTodosLosPedidos() {
@@ -308,6 +312,18 @@ export default function Pedidos({ navigation }) {
     setSelectedPedido(pedidoPlana);
     fetchDetallePedido(pedidoPlana.f_documento);
     setDetalleModalVisible(true);
+  };
+
+  const imprimirPedido = () => {
+    if (!selectedPedido || detallePedido.length === 0) {
+      Alert.alert("Error", "No hay datos del pedido para imprimir");
+      return;
+    }
+
+    // Genera el reporte usando la función rPedido
+    const reporte = rPedido(selectedPedido, detallePedido, productosMap);
+    // Envía el reporte a la impresora
+    printTest(reporte);
   };
 
   if (loading) {
@@ -451,9 +467,10 @@ export default function Pedidos({ navigation }) {
                     <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
                       <Ionicons name="create-outline" size={23} color="#fff" />
                     </Pressable>
-                    <Pressable onPress={() => PrinterExample} style={consultaStyles.pedidoSmallButton}>
+                    <Pressable onPress={imprimirPedido} style={consultaStyles.pedidoSmallButton}>
                       <Ionicons name="print-outline" size={23} color="#fff" />
                     </Pressable>
+
 
 
                     <Pressable onPress={() => {
