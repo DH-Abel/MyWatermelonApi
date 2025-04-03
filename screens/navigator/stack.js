@@ -6,6 +6,7 @@ import React from "react";
 import ConsultaPedidos from "../consultaPedido";
 import Pedido from "../pedido";
 import DetallesPedido from "../detallePedido";
+import PrinterExample from '../funciones/print'
 import { View } from "react-native";
 import { enableScreens } from 'react-native-screens';
 import SelectClientScreen from "../components/selectClientes";
@@ -20,6 +21,8 @@ export default function MyStack() {
     return (
         <NavigationContainer>
             <Stack.Navigator>
+                
+                <Stack.Screen name="PrinterExample" component={PrinterExample} options={{headerShown: false}} />
                 <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} options={{headerShown: false}} />
                 <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
                 <Stack.Screen name="MainTabs" component={MainTabs} options={{headerShown: false}}/>

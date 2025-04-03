@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, SafeAreaView, Pressable, Modal, Alert} from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, SafeAreaView, 
+        Pressable, Modal, Alert,PermissionsAndroid, } from 'react-native';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
@@ -9,6 +10,10 @@ import { formatear } from '../assets/formatear';
 import { consultaStyles } from '../assets/consultaStyles';
 import { enviarPedido } from '../src/sincronizaciones/enviarPedido';
 import sincronizarEstado from '../src/sincronizaciones/estadoPedido';
+import {PrinterExample} from './funciones/print'
+
+
+
 
 
 export default function Pedidos({ navigation }) {
@@ -187,7 +192,21 @@ export default function Pedidos({ navigation }) {
       const allPedidos = await facturaCollection.query().fetch();
       console.log("Todos los pedidos (f_fecha):", allPedidos.map(p => p.f_fecha || p._raw.f_fecha));
 
+      
 
+      async function requestBluetoothPermission() {
+        if (Platform.OS === 'android' && Platform.Version >= 31) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+            {
+              title: 'Permiso para usar Bluetooth',
+              message: 'Esta app necesita acceso Bluetooth para conectarse a la impresora.',
+              buttonPositive: 'OK',
+            },
+          );
+          // Puedes también solicitar BLUETOOTH_SCAN si planeas buscar nuevos dispositivos
+        }
+      }
 
 
 
@@ -221,6 +240,8 @@ export default function Pedidos({ navigation }) {
       console.error("Error al enviar el pedido:", error);
     }
   };
+
+  
 
   useEffect(() => {
     async function obtenerTodosLosPedidos() {
@@ -396,50 +417,53 @@ export default function Pedidos({ navigation }) {
           const cliente = clientesMap[item.f_cliente] || {};
           return (
             <Pressable onPress={() => openDetalleModal(item)}>
-                  
-            <View style={consultaStyles.pedidoCard}>
-              {/* Sección de Título: Documento y Nombre del Cliente */}
-              <View style={consultaStyles.pedidoTitleSection}>
-                <Text style={consultaStyles.pedidoTitle}>Documento: {item.f_documento}</Text>
-                <Text style={consultaStyles.pedidoTitle}>
-                  Cliente: ({item.f_cliente}) {cliente.f_nombre}
-                </Text>
-              </View>
 
-              {/* Sección de Información y Botones */}
-              <View style={consultaStyles.pedidoInfoSection}>
-                {/* Información: fecha, hora, total, etc. */}
-                <View style={{ flex: 1 }}>
-                  <Text style={consultaStyles.pedidoText}>
-                    Fecha: {item.f_fecha} - {item.f_hora_vendedor}
-                  </Text>
-                  <Text style={consultaStyles.pedidoText}>
-                    Total: {formatear(item.f_monto)}
-                  </Text>
-                  <Text style={consultaStyles.pedidoText}>
-                    Estado: {item.f_estado_pedido} || Factura: {item.f_factura}
-                  </Text>
-
-                  <Text style={consultaStyles.pedidoText}>
-                    Enviado: {item._raw.f_enviado ? 'Sí' : 'No'}
+              <View style={consultaStyles.pedidoCard}>
+                {/* Sección de Título: Documento y Nombre del Cliente */}
+                <View style={consultaStyles.pedidoTitleSection}>
+                  <Text style={consultaStyles.pedidoTitle}>Documento: {item.f_documento}</Text>
+                  <Text style={consultaStyles.pedidoTitle}>
+                    Cliente: ({item.f_cliente}) {cliente.f_nombre}
                   </Text>
                 </View>
-                {/* Botones pequeños en columna */}
-                <View style={consultaStyles.pedidoButtonColumn}>
-                 
-                  <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
-                    <Ionicons name="create-outline" size={23} color="#fff" />
-                  </Pressable>
-                  
 
-                  <Pressable onPress={() => {
-                    handleEnviarPedido(item) ;cargarEstado()
+                {/* Sección de Información y Botones */}
+                <View style={consultaStyles.pedidoInfoSection}>
+                  {/* Información: fecha, hora, total, etc. */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={consultaStyles.pedidoText}>
+                      Fecha: {item.f_fecha} - {item.f_hora_vendedor}
+                    </Text>
+                    <Text style={consultaStyles.pedidoText}>
+                      Total: {formatear(item.f_monto)}
+                    </Text>
+                    <Text style={consultaStyles.pedidoText}>
+                      Estado: {item.f_estado_pedido} || Factura: {item.f_factura}
+                    </Text>
+
+                    <Text style={consultaStyles.pedidoText}>
+                      Enviado: {item._raw.f_enviado ? 'Sí' : 'No'}
+                    </Text>
+                  </View>
+                  {/* Botones pequeños en columna */}
+                  <View style={consultaStyles.pedidoButtonColumn}>
+
+                    <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
+                      <Ionicons name="create-outline" size={23} color="#fff" />
+                    </Pressable>
+                    <Pressable onPress={() => PrinterExample} style={consultaStyles.pedidoSmallButton}>
+                      <Ionicons name="print-outline" size={23} color="#fff" />
+                    </Pressable>
+
+
+                    <Pressable onPress={() => {
+                      handleEnviarPedido(item); cargarEstado()
                     }} style={consultaStyles.pedidoSmallButton}>
-                    <Ionicons name="send-outline" size={23} color="#fff" />
-                  </Pressable>
+                      <Ionicons name="send-outline" size={23} color="#fff" />
+                    </Pressable>
+                  </View>
                 </View>
               </View>
-            </View>
             </Pressable>
 
           );
