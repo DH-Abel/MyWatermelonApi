@@ -111,6 +111,7 @@ export const realizarPedidoLocal = async ({
             onPress: async () => {
               setPedido({});
               setModalVisible(false);
+              await AsyncStorage.removeItem('pedido_guardado');
               setClienteSeleccionado(null);
               setBalanceCliente(0);
               setDescuentoCredito(0);

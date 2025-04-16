@@ -39,9 +39,10 @@ export function rPedido(pedido, detalle, productosMap) {
       const totalProducto = Number(item.f_cantidad) * Number(item.f_precio);
       
       // Línea 1: Código y descripción (puedes ajustar el formato, por ejemplo, separando en columnas)
-      report += `${item.f_referencia} ${descripcion}\n`;
+      report += `(${item.f_referencia}) ${producto.f_referencia_suplidor}\n`;
+      report += `${descripcion}\n`;
       // Línea 2: Cantidad, precio unitario y total (formato simplificado)
-      report += `  ${item.f_cantidad} x ${item.f_precio} = ${totalProducto}\n`;
+      report += `  QTY: ${item.f_cantidad} x $${item.f_precio} = ${totalProducto}\n`;
     });
     
     report += separator;

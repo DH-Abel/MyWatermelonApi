@@ -74,15 +74,20 @@ export default function Pedidos({ navigation }) {
     const netState = await NetInfo.fetch();
     if (netState.isConnected) {
       try {
-        await sincronizarEstado();
+        if (pedidos.length > 0) {
+        await sincronizarEstado(pedidos);
         const facturaCollection = database.collections.get('t_factura_pedido');
         const allPedidos = await facturaCollection.query().fetch();
         setFullPedidos(allPedidos);
+        }else {
+          console.log("No hay pedidos para sincronizar");
+        }
       } catch (error) {
         console.error("Error al sincronizar, se mantienen los estados locales:", error);
       }
     }
   };
+  //select * from t_clientes
 
 
 

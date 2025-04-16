@@ -21,10 +21,12 @@ const getLastSync = async (nombreTabla) => {
     return 0;
 };
 
-const sincronizarEstado = async () => {
+const sincronizarEstado = async (pedidosSeleccionados = null) => {
     if (syncInProgress) return; // Evitar operaciones concurrentes
-    const intervalMS = 15000; // 15 SEGUNDOS  
+
+    const intervalMS = 30000; // 15 SEGUNDOS  
     const lastSync = await getLastSync('t_factura_pedido');
+
 
     if (Date.now() - lastSync < intervalMS) {
         console.log('Se realizo hace menos de 1 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
@@ -34,7 +36,9 @@ const sincronizarEstado = async () => {
     syncInProgress = true;
     try {
         const pedidoCollection = database.collections.get('t_factura_pedido');
-        const pedidosLocales = await pedidoCollection.query().fetch();
+        let pedidosLocales = pedidosSeleccionados && pedidosSeleccionados.length >0
+        ? pedidosSeleccionados
+        : await pedidoCollection.query().fetch();
 
 
         if (pedidosLocales.length === 0) {

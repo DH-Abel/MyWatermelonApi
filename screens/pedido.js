@@ -14,6 +14,7 @@ import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute } from '@react-navigation/native';
 import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
 import MyCheckbox from './utilities/checkbox.js';
@@ -31,7 +32,7 @@ export default function Pedido({
   setNota,
   nota,
   condicionSeleccionada,
-  orderToEdit, 
+  orderToEdit,
   setHasPedido
 }) {
   // ----- Estados y lógica (se mantiene sin cambios) -----
@@ -367,9 +368,9 @@ export default function Pedido({
     pedidoRef.current = pedido;
   }, [pedido]);
 
-  useEffect(()=>{
-    setHasPedido(Object.keys(pedido).length>0)
-  },[pedido])
+  useEffect(() => {
+    setHasPedido(Object.keys(pedido).length > 0)
+  }, [pedido])
 
   // if (loading) {
   //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
@@ -382,6 +383,9 @@ export default function Pedido({
       {/* Encabezado: Descuento, botón Limpiar, crédito y total */}
       <View style={pedidoStyles.headerCard}>
         <View style={pedidoStyles.row}>
+        <Pressable style={pedidoStyles.clearButton} onPress={limpiarPedido}>
+            <Ionicons name="trash-outline" size={24} color="white" />
+          </Pressable>
           <Text style={pedidoStyles.label}>Descuento:</Text>
           <TextInput
             style={pedidoStyles.discountInput}
@@ -389,9 +393,7 @@ export default function Pedido({
             value={descuentoCredito}
             onChangeText={setDescuentoCredito}
           />
-          <Pressable style={pedidoStyles.clearButton} onPress={limpiarPedido}>
-            <Text style={pedidoStyles.buttonText}>Limpiar</Text>
-          </Pressable>
+       
           <MyCheckbox checked={checkBoxChecked} setChecked={setCheckBoxChecked} />
         </View>
         <View style={[pedidoStyles.row, { marginTop: 10 }]}>
@@ -461,6 +463,15 @@ export default function Pedido({
                     actualizarCantidad(item.f_referencia, cantidad, item)
                   }
                 />
+                <Pressable
+                  style={pedidoStyles.plusButton}
+                  onPress={() => {
+                    const currentQuantity = pedido[item.f_referencia]?.cantidad || 0;
+                    actualizarCantidad(item.f_referencia, (currentQuantity + 1).toString(), item);
+                  }}
+                >
+                   <Ionicons name="add-circle-outline" size={32} color="#007AFF" />
+                </Pressable>
               </View>
             );
           }}
@@ -677,7 +688,7 @@ const pedidoStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ddd',
-    width: 60,
+    width: 50,
     textAlign: 'center',
     marginLeft: 8,
   },

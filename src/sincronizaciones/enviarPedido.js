@@ -85,18 +85,20 @@ export const enviarPedido = async ({
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
         if (currentRouteName !== 'ConsultaPedidos') {
-            await AsyncStorage.removeItem('pedido_guardado');
-
             // Reiniciar estados y navegar a ConsultaPedidos
             setPedido({});
+            await AsyncStorage.removeItem('pedido_guardado');
             setModalVisible(false);
             setClienteSeleccionado(null);
             setBalanceCliente(0);
             setDescuentoCredito(0);
+            
             navigation.reset({
                 index: 0,
                 routes: [{ name: 'ConsultaPedidos' }],
             });
+
+            
         }
 
     } catch (error) {
