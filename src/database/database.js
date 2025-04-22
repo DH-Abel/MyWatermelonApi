@@ -7,6 +7,10 @@ import { Clientes } from './models';
 import { CuentaCobrar } from './models';
 import { FacturaPedido } from './models';
 import { Sync} from './models';
+import {RecibosPDA} from './models';
+import {Aplicaciones_pda} from './models';
+import {DescuentosxPago} from './models';
+import {OfertaProductos} from './models';
 
 
 // Configurar el adaptador de SQLite con migraciones
@@ -18,5 +22,6 @@ const adapter = new SQLiteAdapter({
 // Crear la base de datos
 export const database = new Database({
   adapter,
-  modelClasses: [Producto, Clientes, CuentaCobrar, FacturaPedido, DetalleFacturaPedido,Sync],
+  modelClasses: [Producto, Clientes, CuentaCobrar, FacturaPedido,
+     ,DetalleFacturaPedido,Sync,RecibosPDA,Aplicaciones_pda,DescuentosxPago,OfertaProductos],
 });

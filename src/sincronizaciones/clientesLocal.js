@@ -1,6 +1,8 @@
+
 import api from '../../api/axios';
 import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
+import sincronizarDescuentos from './descuentos';
 
 let syncInProgress = false;
 
@@ -35,6 +37,7 @@ const sincronizarClientes = async () => {
   if (syncInProgress) return; // Evitar operaciones concurrentes
   const intervalMS = 14400000; // 4 hora en milisegundos
   const lastSync = await getLastSync('t_clientes');
+
 
   if (Date.now() - lastSync < intervalMS) {
     console.log('Se realizo hace menos de 1 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
@@ -224,6 +227,8 @@ const sincronizarClientes = async () => {
       console.log('Todos los clientes procesados dentro de la transacción.');
     });
     console.log('Sincronización de clientes completada.');
+
+    sincronizarDescuentos();
   } catch (error) {
     console.error('Error en la sincronización de clientes:', error);
   } finally {

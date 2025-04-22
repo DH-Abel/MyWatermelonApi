@@ -51,10 +51,10 @@ export class FacturaPedido extends Model {
   @text('f_documento') f_documento;
   @text('f_tipodoc') f_tipodoc;
   @field('f_nodoc') f_nodoc;
-  @text('f_fecha') f_fecha; 
+  @text('f_fecha') f_fecha;
   @text('f_hora_vendedor') f_hora_vendedor;
   @field('f_monto_bruto') f_monto_bruto;
-  @field('f_monto') f_monto;  
+  @field('f_monto') f_monto;
   @field('f_itbis') f_itbis;
   @field('f_descuento') f_descuento;
   @field('f_porc_descuento') f_porc_descuento;
@@ -79,5 +79,53 @@ export class Sync extends Model {
   @field('f_fecha') f_fecha;
   @field('f_tabla') f_tabla;
 }
+
+export class RecibosPDA extends Model {
+  static table = 't_recibos_pda';
+  @text('f_documento') f_documento;
+  @text('f_tiporecibo') f_tiporecibo;
+  @field('f_norecibo') f_norecibo;
+  @field('f_monto') f_monto;
+  @text('f_fecha') f_fecha;
+  @text('f_concepto') f_concepto;
+  @field('f_idcliente') f_idcliente;
+  @field('f_cobrador') f_cobrador;
+  @field('f_efectivo') f_efectivo;
+  @field('f_monto_transferencia') f_monto_transferencia;
+  @field('f_cheque') f_cheque;
+  @field('f_cheque_numero') f_cheque_numero;
+  @field('f_cheque_banco') f_cheque_banco;
+  @field('f_banco_transferencia') f_banco_transferencia;
+  @field('f_cheque_recibido') f_cheque_recibido;
+  @field('f_cheque_cobro') f_cheque_cobro;
+  @field('f_estado') f_estado;
+  @field('f_enviado') f_enviado;
+}
+export class Aplicaciones_pda extends Model {
+  static table = 't_aplicaciones_pda';
+  @text('f_documento_aplico')f_documento_aplico;
+  @text('f_documento_aplicado')f_documento_aplicado;
+  @field('f_tipo_doc')f_tipo_doc;
+  @text('f_concepto')f_concepto;
+  @field('f_monto')f_monto;
+  @text('f_fecha')f_fecha;
+  @field('f_cliente')f_cliente;
+}
+export class DescuentosxPago extends Model {
+  static table = 't_desc_x_pago_cliente';
+  @field('f_cliente') f_cliente;
+  @field('f_dia_inicio') f_dia_inicio;
+  @field('f_dia_fin') f_dia_fin;
+  @field('f_descuento1') f_descuento1;
+}
+export class OfertaProductos extends Model {
+  static table = 't_productos_ofertas';
+  @field('f_referencia') f_referencia;
+  @field('f_referencia_oferta') f_referencia_oferta;
+  @field('f_cantidad_req') f_cantidad_req;
+  @field('f_cantidad') f_cantidad;
+}
+
+
 
 

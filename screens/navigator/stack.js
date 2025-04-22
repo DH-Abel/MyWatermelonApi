@@ -12,6 +12,9 @@ import { enableScreens } from 'react-native-screens';
 import SelectClientScreen from "../components/selectClientes";
 import SelectedCliente from "../components/selectedCliente";
 import MainTabs from "./MainTabs";
+import MainTabsCobranza from "./MainTabsCobranza";
+import SelectClientesCobranza from '../components/selectClientesCobranza';
+import SelectedClienteCobranza from '../components/selectedClienteCobranza';
 
 enableScreens();
 
@@ -20,16 +23,19 @@ const Stack = createNativeStackNavigator();
 export default function MyStack() {
     return (
         <NavigationContainer>
-            <Stack.Navigator>
-                
-                {/* <Stack.Screen name="PrinterExample" component={PrinterExample} options={{headerShown: false}} /> */}
-                <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} options={{headerShown: false}} />
-                <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} options={{headerShown: false}}/>
-                <Stack.Screen name="MainTabs" component={MainTabs} options={{headerShown: false}}/>
-                <Stack.Screen name="SelectedCliente" component={SelectedCliente} options={{headerShown: false}}/>
-                <Stack.Screen name="Pedido" component={Pedido} options={{headerShown: false}}/>
-                <Stack.Screen name="DetallesPedido" component={DetallesPedido} />
-            </Stack.Navigator>
-        </NavigationContainer>
+        <Stack.Navigator initialRouteName="SelectClientesCobranza" screenOptions={{ headerShown: false }}>
+          {/* Flujo de cobranza */}
+          <Stack.Screen name="SelectClientesCobranza" component={SelectClientesCobranza} />
+          <Stack.Screen name="MainTabsCobranza" component={MainTabsCobranza} />
+  
+          {/* Flujo de pedidos */}
+          <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} />
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="ConsultaPedidos" component={ConsultaPedidos} />
+          <Stack.Screen name="Pedido" component={Pedido} />
+          <Stack.Screen name="DetallesPedido" component={DetallesPedido} />
+          <Stack.Screen name="PrinterExample" component={PrinterExample} />
+        </Stack.Navigator>
+      </NavigationContainer>
     );
 }

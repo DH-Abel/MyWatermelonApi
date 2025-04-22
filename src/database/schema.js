@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 4, // Cambiar la versión de la base de datos, por si agrego campos o tablas
+  version: 5, // Cambiar la versión de la base de datos, por si agrego campos o tablas
   tables: [
     tableSchema({
       name: 't_productos_sucursal',
@@ -45,57 +45,118 @@ export const mySchema = appSchema({
         { name: 'f_documento', type: 'string' },
         { name: 'f_tipodoc', type: 'string' },
         { name: 'f_nodoc', type: 'number' },
-        { name: 'f_fecha', type: 'string'},
+        { name: 'f_fecha', type: 'string' },
         { name: 'f_fecha_vencimiento', type: 'string' },
         { name: 'f_monto', type: 'number' },
         { name: 'f_balance', type: 'number' }
       ],
     }),
-     tableSchema({
-          name: 't_factura_pedido',
-          columns: [
-            { name: 'f_cliente', type: 'number' },
-            { name: 'f_documento', type: 'string' },
-            { name: 'f_tipodoc', type: 'string' },
-            { name: 'f_nodoc', type: 'number' },
-            { name: 'f_fecha', type: 'string'},
-            { name: 'f_hora_vendedor', type: 'string' },
-            { name: 'f_itbis', type: 'number' },
-            { name: 'f_descuento', type: 'number'},
-            {name: 'f_porc_descuento', type: 'number'},
-            { name: 'f_monto_bruto', type: 'number' },
-            { name: 'f_monto', type: 'number' },
-            { name: 'f_condicion', type: 'number' },
-            { name: 'f_observacion', type: 'string' },
-            { name: 'f_vendedor', type: 'number' },
-            { name: 'f_estado_pedido', type: 'number' },
-            { name: 'f_enviado', type: 'boolean' },
-          ],
-        }),
-        tableSchema({
-          name: 't_detalle_factura_pedido',
-          columns: [
-            { name: 'f_documento', type: 'string' },
-            { name: 'f_referencia', type: 'number' },
-            { name: 'f_cantidad', type: 'number' },
-            { name: 'f_precio', type: 'number' },
-          ],
-        }),
-        tableSchema({
-          name: 't_condiciones',
-          columns: [
-            { name: 'f_id', type: 'number' },
-            { name: 'f_descripcion', type: 'string' },
-          ],
-        }),
-        tableSchema({
-          name: 't_sync',
-          columns: [
-            { name: 'f_id', type: 'number' },
-            { name: 'f_tabla', type: 'string' },
-            { name: 'f_fecha', type: 'string' },
-          ],
-        }),
-          ]
-   
-  });
+    tableSchema({
+      name: 't_factura_pedido',
+      columns: [
+        { name: 'f_cliente', type: 'number' },
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_tipodoc', type: 'string' },
+        { name: 'f_nodoc', type: 'number' },
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_hora_vendedor', type: 'string' },
+        { name: 'f_itbis', type: 'number' },
+        { name: 'f_descuento', type: 'number' },
+        { name: 'f_porc_descuento', type: 'number' },
+        { name: 'f_monto_bruto', type: 'number' },
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_condicion', type: 'number' },
+        { name: 'f_observacion', type: 'string' },
+        { name: 'f_vendedor', type: 'number' },
+        { name: 'f_estado_pedido', type: 'number' },
+        { name: 'f_enviado', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 't_detalle_factura_pedido',
+      columns: [
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_referencia', type: 'number' },
+        { name: 'f_cantidad', type: 'number' },
+        { name: 'f_precio', type: 'number' },
+      ],
+    }),
+    tableSchema({
+      name: 't_condiciones',
+      columns: [
+        { name: 'f_id', type: 'number' },
+        { name: 'f_descripcion', type: 'string' },
+      ],
+    }),
+    tableSchema({
+      name: 't_sync',
+      columns: [
+        { name: 'f_id', type: 'number' },
+        { name: 'f_tabla', type: 'string' },
+        { name: 'f_fecha', type: 'string' },
+      ],
+    }),
+    tableSchema({
+      name: 't_recibos_pda',
+      columns: [
+        { name: 'f_documento', type: 'string' }, //documento del recibo (f_tiporecibo+f_norecibo)
+        { name: 'f_tiporecibo', type: 'string' }, //Es 'Rec+f_cobrador'
+        { name: 'f_norecibo', type: 'string' }, //secuencia del recibo
+        { name: 'f_monto', type: 'string' },
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_concepto', type: 'string' },
+        { name: 'f_idcliente', type: 'number' },
+        { name: 'f_cobrador', type: 'number' }, // id del cobrador
+        { name: 'f_efectivo', type: 'number' }, //monto en efectivo
+        { name: 'f_monto_transferencia', type: 'string' },
+        { name: 'f_cheque', type: 'number' }, //monto del cheque
+        { name: 'f_cheque_numero', type: 'number' },
+        { name: 'f_cheque_banco', type: 'number' }, //id del banco del cheque
+        { name: 'f_banco_transferencia', type: 'number' }, // banco de la transferencia
+        { name: 'f_cheque_recibido', type: 'string' },  //fecha en que se recibe el cheque
+        { name: 'f_cheque_cobro', type: 'string' }, // fecha de cobro del cheque
+        { name: 'f_estado', type: 'string' }, //estado del recibo (0=sin enviar, 1=enviado, 2=recibido)
+        { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
+      ]
+    }),
+    tableSchema({
+      name: 't_aplicaciones_pda',
+      columns: [
+        { name: 'f_documento_aplico', type: 'string' }, //documento del recibo que hizo el pago
+        { name: 'f_documento_aplicado', type: 'string' },//factura a la que se le hizo el pago
+        { name: 'f_tipo_doc', type: 'string' }, //Tipo de documento de la factura
+        { name: 'f_concepto', type: 'string' }, //Si fue saldo o abono
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_cliente', type: 'number' },
+      ]
+    }),
+    tableSchema({
+      name: 't_bancos',
+      columns: [
+        { name: 'f_idbanco', type: 'string' },
+        { name: 'f_nombre', type: 'string' },
+        { name: 'f_cooperativa', type: 'string' }, //Para saber si es banco o cooperativa
+      ]
+    }),
+    tableSchema({
+      name: 't_desc_x_pago_cliente',
+      columns: [
+        { name: 'f_cliente', type: 'number' },
+        { name: 'f_dia_inicio', type: 'number' },
+        { name: 'f_dia_fin', type: 'number' },
+        { name: 'f_descuento1', type: 'number' }
+      ]
+    }),
+    tableSchema({
+      name: 't_productos_ofertas',
+      columns: [
+        { name: 'f_referencia', type: 'number' },
+        { name: 'f_referencia_oferta', type: 'number' },
+        { name: 'f_cantidad_req', type: 'number' },
+        { name: 'f_cantidad', type: 'number' }
+      ]
+    }),
+  ]
+
+});
