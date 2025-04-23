@@ -48,7 +48,11 @@ export const mySchema = appSchema({
         { name: 'f_fecha', type: 'string' },
         { name: 'f_fecha_vencimiento', type: 'string' },
         { name: 'f_monto', type: 'number' },
-        { name: 'f_balance', type: 'number' }
+        { name: 'f_balance', type: 'number' },
+        { name: 'f_impuesto', type: 'number' },
+        { name: 'f_base_imponible', type: 'number' },
+        { name: 'f_descuento', type: 'number' },
+
       ],
     }),
     tableSchema({
@@ -102,7 +106,7 @@ export const mySchema = appSchema({
         { name: 'f_documento', type: 'string' }, //documento del recibo (f_tiporecibo+f_norecibo)
         { name: 'f_tiporecibo', type: 'string' }, //Es 'Rec+f_cobrador'
         { name: 'f_norecibo', type: 'string' }, //secuencia del recibo
-        { name: 'f_monto', type: 'string' },
+        { name: 'f_monto', type: 'number' },
         { name: 'f_fecha', type: 'string' },
         { name: 'f_concepto', type: 'string' },
         { name: 'f_idcliente', type: 'number' },
@@ -136,7 +140,7 @@ export const mySchema = appSchema({
       columns: [
         { name: 'f_idbanco', type: 'string' },
         { name: 'f_nombre', type: 'string' },
-        { name: 'f_cooperativa', type: 'string' }, //Para saber si es banco o cooperativa
+        { name: 'f_cooperativa', type: 'boolean' }, //Para saber si es banco o cooperativa
       ]
     }),
     tableSchema({

@@ -15,6 +15,9 @@ import MainTabs from "./MainTabs";
 import MainTabsCobranza from "./MainTabsCobranza";
 import SelectClientesCobranza from '../components/selectClientesCobranza';
 import SelectedClienteCobranza from '../components/selectedClienteCobranza';
+import ConfirmarCobranza from '../confirmarCobranza';
+import ConsultaRecibos from "../consultaRecibos";
+
 
 enableScreens();
 
@@ -23,11 +26,12 @@ const Stack = createNativeStackNavigator();
 export default function MyStack() {
     return (
         <NavigationContainer>
-        <Stack.Navigator initialRouteName="SelectClientesCobranza" screenOptions={{ headerShown: false }}>
+        <Stack.Navigator initialRouteName="consultaRecibos" screenOptions={{ headerShown: false }}>
           {/* Flujo de cobranza */}
+          <Stack.Screen name="consultaRecibos" component={ConsultaRecibos} />
           <Stack.Screen name="SelectClientesCobranza" component={SelectClientesCobranza} />
+          <Stack.Screen name="ConfirmarCobranza" component={ConfirmarCobranza} />
           <Stack.Screen name="MainTabsCobranza" component={MainTabsCobranza} />
-  
           {/* Flujo de pedidos */}
           <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />

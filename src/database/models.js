@@ -44,6 +44,9 @@ export class CuentaCobrar extends Model {
   @text('f_fecha_vencimiento') f_fecha_vencimiento;
   @field('f_monto') f_monto;
   @field('f_balance') f_balance;
+  @field('f_impuesto') f_balance;
+  @field('f_base_imponible') f_balance;
+  @field('f_descuento') f_balance;
 }
 export class FacturaPedido extends Model {
   static table = 't_factura_pedido';
@@ -80,6 +83,13 @@ export class Sync extends Model {
   @field('f_tabla') f_tabla;
 }
 
+export class Bancos extends Model {
+  static table = 't_bancos';
+  @field('f_idbanco') f_idbanco;
+  @text('f_nombre') f_nombre;
+  @field('f_cooperativa') f_cooperativa;
+}
+
 export class RecibosPDA extends Model {
   static table = 't_recibos_pda';
   @text('f_documento') f_documento;
@@ -103,13 +113,13 @@ export class RecibosPDA extends Model {
 }
 export class Aplicaciones_pda extends Model {
   static table = 't_aplicaciones_pda';
-  @text('f_documento_aplico')f_documento_aplico;
-  @text('f_documento_aplicado')f_documento_aplicado;
-  @field('f_tipo_doc')f_tipo_doc;
-  @text('f_concepto')f_concepto;
-  @field('f_monto')f_monto;
-  @text('f_fecha')f_fecha;
-  @field('f_cliente')f_cliente;
+  @text('f_documento_aplico') f_documento_aplico;
+  @text('f_documento_aplicado') f_documento_aplicado;
+  @field('f_tipo_doc') f_tipo_doc;
+  @text('f_concepto') f_concepto;
+  @field('f_monto') f_monto;
+  @text('f_fecha') f_fecha;
+  @field('f_cliente') f_cliente;
 }
 export class DescuentosxPago extends Model {
   static table = 't_desc_x_pago_cliente';

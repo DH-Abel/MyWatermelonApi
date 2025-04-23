@@ -34,7 +34,13 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
         const f_nodoc = item.f_nodoc != null ? parseInt(item.f_nodoc) : 0;
         const f_monto = item.f_monto != null ? parseFloat(item.f_monto) : 0;
         const f_balance = item.f_balance != null ? parseFloat(item.f_balance) : 0;
+        const f_impuesto = item.f_impuesto != null ? parseFloat(item.f_impuesto) : 0;
+        const f_base_imponible = item.f_base_imponible != null ? parseFloat(item.f_base_imponible) : 0;
+        const f_descuento = item.f_descuento != null ? parseFloat(item.f_descuento) : 0;
+        const fechaObj = new Date(item.f_fecha);
 
+        const fechaFormateada = fechaObj.toLocaleDateString('en-GB')
+       
         const existentes = await cuentaCollection.query(
           Q.where('f_documento', item.f_documento)
         ).fetch();
@@ -44,10 +50,13 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
             record.f_idcliente = parseInt(item.f_idcliente, 10);
             record.f_tipodoc = (item.f_tipodoc);
             record.f_nodoc = f_nodoc;
-            record.f_fecha = item.f_fecha;
+            record.f_fecha = fechaFormateada;
             record.f_fecha_vencimiento = item.f_fecha_vencimiento;
             record.f_monto = f_monto;
             record.f_balance = f_balance;
+            record.f_impuesto = f_impuesto;
+            record.f_base_imponible = f_base_imponible;
+            record.f_descuento = f_descuento;
           });
         } else {
           await cuentaCollection.create(record => {
@@ -59,6 +68,9 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
             record.f_fecha_vencimiento = item.f_fecha_vencimiento;
             record.f_monto = f_monto;
             record.f_balance = f_balance;
+            record.f_impuesto = f_impuesto;
+            record.f_base_imponible = f_base_imponible;
+            record.f_descuento = f_descuento;
           });
         }
       }

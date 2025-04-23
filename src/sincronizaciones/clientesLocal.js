@@ -3,6 +3,7 @@ import api from '../../api/axios';
 import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
 import sincronizarDescuentos from './descuentos';
+import sincronizarBancos from './bancos';
 
 let syncInProgress = false;
 
@@ -229,6 +230,7 @@ const sincronizarClientes = async () => {
     console.log('Sincronización de clientes completada.');
 
     sincronizarDescuentos();
+    sincronizarBancos();
   } catch (error) {
     console.error('Error en la sincronización de clientes:', error);
   } finally {

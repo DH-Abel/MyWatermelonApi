@@ -23,16 +23,16 @@ const getLastSync = async (nombreTabla) => {
 /**
  * Sincroniza tabla t_desc_x_pago_cliente con la API
  */
-const sincronizarDescuentos = async () => {
-    console.log('Sincronizando descuentos...');
+const sincronizarBancos = async () => {
+    console.log('Sincronizando bancos...');
     console.log(Object.keys(database.collections.map));
     if (syncInProgress) return;
-    const nombreTabla = 't_desc_x_pago_cliente';
-    const intervalo = 28800000; // 8 horas en ms
+    const nombreTabla = 't_bancos';
+    const intervalo = 172800000; // 48 horas en ms
     const lastSync = await getLastSync(nombreTabla);
 
     if (Date.now() - lastSync < intervalo) {
-        console.log(`Sincronización de descuentos omitida, faltan ${{
+        console.log(`Sincronización de bancos omitida, faltan ${{
             ms: intervalo - (Date.now() - lastSync)
         }} ms`);
         return;
@@ -40,51 +40,47 @@ const sincronizarDescuentos = async () => {
 
     syncInProgress = true;
     try {
-        const response = await api.get('/descuentos');
+        const response = await api.get('/bancos');
         const remote = response.data;
 
         if (!Array.isArray(remote)) return;
-
 
         await database.write(async () => {
             const descCollection = database.collections.get(nombreTabla);
 
             for (const item of remote) {
-                const f_cliente = parseInt(item.f_cliente, 10);
-                const f_dia_inicio = parseInt(item.f_dia_inicio, 10);
-                const f_dia_fin = parseInt(item.f_dia_fin, 10);
-                const f_descuento1 = parseFloat(item.f_descuento1) || 0;
+                const f_idbanco = item.f_idbanco
+                const f_nombre = item.f_nombre
+                const f_cooperativa = item.f_cooperativa
 
                 const existentes = await descCollection.query(
-                    Q.where('f_cliente', f_cliente),
-                    Q.where('f_dia_inicio', f_dia_inicio),
-                    Q.where('f_dia_fin', f_dia_fin)
+                    Q.where('f_idbanco', f_idbanco),
+                    Q.where('f_nombre', f_nombre),
+                    Q.where('f_cooperativa', f_cooperativa)
                 ).fetch();
 
                 if (existentes.length > 0) {
                     await existentes[0].update(record => {
-                        record.f_dia_inicio = f_dia_inicio;
-                        record.f_dia_fin = f_dia_fin;
-                        record.f_descuento1 = f_descuento1;
+                        record.f_nombre = f_nombre;
+                        record.f_cooperativa = f_cooperativa;
                     });
                 } else {
                     await descCollection.create(record => {
-                        record.f_cliente = f_cliente;
-                        record.f_dia_inicio = f_dia_inicio;
-                        record.f_dia_fin = f_dia_fin;
-                        record.f_descuento1 = f_descuento1;
+                        record.f_idbanco = f_idbanco;
+                        record.f_nombre = f_nombre;
+                        record.f_cooperativa = f_cooperativa;
                     });
                 }
             }
         });
 
         await syncHistory(nombreTabla);
-        console.log('Sincronización de descuentos completada');
+        console.log('Sincronización de bancos completada');
     } catch (error) {
-        console.error('Error sincronizando descuentos:', error);
+        console.error('Error sincronizando bancos:', error);
     } finally {
         syncInProgress = false;
     }
 };
 
-export default sincronizarDescuentos;
+export default sincronizarBancos;
