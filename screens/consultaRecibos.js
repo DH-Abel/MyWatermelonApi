@@ -26,6 +26,7 @@ export default function ConsultaRecibos({ navigation }) {
   const [fullRecibos, setFullRecibos] = useState([]);
   const [recibos, setRecibos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notasNC, setNotasNC] = useState([]);
 
   // Filtros por fecha
   const [startDate, setStartDate] = useState(new Date());
@@ -44,6 +45,8 @@ export default function ConsultaRecibos({ navigation }) {
   const [selectedRecibo, setSelectedRecibo] = useState(null);
   const [detalleAplicaciones, setDetalleAplicaciones] = useState([]);
   const [detalleLoading, setDetalleLoading] = useState(false);
+
+  const cols = database.collections.get('t_nota_credito_venta_pda2');
 
   // Parsear fecha dd/mm/yyyy → Date
   const parseDateFromDDMMYYYY = dateStr => {
@@ -67,10 +70,45 @@ export default function ConsultaRecibos({ navigation }) {
     }
   };
 
+  const cargarNC = async () => {
+    try {
+      const collection = database.collections.get('t_nota_credito_venta_pda2');
+      // trae todos los registros
+      const all = await collection.query().fetch();
+console.log(`🏷️  Notas de crédito encontradas: ${all.length}`);
+console.log(all.map(r => r._raw));
+      // los registros _raw tienen exactamente todas las columnas
+      console.log('*** NOTAS DE CRÉDITO ***');
+      console.log(all.map(rec => rec._raw));
+      // si quieres guardarlos en estado para listarlos en pantalla, hazlo:
+      setNotasNC(all.map(rec => rec._raw));
+    } catch (err) {
+      console.error('Error cargando notas de crédito:', err);
+    }
+  };
+
+  const cargarAplicaciones = async () => {
+    try {
+      const collection = database.collections.get('t_aplicaciones_pda2');
+      // trae todos los registros
+      const all = await collection.query().fetch();
+console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
+console.log(all.map(r => r._raw));
+      // los registros _raw tienen exactamente todas las columnas
+      console.log('*** Aplicaciones ***');
+      console.log(all.map(rec => rec._raw));
+      // si quieres guardarlos en estado para listarlos en pantalla, hazlo:
+      setNotasNC(all.map(rec => rec._raw));
+    } catch (err) {
+      console.error('Error cargando notas de crédito:', err);
+    }
+  };
+  
+
   // Cargar todos los recibos
   const cargarRecibos = async () => {
     try {
-      const cols = database.collections.get('t_recibos_pda');
+      const cols = database.collections.get('t_recibos_pda2');
       const subscr = cols.query().observe().subscribe(all => {
         setFullRecibos(all);
         setLoading(false);
@@ -87,7 +125,7 @@ export default function ConsultaRecibos({ navigation }) {
   const cargarEstado = async () => {
     setLoading(true);
     try {
-      const cols = database.collections.get('t_recibos_pda');
+      const cols = database.collections.get('t_recibos_pda2');
       const all = await cols.query().fetch();
       setFullRecibos(all);
     } catch (err) {
@@ -116,13 +154,18 @@ export default function ConsultaRecibos({ navigation }) {
   // Iniciar carga
   useEffect(() => { cargarRecibos(); }, []);
 
+  useEffect(() => {
+    cargarNC();
+    cargarAplicaciones()
+  }, []);
+
   // Detalle de aplicaciones con cálculo de descuento
   const fetchDetalleAplicaciones = async recibo => {
     setDetalleLoading(true);
     try {
       // 1) obtenemos aplicaciones
       const apps = await database
-        .collections.get('t_aplicaciones_pda')
+        .collections.get('t_aplicaciones_pda2')
         .query(Q.where('f_documento_aplico', recibo.f_documento))
         .fetch();
       // 2) para cada app calculamos descuento según días y tabla t_desc_x_pago_cliente
@@ -202,14 +245,22 @@ export default function ConsultaRecibos({ navigation }) {
 
   return (
     <SafeAreaView style={consultaStyles.container}>
+      <Pressable onPress={() => database.unsafeResetDatabase()}>
+        <Text style={consultaStyles.title}>LIMPIAR BASE DE DATOS</Text>
+      </Pressable>
       {/* Header con Sync, cliente, y + */}
       <View style={consultaStyles.headerCard}>
         <View style={consultaStyles.headerRow}>
           <Text style={consultaStyles.headerTitle}>Recibos PDA</Text>
           <View style={consultaStyles.headerButtons}>
+            
             <Pressable onPress={cargarEstado} style={consultaStyles.headerButton}>
               <Ionicons name="sync-outline" size={24} color="#fff" />
             </Pressable>
+            <Pressable onPress={cargarNC} style={consultaStyles.headerButton}>
+              <Ionicons name="cash-outline" size={24} color="#fff" />
+            </Pressable>
+
             <Pressable onPress={() => setShowClientModal(true)} style={consultaStyles.headerButton}>
               <Ionicons name="people-outline" size={24} color="#fff" />
             </Pressable>

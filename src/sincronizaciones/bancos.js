@@ -5,82 +5,108 @@ import { syncHistory } from './syncHistory';
 
 let syncInProgress = false;
 
-const getLastSync = async (nombreTabla) => {
-    try {
-        const syncCollection = database.collections.get('t_sync');
-        const registros = await syncCollection.query(
-            Q.where('f_tabla', nombreTabla)
-        ).fetch();
-        if (registros.length > 0) {
-            return parseInt(registros[0].f_fecha, 10);
-        }
-    } catch (error) {
-        console.error(`Error obteniendo última sincronización para ${nombreTabla}:`, error);
+const getLastSync = async (tableName) => {
+  try {
+    const syncCollection = database.collections.get('t_sync');
+    const registros = await syncCollection
+      .query(Q.where('f_tabla', tableName))
+      .fetch();
+    if (registros.length > 0) {
+      return parseInt(registros[0].f_fecha, 10);
     }
-    return 0;
+  } catch (error) {
+    console.error(`Error obteniendo última sincronización para ${tableName}:`, error);
+  }
+  return 0;
 };
 
-/**
- * Sincroniza tabla t_desc_x_pago_cliente con la API
- */
+const trimString = (v) => (v == null ? '' : String(v).trim());
+const toInt = (v) => {
+  const n = parseInt(v, 10);
+  return isNaN(n) ? 0 : n;
+};
+
 const sincronizarBancos = async () => {
-    console.log('Sincronizando bancos...');
-    console.log(Object.keys(database.collections.map));
-    if (syncInProgress) return;
-    const nombreTabla = 't_bancos';
-    const intervalo = 172800000; // 48 horas en ms
-    const lastSync = await getLastSync(nombreTabla);
+  if (syncInProgress) return;
+  const nombreTabla = 't_bancos';
+  const INTERVALO = 48 * 60 * 60 * 1000; // 48 horas
+  const lastSync = await getLastSync(nombreTabla);
 
-    if (Date.now() - lastSync < intervalo) {
-        console.log(`Sincronización de bancos omitida, faltan ${{
-            ms: intervalo - (Date.now() - lastSync)
-        }} ms`);
-        return;
+  if (Date.now() - lastSync < INTERVALO) {
+    console.log(
+      `Sincronización de bancos omitida, faltan ${Math.round(
+        (INTERVALO - (Date.now() - lastSync)) / 1000 / 60
+      )} minutos`
+    );
+    return;
+  }
+
+  syncInProgress = true;
+  try {
+    console.log('Sincronizando bancos…');
+
+    // 1) Traer y normalizar remotos
+    const { data: raw } = await api.get('/bancos');
+    if (!Array.isArray(raw)) return;
+    const remoteItems = raw.map(item => ({
+      idBanco:     toInt(item.f_idbanco),
+      nombre:      trimString(item.f_nombre),
+      cooperativa: trimString(item.f_cooperativa),
+    }));
+    console.log(`Fetched ${remoteItems.length} bancos remotos.`);
+
+    // 2) Leer locales
+    const col = database.collections.get(nombreTabla);
+    const locales = await col.query().fetch();
+    const localMap = new Map(locales.map(r => [r.f_idbanco, r]));
+
+    // 3) Preparar batch
+    const batchActions = [];
+    for (const b of remoteItems) {
+      const local = localMap.get(b.idBanco);
+      if (local) {
+        const changed =
+          local.f_nombre      !== b.nombre ||
+          local.f_cooperativa !== b.cooperativa;
+        if (changed) {
+          batchActions.push(
+            local.prepareUpdate(record => {
+              record.f_nombre      = b.nombre;
+              record.f_cooperativa = b.cooperativa;
+            })
+          );
+        }
+      } else {
+        batchActions.push(
+          col.prepareCreate(record => {
+            // ID interno de WatermelonDB
+            record._raw.id       = String(b.idBanco);
+            record.f_idbanco     = b.idBanco;
+            record.f_nombre      = b.nombre;
+            record.f_cooperativa = b.cooperativa;
+          })
+        );
+      }
     }
 
-    syncInProgress = true;
-    try {
-        const response = await api.get('/bancos');
-        const remote = response.data;
+    // 4) Ejecutar batch dentro de un writer
+    await database.write(async () => {
+      if (batchActions.length > 0) {
+        await database.batch(batchActions);
+        console.log(`Batch ejecutado: ${batchActions.length} acciones.`);
+      } else {
+        console.log('No hay cambios de bancos que aplicar.');
+      }
+    });
 
-        if (!Array.isArray(remote)) return;
-
-        await database.write(async () => {
-            const descCollection = database.collections.get(nombreTabla);
-
-            for (const item of remote) {
-                const f_idbanco = item.f_idbanco
-                const f_nombre = item.f_nombre
-                const f_cooperativa = item.f_cooperativa
-
-                const existentes = await descCollection.query(
-                    Q.where('f_idbanco', f_idbanco),
-                    Q.where('f_nombre', f_nombre),
-                    Q.where('f_cooperativa', f_cooperativa)
-                ).fetch();
-
-                if (existentes.length > 0) {
-                    await existentes[0].update(record => {
-                        record.f_nombre = f_nombre;
-                        record.f_cooperativa = f_cooperativa;
-                    });
-                } else {
-                    await descCollection.create(record => {
-                        record.f_idbanco = f_idbanco;
-                        record.f_nombre = f_nombre;
-                        record.f_cooperativa = f_cooperativa;
-                    });
-                }
-            }
-        });
-
-        await syncHistory(nombreTabla);
-        console.log('Sincronización de bancos completada');
-    } catch (error) {
-        console.error('Error sincronizando bancos:', error);
-    } finally {
-        syncInProgress = false;
-    }
+    // 5) Registrar historial y finalizar
+    await syncHistory(nombreTabla);
+    console.log('Sincronización de bancos completada.');
+  } catch (error) {
+    console.error('Error sincronizando bancos:', error);
+  } finally {
+    syncInProgress = false;
+  }
 };
 
 export default sincronizarBancos;

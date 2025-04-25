@@ -91,7 +91,7 @@ export class Bancos extends Model {
 }
 
 export class RecibosPDA extends Model {
-  static table = 't_recibos_pda';
+  static table = 't_recibos_pda2';
   @text('f_documento') f_documento;
   @text('f_tiporecibo') f_tiporecibo;
   @field('f_norecibo') f_norecibo;
@@ -112,7 +112,7 @@ export class RecibosPDA extends Model {
   @field('f_enviado') f_enviado;
 }
 export class Aplicaciones_pda extends Model {
-  static table = 't_aplicaciones_pda';
+  static table = 't_aplicaciones_pda2';
   @text('f_documento_aplico') f_documento_aplico;
   @text('f_documento_aplicado') f_documento_aplicado;
   @field('f_tipo_doc') f_tipo_doc;

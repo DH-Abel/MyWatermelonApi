@@ -22,7 +22,13 @@ export default function ConfirmarCobranza() {
     const route = useRoute();
     const navigation = useNavigation();
 
-    const { clienteSeleccionado, pagos, totalPago, invoiceDetails } = route.params;
+
+    const raw = route.params.invoiceDetails;
+    const invoiceDetails = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    console.log('Parsed invoiceDetails:', invoiceDetails);
+    const { clienteSeleccionado, pagos, totalPago } = route.params;
+
+ //   console.log('📥 invoiceDetails recibidos en ConfirmarCobranza:', invoiceDetails);
 
     const [banks, setBanks] = useState([]);
     const [efectivo, setEfectivo] = useState('');
@@ -82,7 +88,7 @@ export default function ConfirmarCobranza() {
             const id = timestamp;
             const hoy = new Date().toLocaleDateString('en-GB');
             await database.write(async () => {
-                const recCol = database.collections.get('t_recibos_pda');
+                const recCol = database.collections.get('t_recibos_pda2');
                 await recCol.create(r => {
                     r.f_documento = `REC${id}`;
                     r.f_tiporecibo = 'REC';
@@ -106,7 +112,7 @@ export default function ConfirmarCobranza() {
                     r.f_anulado = false;
                     r.f_enviado = false;
                 });
-                const appCol = database.collections.get('t_aplicaciones_pda');
+                const appCol = database.collections.get('t_aplicaciones_pda2');
                 for (let [doc, raw] of Object.entries(pagos)) {
                     const m = parseFloat(raw) || 0;
                     if (m > 0) {
@@ -121,6 +127,8 @@ export default function ConfirmarCobranza() {
                         });
                     }
                 }
+               // console.log('🚀 invoiceDetails antes de escribir:', invoiceDetails);
+
                 // 3) Crear nota de crédito por cada factura con descuento
                 const notaCol = database.collections.get('t_nota_credito_venta_pda2');
                 for (let detail of invoiceDetails) {
@@ -137,12 +145,13 @@ export default function ConfirmarCobranza() {
                             nc.f_factura = detail.documento; // factura a la que aplica
                             nc.f_devolucion = '';   // sin devolución
                             nc.f_porc = detail.descuentoPct;
+                            nc.f_enviado = false;
                         });
                         // Luego enviamos
-                        const recRaw = (await database.collections.get('t_recibos_pda')
+                        const recRaw = (await database.collections.get('t_recibos_pda2')
                             .query(Q.where('f_norecibo', id)).fetch())[0]._raw;
 
-                        const appsRaw = (await database.collections.get('t_aplicaciones_pda')
+                        const appsRaw = (await database.collections.get('t_aplicaciones_pda2')
                             .query(Q.where('f_documento_aplico', recRaw.f_documento))
                             .fetch()).map(m => m._raw);
 

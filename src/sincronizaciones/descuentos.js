@@ -8,9 +8,9 @@ let syncInProgress = false;
 const getLastSync = async (tableName) => {
   try {
     const syncCollection = database.collections.get('t_sync');
-    const registros = await syncCollection.query(
-      Q.where('f_tabla', tableName)
-    ).fetch();
+    const registros = await syncCollection
+      .query(Q.where('f_tabla', tableName))
+      .fetch();
     if (registros.length > 0) {
       return parseInt(registros[0].f_fecha, 10);
     }
@@ -21,16 +21,16 @@ const getLastSync = async (tableName) => {
 };
 
 const normalizeNumber = (v) => {
-  const n = Number(v);
-  return isNaN(n) ? 0 : n;
+  // parseFloat maneja sufijos (%) y deja solo la parte numérica
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : Math.round(n * 100) / 100;
 };
 
 const sincronizarDescuentos = async () => {
   const nombreTabla = 't_desc_x_pago_cliente';
-  const INTERVALO = 8 * 60 * 60 * 1000; // 8 horas en ms
+  const INTERVALO = 0 * 0 * 1 * 1000; // 8 horas en ms
 
   if (syncInProgress) return;
-
   const lastSync = await getLastSync(nombreTabla);
   if (Date.now() - lastSync < INTERVALO) {
     console.log(
@@ -45,61 +45,61 @@ const sincronizarDescuentos = async () => {
   try {
     console.log('Sincronizando descuentos…');
 
-    // 1) Traer y normalizar remotos
+    // 1) Traer datos remotos
     const { data: raw } = await api.get('/descuentos');
-    if (!Array.isArray(raw)) return;
-    const remoteItems = raw.map(item => ({
-      f_cliente:   parseInt(item.f_cliente, 10),
-      f_dia_inicio: parseInt(item.f_dia_inicio, 10),
-      f_dia_fin:    parseInt(item.f_dia_fin, 10),
-      f_descuento1: normalizeNumber(item.f_descuento1),
-    }));
+    if (!Array.isArray(raw)) {
+      console.warn('/descuentos no devolvió un array');
+      return;
+    }
 
-    // 2) Leer locales
+    // 2) Leer existentes y mapearlos
     const col = database.collections.get(nombreTabla);
     const locales = await col.query().fetch();
     const localMap = new Map(
-      locales.map(r => [`${r.f_cliente}-${r.f_dia_inicio}-${r.f_dia_fin}`, r])
+      locales.map((r) => [`${r.f_cliente}-${r.f_dia_inicio}-${r.f_dia_fin}`, r])
     );
 
-    // 3) Preparar acciones
+    // 3) Preparar acciones de create/update
     const batchActions = [];
-    for (const it of remoteItems) {
-      const key = `${it.f_cliente}-${it.f_dia_inicio}-${it.f_dia_fin}`;
+    raw.forEach((item) => {
+      const f_cliente    = parseInt(item.f_cliente, 10);
+      const f_dia_inicio = parseInt(item.f_dia_inicio, 10);
+      const f_dia_fin    = parseInt(item.f_dia_fin, 10);
+      const f_descuento1 = normalizeNumber(item.f_descuento1);
+      const key = `${f_cliente}-${f_dia_inicio}-${f_dia_fin}`;
       const local = localMap.get(key);
 
       if (local) {
-        // Sólo actualizar si cambió el descuento
-        if (local.f_descuento1 !== it.f_descuento1) {
+        if (local.f_descuento1 !== f_descuento1) {
           batchActions.push(
-            local.prepareUpdate(record => {
-              record.f_descuento1 = it.f_descuento1;
+            local.prepareUpdate((r) => {
+              r.f_descuento1 = f_descuento1;
             })
           );
         }
       } else {
         batchActions.push(
-          col.prepareCreate(record => {
-            record.f_cliente    = it.f_cliente;
-            record.f_dia_inicio = it.f_dia_inicio;
-            record.f_dia_fin    = it.f_dia_fin;
-            record.f_descuento1 = it.f_descuento1;
+          col.prepareCreate((r) => {
+            r.f_cliente    = f_cliente;
+            r.f_dia_inicio = f_dia_inicio;
+            r.f_dia_fin    = f_dia_fin;
+            r.f_descuento1 = f_descuento1;
           })
         );
       }
-    }
+    });
 
-    // 4) Ejecutar batch dentro de un writer, pasando el array completo
+    // 4) Ejecutar batch dentro de un writer
     await database.write(async () => {
       if (batchActions.length > 0) {
         await database.batch(batchActions);
-        console.log(`Batch ejecutado: ${batchActions.length} acciones.`);
+        console.log(`Batch descuentos ejecutado: ${batchActions.length} acciones.`);
       } else {
         console.log('No hay cambios de descuentos que aplicar.');
       }
     });
 
-    // 5) Registrar historial y finalizar
+    // 5) Registrar historial
     await syncHistory(nombreTabla);
     console.log('Sincronización de descuentos completada.');
   } catch (error) {

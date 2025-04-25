@@ -177,7 +177,7 @@ const sincronizarClientes = async () => {
 
     // 5) Continuar con las demás sincronizaciones
     await sincronizarDescuentos();
-    //await sincronizarBancos();
+    await sincronizarBancos();
 
     console.log('Sincronización de clientes completada.');
   } catch (error) {

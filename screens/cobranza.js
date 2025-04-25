@@ -17,6 +17,17 @@ export default function Cobranza({ clienteSeleccionado }) {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const parseDateString = (dateStr) => {
+    if (typeof dateStr !== 'string') return new Date(dateStr);
+    // Formato europeo “dd/mm/yyyy”
+    if (dateStr.includes('/')) {
+      const [dd, mm, yyyy] = dateStr.split('/');
+      return new Date(+yyyy, +mm - 1, +dd);
+    }
+    // Caer al parser de JS (ISO, etc)
+    return new Date(dateStr);
+  };
+
   useEffect(() => {
     if (clienteSeleccionado?.f_id) {
       setLoading(true);
@@ -77,12 +88,11 @@ export default function Cobranza({ clienteSeleccionado }) {
   const saldar = (documento) => {
     const cuenta = cuentas.find(c => c.f_documento === documento);
     if (!cuenta) return;
-    const [dd, mm, yyyy] = cuenta.f_fecha.split('/');
-    const fechaFactura = new Date(+yyyy, +mm - 1, +dd);
-    const diasTranscurridos = Math.floor((new Date() - fechaFactura) / (1000 * 60 * 60 * 24));
-    const disc = descuentosLocal.find(d => diasTranscurridos >= d.f_dia_inicio && diasTranscurridos <= d.f_dia_fin);
+    const fechaFac = parseDateString(cuenta.f_fecha);
+    const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
+    const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
     const descuentoPct = disc ? disc.f_descuento1 : 0;
-    const balanceConDescuento = cuenta.f_balance * (1 - descuentoPct / 100);
+    const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible *  (descuentoPct / 100));
     onChangePago(documento, balanceConDescuento.toFixed(2));
   };
 
@@ -90,12 +100,11 @@ export default function Cobranza({ clienteSeleccionado }) {
   const distribuirPagos = () => {
     let restante = parseFloat(montoDistribuir) || 0;
     const nuevos = {};
-    for (let cuenta of cuentas) {
+    for (const cuenta of cuentas) {
       if (restante <= 0) break;
-      const [dd, mm, yyyy] = cuenta.f_fecha.split('/');
-      const fechaFactura = new Date(+yyyy, +mm - 1, +dd);
-      const diasTranscurridos = Math.floor((new Date() - fechaFactura) / (1000 * 60 * 60 * 24));
-      const disc = descuentosLocal.find(d => diasTranscurridos >= d.f_dia_inicio && diasTranscurridos <= d.f_dia_fin);
+      const fechaFac = parseDateString(cuenta.f_fecha);
+      const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
+      const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
       const descuentoPct = disc ? disc.f_descuento1 : 0;
       const balanceDesc = cuenta.f_balance * (1 - descuentoPct / 100);
       const asignado = Math.min(restante, balanceDesc);
@@ -103,8 +112,7 @@ export default function Cobranza({ clienteSeleccionado }) {
       restante -= asignado;
     }
     setPagos(nuevos);
-    const suma = Object.values(nuevos)
-      .reduce((acc, cur) => acc + (parseFloat(cur) || 0), 0);
+    const suma = Object.values(nuevos).reduce((acc, cur) => acc + (parseFloat(cur) || 0), 0);
     setTotalPago(suma);
   };
 
@@ -115,31 +123,41 @@ export default function Cobranza({ clienteSeleccionado }) {
     setMontoDistribuir('');
   };
 
-  const realizarCobranzaLocal = async () => {
-    const invoiceDetails = cuentas.map(cuenta => {
-      // calculamos días y buscamos descuento
-      const [dd, mm, yyyy] = cuenta.f_fecha.split('/');
-      const fechaFactura = new Date(+yyyy, +mm - 1, +dd);
-      const dias = Math.floor((new Date() - fechaFactura) / (1000 * 60 * 60 * 24));
-      const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
-      const descuentoPct = disc ? disc.f_descuento1 : 0;
-      const valorDescuento = cuenta.f_base_imponible * (descuentoPct / 100);
-      const balanceConDescuento = cuenta.f_base_imponible - valorDescuento;
+  const realizarCobranzaLocal = () => {
+    // 1) arma el detalle completo
+    const allDetails = cuentas.map(cuenta => {
+      const fechaFactura = parseDateString(cuenta.f_fecha);
+      const dias = Math.floor((Date.now() - fechaFactura.getTime()) / (1000*60*60*24));
+      const disc = descuentosLocal.find(
+        d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin
+      );
+      const descuentoPct     = disc ? disc.f_descuento1 : 0;
+      const valorDescuento   = cuenta.f_base_imponible * (descuentoPct/100);
+      const balanceConDesc   = cuenta.f_base_imponible - valorDescuento;
+      const montoPagado      = parseFloat(pagos[cuenta.f_documento]||0);
+  
       return {
-        documento: cuenta.f_documento,
-        monto: parseFloat(pagos[cuenta.f_documento] || 0),
+        documento:          cuenta.f_documento,
+        monto:              montoPagado,
         descuentoPct,
         valorDescuento,
-        balanceConDescuento,
+        balanceConDescuento: balanceConDesc,
       };
     });
+  
+    // 2) filtra sólo las que tengan un pago (o un valor de descuento > 0)
+    const invoiceDetails = allDetails.filter(d => d.monto > 0 /* ó d.valorDescuento > 0 */);
+  
+    console.log('▶️ invoiceDetails filtrados:', invoiceDetails);
+  
     navigation.navigate('ConfirmarCobranza', {
       clienteSeleccionado,
       pagos,
       totalPago,
-      invoiceDetails,     // <-- nuevo parámetro
+      invoiceDetails,    
     });
   };
+  
 
   if (loading) {
     return <ActivityIndicator size="large" style={{ flex: 1 }} />;
@@ -170,21 +188,31 @@ export default function Cobranza({ clienteSeleccionado }) {
         data={cuentas}
         keyExtractor={item => item.f_documento}
         renderItem={({ item }) => {
-          const [dd, mm, yyyy] = item.f_fecha.split('/');
-          const fechaFactura = new Date(+yyyy, +mm - 1, +dd);
-          const diasTranscurridos = Math.floor((new Date() - fechaFactura) / (1000 * 60 * 60 * 24));
-          const disc = descuentosLocal.find(d => diasTranscurridos >= d.f_dia_inicio && diasTranscurridos <= d.f_dia_fin);
+          const fechaFactura = parseDateString(item.f_fecha); 
+          
+          const diasTranscurridos = Math.floor(
+            (Date.now() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          const disc = descuentosLocal.find(
+            d =>
+              diasTranscurridos >= d.f_dia_inicio &&
+              diasTranscurridos <= d.f_dia_fin
+          );
           const descuentoPct = disc ? disc.f_descuento1 : 0;
           const valorDescuento = item.f_base_imponible * (descuentoPct / 100);
-          const balanceConDescuento = item.f_base_imponible - valorDescuento;
-
+          const balanceConDescuento = item.f_balance - valorDescuento;
+          
           return (
             <View style={styles.item}>
               <View style={{ flex: 2 }}>
+                
                 <Text>{item.f_documento}</Text>
                 <Text>Vence: {item.f_fecha}</Text>
                 <Text>Monto: {item.f_monto}</Text>
                 <Text>Base Imponible: {item.f_base_imponible}</Text>
+                <Pressable onPress={() => {console.log(item)}} style={styles.button2}>
+                  <Text style={styles.buttonText}>Ver Detalle</Text>
+                </Pressable>
                 <Text>Balance: {item.f_balance}</Text>
                 <Text>Descuento: {descuentoPct}% ({valorDescuento.toFixed(2)})</Text>
                 <Text>Balance c/ descuento: {balanceConDescuento.toFixed(2)}</Text>

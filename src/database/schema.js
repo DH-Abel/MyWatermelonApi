@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 5, // Cambiar la versión de la base de datos, por si agrego campos o tablas
+  version: 10, // Cambiar la versión de la base de datos, por si agrego campos o tablas
   tables: [
     tableSchema({
       name: 't_productos_sucursal',
@@ -101,7 +101,7 @@ export const mySchema = appSchema({
       ],
     }),
     tableSchema({
-      name: 't_recibos_pda',
+      name: 't_recibos_pda2',
       columns: [
         { name: 'f_documento', type: 'string' }, //documento del recibo (f_tiporecibo+f_norecibo)
         { name: 'f_tiporecibo', type: 'string' }, //Es 'Rec+f_cobrador'
@@ -125,7 +125,7 @@ export const mySchema = appSchema({
       ]
     }),
     tableSchema({
-      name: 't_aplicaciones_pda',
+      name: 't_aplicaciones_pda2',
       columns: [
         { name: 'f_documento_aplico', type: 'string' }, //documento del recibo que hizo el pago
         { name: 'f_documento_aplicado', type: 'string' },//factura a la que se le hizo el pago

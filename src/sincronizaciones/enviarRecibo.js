@@ -1,7 +1,7 @@
 // src/sincronizaciones/enviarRecibo.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
-import api from "../../api/axios";                          // :contentReference[oaicite:0]{index=0}&#8203;:contentReference[oaicite:1]{index=1}
+import api from "../../api/axios";                         
 import { database } from "../database/database";
 import { Q } from '@nozbe/watermelondb';
 
@@ -40,7 +40,7 @@ export const enviarRecibo = async ({
     for (const app of aplicaciones) {
       await api.post('/recibos/aplicaciones', {
         ...app
-      });                                                    // :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5}
+      });                                                   
     }
 
     // 3) Enviar notas de crédito asociadas
@@ -54,19 +54,19 @@ export const enviarRecibo = async ({
     for (const nc of notas) {
       await api.post('/nc/nc', {
         ...nc._raw
-      });                                                    // :contentReference[oaicite:6]{index=6}&#8203;:contentReference[oaicite:7]{index=7}
+      });                                                
     }
 
     // 4) Marcar localmente como enviados
     await database.write(async () => {
       // recibo
-      const recModel = await database.collections.get('t_recibos_pda')
+      const recModel = await database.collections.get('t_recibos_pda2')
         .find(recibo.id);
       await recModel.update(r => { r.f_enviado = true; });
 
       // aplicaciones
       for (const app of aplicaciones) {
-        const appModel = await database.collections.get('t_aplicaciones_pda')
+        const appModel = await database.collections.get('t_aplicaciones_pda2')
           .find(app.id);
         await appModel.update(a => { a.f_enviado = true; });
       }
