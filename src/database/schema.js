@@ -119,7 +119,8 @@ export const mySchema = appSchema({
         { name: 'f_banco_transferencia', type: 'number' }, // banco de la transferencia
         { name: 'f_cheque_recibido', type: 'string' },  //fecha en que se recibe el cheque
         { name: 'f_cheque_cobro', type: 'string' }, // fecha de cobro del cheque
-        { name: 'f_estado', type: 'string' }, //estado del recibo (0=sin enviar, 1=enviado, 2=recibido)
+        { name: 'f_aprobado', type: 'boolean' }, //Si esta aprobado o no
+        { name: 'f_anulado', type: 'boolean' }, //Si esta anulado
         { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
       ]
     }),
@@ -161,6 +162,24 @@ export const mySchema = appSchema({
         { name: 'f_cantidad', type: 'number' }
       ]
     }),
+    tableSchema({
+      name: 't_nota_credito_venta_pda2',
+      columns: [
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_tipo', type: 'string' },
+        { name: 'f_nodoc', type: 'number' },
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_concepto', type: 'string' },
+        { name: 'f_idcliente', type: 'number' },
+        { name: 'f_tipo_nota', type: 'string' },
+        { name: 'f_factura', type: 'string' },
+        { name: 'f_devolucion', type: 'string' },
+        { name: 'f_porc', type: 'number' },
+        { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
+      ]
+    }),
+    
   ]
 
 });

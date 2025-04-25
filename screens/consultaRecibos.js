@@ -143,7 +143,7 @@ export default function ConsultaRecibos({ navigation }) {
           const fechaRec = new Date(+yyyyR, +mmR - 1, +ddR);
           const [dd, mm, yyyy] = inv.f_fecha.split('/');
           const fechaFac = new Date(+yyyy, +mm - 1, +dd);
-          const dias = Math.floor((fechaRec - fechaFac) / (1000*60*60*24));
+          const dias = Math.floor((fechaRec - fechaFac) / (1000 * 60 * 60 * 24));
           const disc = discounts.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
           const pct = disc ? disc.f_descuento1 : 0;
           return { ...app._raw, discountPct: pct };
@@ -177,7 +177,12 @@ export default function ConsultaRecibos({ navigation }) {
         Alert.alert('Aviso', 'Este recibo ya fue enviado');
         return;
       }
-      await enviarRecibo({ recibo, aplicaciones: detalleAplicaciones });
+      await enviarRecibo({
+        recibo: recibo._raw,
+        aplicaciones: detalleAplicaciones,
+        navigation,
+        setIsSending: setDetalleLoading
+      });
       await cargarEstado();
       Alert.alert('Éxito', 'Recibo enviado');
     } catch (err) {
@@ -258,10 +263,10 @@ export default function ConsultaRecibos({ navigation }) {
                   <Text style={consultaStyles.pedidoText}>Estado: {item.f_estado}</Text>
                 </View>
                 <View style={consultaStyles.pedidoButtonColumn}>
-                  
-                   <Pressable onPress={() => openDetalleModal(item)} style={consultaStyles.pedidoSmallButton}>
+
+                  <Pressable onPress={() => openDetalleModal(item)} style={consultaStyles.pedidoSmallButton}>
                     <Ionicons name="eye-outline" size={23} color="#fff" />
-                  </Pressable> 
+                  </Pressable>
                   <Pressable onPress={() => imprimirRecibo(item)} style={consultaStyles.pedidoSmallButton}>
                     <Ionicons name="print-outline" size={23} color="#fff" />
                   </Pressable>
@@ -301,7 +306,7 @@ export default function ConsultaRecibos({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Detalle Recibo {selectedRecibo?.f_documento}</Text>
-            
+
             {detalleLoading ? (
               <ActivityIndicator size="large" />
             ) : detalleAplicaciones.length > 0 ? (

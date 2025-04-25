@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 export default function Cobranza({ clienteSeleccionado }) {
 
   const navigation = useNavigation();
-  
+
   const [cuentas, setCuentas] = useState([]);
   const [pagos, setPagos] = useState({});
   const [descuentosLocal, setDescuentosLocal] = useState([]);
@@ -116,13 +116,28 @@ export default function Cobranza({ clienteSeleccionado }) {
   };
 
   const realizarCobranzaLocal = async () => {
-    if (totalPago <= 0) {
-      Alert.alert('Error', 'No has seleccionado ningún pago');
-      return;
-    } navigation.navigate('ConfirmarCobranza', {
+    const invoiceDetails = cuentas.map(cuenta => {
+      // calculamos días y buscamos descuento
+      const [dd, mm, yyyy] = cuenta.f_fecha.split('/');
+      const fechaFactura = new Date(+yyyy, +mm - 1, +dd);
+      const dias = Math.floor((new Date() - fechaFactura) / (1000 * 60 * 60 * 24));
+      const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+      const descuentoPct = disc ? disc.f_descuento1 : 0;
+      const valorDescuento = cuenta.f_base_imponible * (descuentoPct / 100);
+      const balanceConDescuento = cuenta.f_base_imponible - valorDescuento;
+      return {
+        documento: cuenta.f_documento,
+        monto: parseFloat(pagos[cuenta.f_documento] || 0),
+        descuentoPct,
+        valorDescuento,
+        balanceConDescuento,
+      };
+    });
+    navigation.navigate('ConfirmarCobranza', {
       clienteSeleccionado,
       pagos,
       totalPago,
+      invoiceDetails,     // <-- nuevo parámetro
     });
   };
 
@@ -160,7 +175,8 @@ export default function Cobranza({ clienteSeleccionado }) {
           const diasTranscurridos = Math.floor((new Date() - fechaFactura) / (1000 * 60 * 60 * 24));
           const disc = descuentosLocal.find(d => diasTranscurridos >= d.f_dia_inicio && diasTranscurridos <= d.f_dia_fin);
           const descuentoPct = disc ? disc.f_descuento1 : 0;
-          const balanceConDescuento = item.f_balance * (1 - descuentoPct / 100);
+          const valorDescuento = item.f_base_imponible * (descuentoPct / 100);
+          const balanceConDescuento = item.f_base_imponible - valorDescuento;
 
           return (
             <View style={styles.item}>
@@ -168,8 +184,9 @@ export default function Cobranza({ clienteSeleccionado }) {
                 <Text>{item.f_documento}</Text>
                 <Text>Vence: {item.f_fecha}</Text>
                 <Text>Monto: {item.f_monto}</Text>
+                <Text>Base Imponible: {item.f_base_imponible}</Text>
                 <Text>Balance: {item.f_balance}</Text>
-                <Text>Descuento: {descuentoPct}%</Text>
+                <Text>Descuento: {descuentoPct}% ({valorDescuento.toFixed(2)})</Text>
                 <Text>Balance c/ descuento: {balanceConDescuento.toFixed(2)}</Text>
               </View>
               <View style={{ alignItems: 'center', flex: 1 }}>
@@ -189,7 +206,7 @@ export default function Cobranza({ clienteSeleccionado }) {
         }}
       />
       <Pressable onPress={realizarCobranzaLocal} style={styles.footerButton} disabled={isSaving}>
-      <Text style={styles.footerText}>Confirmar Cobro</Text>
+        <Text style={styles.footerText}>Confirmar Cobro</Text>
       </Pressable>
     </SafeAreaView>
   );

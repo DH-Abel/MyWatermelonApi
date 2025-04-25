@@ -36,12 +36,12 @@ const normalizeNumberField = (value) => {
 
 const sincronizarClientes = async () => {
   if (syncInProgress) return; // Evitar operaciones concurrentes
-  const intervalMS = 14400000; // 4 hora en milisegundos
+  const intervalMS = 86400000; // 24 horas en milisegundos
   const lastSync = await getLastSync('t_clientes');
 
 
   if (Date.now() - lastSync < intervalMS) {
-    console.log('Se realizo hace menos de 1 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
+    console.log('Se realizo hace menos de 24 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
     return;
   }
 

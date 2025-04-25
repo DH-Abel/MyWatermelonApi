@@ -135,6 +135,33 @@ export class OfertaProductos extends Model {
   @field('f_cantidad_req') f_cantidad_req;
   @field('f_cantidad') f_cantidad;
 }
+export class NotaCredito extends Model {
+  static table = 't_nota_credito_venta_pda2';
+  @text('f_documento') f_documento
+  @text('f_tipo') f_tipo
+  @field('f_nodoc') f_nodoc
+  @field('f_monto') f_monto
+  @text('f_fecha') f_fecha
+  @text('f_concepto') f_concepto
+  @text('f_tipo_nota') f_tipo_nota
+  @text('f_factura') f_factura
+  @text('f_devolucion') f_devolucion
+  @field('f_porc') f_porc
+  @field('f_aprobado') f_aprobado
+  @field('f_anulado') f_anulado
+  @field('f_enviado') f_enviado
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,104 +1,107 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import SelectedClienteCobranza from '../../screens/components/selectedClienteCobranza';
-import Cobranza from '../../screens/cobranza';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// src/sincronizaciones/enviarRecibo.js
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
+import api from "../../api/axios";                          // :contentReference[oaicite:0]{index=0}&#8203;:contentReference[oaicite:1]{index=1}
+import { database } from "../database/database";
+import { Q } from '@nozbe/watermelondb';
 
-const Tab = createBottomTabNavigator();
+export const enviarRecibo = async ({
+  recibo,            // objeto _raw del recibo
+  aplicaciones,      // array de objetos _raw de aplicaciones
+  navigation,
+  setIsSending,      // callback para loader
+}) => {
+  const state = navigation.getState();
+  const currentRoute = state.routes[state.index].name;
+  setIsSending(true);
 
-const MainTabsCobranza = () => {
-  const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
-  const [descuentoCredito, setDescuentoCredito] = useState("10");
-  const [nota, setNota] = useState("");
+  try {
+    // 1) Enviar encabezado de recibo
+    // saneamos los campos que pueden venir como "" y deben ser NUMERIC o NULL
+    const payload = {
+      ...recibo,
+      f_monto: Number(recibo.f_monto) || 0,
+      f_efectivo: Number(recibo.f_efectivo) || 0,
+      f_monto_transferencia:
+        recibo.f_monto_transferencia === '' ? null : Number(recibo.f_monto_transferencia),
+      f_cheque: Number(recibo.f_cheque) || 0,
+      f_cheque_numero:
+        recibo.f_cheque_numero === '' ? null : Number(recibo.f_cheque_numero),
+      f_cheque_banco:
+        recibo.f_cheque_banco === '' ? null : Number(recibo.f_cheque_banco),
+      f_banco_transferencia:
+        recibo.f_banco_transferencia === '' ? null : Number(recibo.f_banco_transferencia),
+      f_enviado: true,
+    };
+    await api.post('/recibos/recibo', payload);
 
-  const route = useRoute();
-  const navigation = useNavigation();
 
-  const { clienteSeleccionado = {}, balanceCliente = 0 } = route.params || {};
-
-  const condicionPedido = [
-    { id: 0, nombre: 'Contado' },
-    { id: 1, nombre: 'Crédito' },
-    { id: 2, nombre: 'Contra entrega' },
-    { id: 3, nombre: 'Vuelta viaje' },
-  ];
-
-  const [condicionSeleccionada, setCondicionSeleccionada] = useState(() => {
-    if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
-      return condicionPedido.find(item => item.id === Number(clienteSeleccionado.f_termino)) || null;
+    // 2) Enviar cada aplicación
+    for (const app of aplicaciones) {
+      await api.post('/recibos/aplicaciones', {
+        ...app
+      });                                                    // :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5}
     }
-    return null;
-  });
 
-  const [creditoDisponible, setCreditoDisponible] = useState(
-    clienteSeleccionado.f_limite_credito ? clienteSeleccionado.f_limite_credito - balanceCliente : 0
-  );
+    // 3) Enviar notas de crédito asociadas
+    const notaCol = database.collections.get('t_nota_credito_venta_pda2');
+    const notas = await notaCol
+      .query(
+        Q.where('f_nodoc', recibo.f_norecibo),
+        Q.where('f_enviado', false)
+      ).fetch();
 
-  const condicionPedidoElegida = (option) => {
-    if ((option.id === 3 || option.id === 1) && clienteSeleccionado.f_bloqueo_credito) {
-      Alert.alert('El cliente tiene bloqueo de crédito');
-      return;
+    for (const nc of notas) {
+      await api.post('/nc/nc', {
+        ...nc._raw
+      });                                                    // :contentReference[oaicite:6]{index=6}&#8203;:contentReference[oaicite:7]{index=7}
     }
-    setCondicionSeleccionada(option);
-    setModalVisibleCondicion(false);
-  };
 
-  const descuentoGlobal = useMemo(() => {
-    if (clienteSeleccionado && condicionSeleccionada) {
-      const descMax = Number(clienteSeleccionado.f_descuento_maximo);
-      const desc1 = Number(clienteSeleccionado.f_descuento1);
-      return (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2) ? descMax : desc1;
+    // 4) Marcar localmente como enviados
+    await database.write(async () => {
+      // recibo
+      const recModel = await database.collections.get('t_recibos_pda')
+        .find(recibo.id);
+      await recModel.update(r => { r.f_enviado = true; });
+
+      // aplicaciones
+      for (const app of aplicaciones) {
+        const appModel = await database.collections.get('t_aplicaciones_pda')
+          .find(app.id);
+        await appModel.update(a => { a.f_enviado = true; });
+      }
+
+      // notas
+      for (const nc of notas) {
+        const ncModel = await database.collections.get('t_nota_credito_venta_pda2')
+          .find(nc.id);
+        await ncModel.update(n => { n.f_enviado = true; });
+      }
+    });
+
+    Alert.alert("Éxito", "Cobranza enviada correctamente");
+    if (currentRoute !== 'ConsultaRecibos') {
+      await AsyncStorage.removeItem('recibo_guardado');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'ConsultaRecibos' }],
+      });
     }
-    return 0;
-  }, [clienteSeleccionado, condicionSeleccionada]);
 
-  useEffect(() => {
-    if (clienteSeleccionado && clienteSeleccionado.f_termino != null) {
-      const defaultCondicion = condicionPedido.find(item => item.id === Number(clienteSeleccionado.f_termino));
-      if (defaultCondicion) setCondicionSeleccionada(defaultCondicion);
+  } catch (error) {
+    console.error("Error al enviar cobranza:", error);
+    if (error.response?.data?.error?.includes("duplicate key")) {
+      Alert.alert("Error", "La cobranza ya existe en la empresa.");
+    } else {
+      Alert.alert("Error", "No se pudo enviar. Intenta de nuevo más tarde.");
     }
-  }, [clienteSeleccionado]);
-
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      const nuevoCredito = clienteSeleccionado.f_limite_credito - balanceCliente;
-      setCreditoDisponible(nuevoCredito);
+    if (currentRoute !== 'ConsultaRecibos') {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'ConsultaRecibos' }],
+      });
     }
-  }, [clienteSeleccionado, balanceCliente]);
-
-  return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarHideOnKeyboard: true }}>
-      <Tab.Screen
-        name="Cliente"
-        children={() => (
-          <SelectedClienteCobranza
-            clienteSeleccionado={clienteSeleccionado}
-            balanceCliente={balanceCliente}
-            descuentoGlobal={descuentoGlobal}
-            descuentoCredito={descuentoCredito}
-            setDescuentoCredito={setDescuentoCredito}
-            condicionSeleccionada={condicionSeleccionada}
-            creditoDisponible={creditoDisponible}
-            setCreditoDisponible={setCreditoDisponible}
-            condicionPedido={condicionPedido}
-            condicionPedidoElegida={condicionPedidoElegida}
-            modalVisibleCondicion={modalVisibleCondicion}
-            setModalVisibleCondicion={setModalVisibleCondicion}
-            nota={nota}
-            setNota={setNota}
-          />
-        )}
-        options={{ title: 'Cliente' }}
-      />
-      <Tab.Screen
-        name="Cobranza"
-        component={Cobranza}
-        options={{ title: 'Cobranza' }}
-      />
-    </Tab.Navigator>
-  );
+  } finally {
+    setIsSending(false);
+  }
 };
-
-export default MainTabsCobranza;
