@@ -5,77 +5,114 @@ import { syncHistory } from './syncHistory';
 
 let syncInProgress = false;
 
-const getLastSync = async (table) => {
-  try {
-    const syncCollection = database.collections.get('t_sync');
-    const registros = await syncCollection.query(Q.where('f_tabla', table)).fetch();
-    if (registros.length > 0) {
-      return parseInt(registros[0].f_fecha, 10);
-    }
-  } catch (error) {
-    console.error(`Error obteniendo última sincronización para ${table}:`, error);
-  }
-  return 0;
+const trimString = (v) => (v == null ? '' : String(v).trim());
+const toInt = (v) => {
+  const n = parseInt(v, 10);
+  return isNaN(n) ? 0 : n;
+};
+const toFloat = (v) => {
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
 };
 
 const cargarCuentasCobrarLocales = async (idCliente) => {
   if (syncInProgress) return;
-  const tableName = 't_cuenta_cobrar';
   syncInProgress = true;
+  const tableName = 't_cuenta_cobrar';
+
   try {
-    const response = await api.get(`/cuenta_cobrar/cxc/${idCliente}`);
-    let cuentas = response.data;
-    if (!Array.isArray(cuentas)) cuentas = [cuentas];
+    // 1) Fetch y normalizar remotos
+    const { data: raw } = await api.get(`/cuenta_cobrar/cxc/${idCliente}`);
+    let remote = Array.isArray(raw) ? raw : [raw];
+    const cuentasRemotas = remote.map(item => ({
+      documento:          trimString(item.f_documento),
+      idCliente:          toInt(item.f_idcliente),
+      tipoDoc:            trimString(item.f_tipodoc),
+      noDoc:              toInt(item.f_nodoc),
+      fecha:              trimString(item.f_fecha),
+      fechaVencimiento:   trimString(item.f_fecha_vencimiento),
+      monto:              toFloat(item.f_monto),
+      balance:            toFloat(item.f_balance),
+      impuesto:           toFloat(item.f_impuesto),
+      baseImponible:      toFloat(item.f_base_imponible),
+      descuento:          toFloat(item.f_descuento),
+    }));
 
-    await database.write(async () => {
-      const cuentaCollection = database.collections.get(tableName);
-      for (const item of cuentas) {
-        // Convertir campos numéricos
-        const f_nodoc = item.f_nodoc != null ? parseInt(item.f_nodoc) : 0;
-        const f_monto = item.f_monto != null ? parseFloat(item.f_monto) : 0;
-        const f_balance = item.f_balance != null ? parseFloat(item.f_balance) : 0;
-        const f_impuesto = item.f_impuesto != null ? parseFloat(item.f_impuesto) : 0;
-        const f_base_imponible = item.f_base_imponible != null ? parseFloat(item.f_base_imponible) : 0;
-        const f_descuento = item.f_descuento != null ? parseFloat(item.f_descuento) : 0;
-        const fechaObj = new Date(item.f_fecha);
+    // 2) Leer locales del mismo cliente
+    const col = database.collections.get(tableName);
+    const locales = await col
+      .query(Q.where('f_idcliente', idCliente))
+      .fetch();
+    const localMap = new Map(
+      locales.map(rec => [rec.f_documento, rec])
+    );
 
-        const fechaFormateada = fechaObj.toLocaleDateString('en-GB')
-       
-        const existentes = await cuentaCollection.query(
-          Q.where('f_documento', item.f_documento)
-        ).fetch();
+    // 3) Preparar batch de acciones
+    const batchActions = [];
+    for (const c of cuentasRemotas) {
+      const local = localMap.get(c.documento);
+      if (local) {
+        // Sólo actualizar si cambió algún campo
+        const changed =
+          local.f_nodoc             !== c.noDoc ||
+          local.f_tipodoc           !== c.tipoDoc ||
+          local.f_fecha             !== c.fecha ||
+          local.f_fecha_vencimiento !== c.fechaVencimiento ||
+          Math.abs(local.f_monto - c.monto) > 0.001 ||
+          Math.abs(local.f_balance - c.balance) > 0.001 ||
+          Math.abs(local.f_impuesto - c.impuesto) > 0.001 ||
+          Math.abs(local.f_base_imponible - c.baseImponible) > 0.001 ||
+          Math.abs(local.f_descuento - c.descuento) > 0.001;
 
-        if (existentes.length > 0) {
-          await existentes[0].update(record => {
-            record.f_idcliente = parseInt(item.f_idcliente, 10);
-            record.f_tipodoc = (item.f_tipodoc);
-            record.f_nodoc = f_nodoc;
-            record.f_fecha = fechaFormateada;
-            record.f_fecha_vencimiento = item.f_fecha_vencimiento;
-            record.f_monto = f_monto;
-            record.f_balance = f_balance;
-            record.f_impuesto = f_impuesto;
-            record.f_base_imponible = f_base_imponible;
-            record.f_descuento = f_descuento;
-          });
-        } else {
-          await cuentaCollection.create(record => {
-            record.f_idcliente = parseInt(item.f_idcliente, 10);
-            record.f_documento = item.f_documento;
-            record.f_tipodoc = item.f_tipodoc;
-            record.f_nodoc = f_nodoc;
-            record.f_fecha = item.f_fecha;
-            record.f_fecha_vencimiento = item.f_fecha_vencimiento;
-            record.f_monto = f_monto;
-            record.f_balance = f_balance;
-            record.f_impuesto = f_impuesto;
-            record.f_base_imponible = f_base_imponible;
-            record.f_descuento = f_descuento;
-          });
+        if (changed) {
+          batchActions.push(
+            local.prepareUpdate(record => {
+              record.f_nodoc             = c.noDoc;
+              record.f_tipodoc           = c.tipoDoc;
+              record.f_fecha             = c.fecha;
+              record.f_fecha_vencimiento = c.fechaVencimiento;
+              record.f_monto             = c.monto;
+              record.f_balance           = c.balance;
+              record.f_impuesto          = c.impuesto;
+              record.f_base_imponible    = c.baseImponible;
+              record.f_descuento         = c.descuento;
+            })
+          );
         }
+      } else {
+        batchActions.push(
+          col.prepareCreate(record => {
+            // Usar el documento como ID en WatermelonDB
+            record._raw.id              = c.documento;
+            record.f_idcliente          = c.idCliente;
+            record.f_documento          = c.documento;
+            record.f_tipodoc            = c.tipoDoc;
+            record.f_nodoc              = c.noDoc;
+            record.f_fecha              = c.fecha;
+            record.f_fecha_vencimiento  = c.fechaVencimiento;
+            record.f_monto              = c.monto;
+            record.f_balance            = c.balance;
+            record.f_impuesto           = c.impuesto;
+            record.f_base_imponible     = c.baseImponible;
+            record.f_descuento          = c.descuento;
+          })
+        );
+      }
+    }
+
+    // 4) Ejecutar batch dentro de un writer
+    await database.write(async () => {
+      if (batchActions.length > 0) {
+        await database.batch(batchActions);
+        console.log(`Batch ejecutado: ${batchActions.length} acciones.`);
+      } else {
+        console.log('No hay cambios en cuentas por cobrar.');
       }
     });
+
+    // 5) Registrar historial de sincronización
     await syncHistory(tableName);
+    console.log('Sincronización de cuentas por cobrar completada.');
   } catch (error) {
     console.error('Error sincronizando cuentas por cobrar:', error);
   } finally {
