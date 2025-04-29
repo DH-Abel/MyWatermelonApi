@@ -1,7 +1,7 @@
 // src/sincronizaciones/enviarRecibo.js
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
-import api from "../../api/axios";                         
+import api from "../../api/axios";
 import { database } from "../database/database";
 import { Q } from '@nozbe/watermelondb';
 
@@ -10,6 +10,7 @@ export const enviarRecibo = async ({
   aplicaciones,      // array de objetos _raw de aplicaciones
   navigation,
   setIsSending,      // callback para loader
+  notas
 }) => {
   const state = navigation.getState();
   const currentRoute = state.routes[state.index].name;
@@ -40,41 +41,56 @@ export const enviarRecibo = async ({
     for (const app of aplicaciones) {
       await api.post('/recibos/aplicaciones', {
         ...app
-      });                                                   
+      });
     }
 
-    // 3) Enviar notas de crédito asociadas
-    const notaCol = database.collections.get('t_nota_credito_venta_pda2');
-    const notas = await notaCol
-      .query(
-        Q.where('f_nodoc', recibo.f_norecibo),
-        Q.where('f_enviado', false)
-      ).fetch();
-
-    for (const nc of notas) {
-      await api.post('/nc/nc', {
-        ...nc._raw
-      });                                                
+    // 3) Enviar notas (usa el array que te pasaron)
+    for (const nota of notas) {
+      // convierto campos que puedan venir como string o nulos
+      const payloadNC = {
+        f_documento: nota.f_documento,     // string
+        f_tipo: nota.f_tipo,               // string
+        f_nodoc: Number(nota.f_nodoc),     // integer
+        f_monto: Number(nota.f_monto),     // numeric
+        f_fecha: nota.f_fecha,             // string fecha
+        f_concepto: nota.f_concepto,               // string
+        f_idcliente: Number(nota.f_idcliente),       // integer
+        f_tipo_nota: nota.f_tipo_nota,              // (string o integer según tu API)
+        f_factura: nota.f_factura,                // string
+        f_ncf: nota.f_ncf || null,     // null en lugar de ""
+        f_porc: Number(nota.f_porc),           // integer
+        f_documento_principal: 'REC'+Number(recibo.f_norecibo),      // integer
+        f_nodoc: Number(nota.f_nodoc) || 0,
+        f_monto: Number(nota.f_monto) || 0,
+        f_idcliente: Number(nota.f_idcliente) || null,
+        f_porc: Number(nota.f_porc) || 0,
+        f_enviado: true,
+      };
+      await api.post('/nc/nc', payloadNC);
     }
+
 
     // 4) Marcar localmente como enviados
     await database.write(async () => {
       // recibo
-      const recModel = await database.collections.get('t_recibos_pda2')
+      const recModel = await database.collections
+        .get('t_recibos_pda2')
         .find(recibo.id);
       await recModel.update(r => { r.f_enviado = true; });
 
       // aplicaciones
       for (const app of aplicaciones) {
-        const appModel = await database.collections.get('t_aplicaciones_pda2')
+        const appModel = await database.collections
+          .get('t_aplicaciones_pda2')
           .find(app.id);
         await appModel.update(a => { a.f_enviado = true; });
       }
 
       // notas
-      for (const nc of notas) {
-        const ncModel = await database.collections.get('t_nota_credito_venta_pda2')
-          .find(nc.id);
+      for (const nota of notas) {
+        const ncModel = await database.collections
+          .get('t_nota_credito_venta_pda2')
+          .find(nota.id);
         await ncModel.update(n => { n.f_enviado = true; });
       }
     });

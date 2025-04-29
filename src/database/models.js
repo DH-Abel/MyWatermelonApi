@@ -44,9 +44,9 @@ export class CuentaCobrar extends Model {
   @text('f_fecha_vencimiento') f_fecha_vencimiento;
   @field('f_monto') f_monto;
   @field('f_balance') f_balance;
-  @field('f_impuesto') f_balance;
-  @field('f_base_imponible') f_balance;
-  @field('f_descuento') f_balance;
+  @field('f_impuesto') f_impuesto;
+  @field('f_base_imponible') f_base_imponible;
+  @field('f_descuento') f_descuento;
 }
 export class FacturaPedido extends Model {
   static table = 't_factura_pedido';
@@ -143,14 +143,14 @@ export class NotaCredito extends Model {
   @field('f_monto') f_monto
   @text('f_fecha') f_fecha
   @text('f_concepto') f_concepto
-  @text('f_tipo_nota') f_tipo_nota
+  @field('f_tipo_nota') f_tipo_nota
   @text('f_factura') f_factura
-  @text('f_devolucion') f_devolucion
+  @text('f_ncf') f_ncf //Este es el documento de las devoluciones, en el sistema ARPA se usa con este nombre
   @field('f_porc') f_porc
   @field('f_aprobado') f_aprobado
   @field('f_anulado') f_anulado
   @field('f_enviado') f_enviado
-
+  @text('f_documento_principal') f_documento_principal
 }
 
 

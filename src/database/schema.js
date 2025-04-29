@@ -172,11 +172,12 @@ export const mySchema = appSchema({
         { name: 'f_fecha', type: 'string' },
         { name: 'f_concepto', type: 'string' },
         { name: 'f_idcliente', type: 'number' },
-        { name: 'f_tipo_nota', type: 'string' },
+        { name: 'f_tipo_nota', type: 'number' },
         { name: 'f_factura', type: 'string' },
-        { name: 'f_devolucion', type: 'string' },
+        { name: 'f_ncf', type: 'string' }, //Este es el documento de las devoluciones, en el sistema ARPA se usa con este nombre
         { name: 'f_porc', type: 'number' },
         { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
+        { name: 'f_documento_principal', type: 'string'}
       ]
     }),
     

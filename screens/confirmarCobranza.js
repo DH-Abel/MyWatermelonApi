@@ -19,6 +19,7 @@ import { enviarRecibo } from '../src/sincronizaciones/enviarRecibo';
 import { Q } from '@nozbe/watermelondb';
 
 export default function ConfirmarCobranza() {
+    console.log('guardando')
     const route = useRoute();
     const navigation = useNavigation();
 
@@ -28,7 +29,7 @@ export default function ConfirmarCobranza() {
     console.log('Parsed invoiceDetails:', invoiceDetails);
     const { clienteSeleccionado, pagos, totalPago } = route.params;
 
- //   console.log('📥 invoiceDetails recibidos en ConfirmarCobranza:', invoiceDetails);
+    //   console.log('📥 invoiceDetails recibidos en ConfirmarCobranza:', invoiceDetails);
 
     const [banks, setBanks] = useState([]);
     const [efectivo, setEfectivo] = useState('');
@@ -107,7 +108,7 @@ export default function ConfirmarCobranza() {
                     r.f_cheque_recibido = hoy;
                     r.f_cheque_cobro = chequeCobroDate
                         ? chequeCobroDate.toLocaleDateString('en-GB')
-                        : '';
+                        : hoy;
                     r.f_aprobado = false;
                     r.f_anulado = false;
                     r.f_enviado = false;
@@ -127,7 +128,7 @@ export default function ConfirmarCobranza() {
                         });
                     }
                 }
-               // console.log('🚀 invoiceDetails antes de escribir:', invoiceDetails);
+                // console.log('🚀 invoiceDetails antes de escribir:', invoiceDetails);
 
                 // 3) Crear nota de crédito por cada factura con descuento
                 const notaCol = database.collections.get('t_nota_credito_venta_pda2');
@@ -141,35 +142,48 @@ export default function ConfirmarCobranza() {
                             nc.f_fecha = hoy;
                             nc.f_concepto = `descuento ${detail.descuentoPct}% pronto pago`;
                             nc.f_idcliente = clienteSeleccionado.f_id;
-                            nc.f_tipo_nota = 'NC';
+                            nc.f_tipo_nota = 1;
                             nc.f_factura = detail.documento; // factura a la que aplica
-                            nc.f_devolucion = '';   // sin devolución
+                            nc.f_ncf = '';   // sin devolución
                             nc.f_porc = detail.descuentoPct;
                             nc.f_enviado = false;
+                            nc.f_documento_principal = `REC${id}`;
                         });
-                        // Luego enviamos
-                        const recRaw = (await database.collections.get('t_recibos_pda2')
-                            .query(Q.where('f_norecibo', id)).fetch())[0]._raw;
 
-                        const appsRaw = (await database.collections.get('t_aplicaciones_pda2')
-                            .query(Q.where('f_documento_aplico', recRaw.f_documento))
-                            .fetch()).map(m => m._raw);
-
-                        await enviarRecibo({
-                            recibo: recRaw,
-                            aplicaciones: appsRaw,
-                            navigation,
-                            setIsSending
-                        });
                     }
                 }
             });
-            Alert.alert('Hecho', 'Cobranza guardada', [{ text: 'OK', onPress: () => navigation.navigate('consultaRecibos') }]);
-
+            Alert.alert('Hecho', 'Cobranza guardada');
+            try {
+                const recRaw = (await database.collections.get('t_recibos_pda2')
+                    .query(Q.where('f_norecibo', id)).fetch())[0]._raw;
+    
+                const appsRaw = (await database.collections.get('t_aplicaciones_pda2')
+                    .query(Q.where('f_documento_aplico', recRaw.f_documento))
+                    .fetch()).map(m => m._raw);
+                const ncRaw = (await database.collections.get('t_nota_credito_venta_pda2')
+                    .query(Q.where('f_documento_principal', recRaw.f_documento))
+                    .fetch()).map(m => m._raw);
+                Alert.alert('Envio de recibo', 'Enviando recibo...');
+                await enviarRecibo({
+                    recibo: recRaw,
+                    aplicaciones: appsRaw,
+                    notas: ncRaw,
+                    navigation,
+                    setIsSending
+                });
+                setIsSending(false);
+                Alert.alert('Hecho', 'Recibo enviado y guardado',[{ text: 'OK', onPress: () => navigation.navigate('ConsultaRecibos') }])
+            } catch (err) {
+                Alert.alert('Error', 'Recibo guardado, pero no se pudo enviar', err.message,[{ text: 'OK', onPress: () => navigation.navigate('consultaRecibos') }]);
+            }
         } catch (err) {
             console.error(err);
             Alert.alert('Error', 'No se pudo guardar.');
         }
+       
+        // Luego enviamos
+
     };
 
     return (

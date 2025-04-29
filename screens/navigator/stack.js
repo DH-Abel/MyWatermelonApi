@@ -26,12 +26,12 @@ const Stack = createNativeStackNavigator();
 export default function MyStack() {
     return (
         <NavigationContainer>
-        <Stack.Navigator initialRouteName="consultaRecibos" screenOptions={{ headerShown: false }}>
+        <Stack.Navigator initialRouteName="ConsultaRecibos" screenOptions={{ headerShown: false }}>
           {/* Flujo de cobranza */}
-          <Stack.Screen name="consultaRecibos" component={ConsultaRecibos} />
+          <Stack.Screen name="ConsultaRecibos" component={ConsultaRecibos} />
           <Stack.Screen name="SelectClientesCobranza" component={SelectClientesCobranza} />
-          <Stack.Screen name="ConfirmarCobranza" component={ConfirmarCobranza} />
           <Stack.Screen name="MainTabsCobranza" component={MainTabsCobranza} />
+          <Stack.Screen name="ConfirmarCobranza" component={ConfirmarCobranza} />
           {/* Flujo de pedidos */}
           <Stack.Screen name="SelectClientScreen" component={SelectClientScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />
