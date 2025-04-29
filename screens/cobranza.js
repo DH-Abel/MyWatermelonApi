@@ -75,12 +75,11 @@ export default function Cobranza({ clienteSeleccionado }) {
     }
   };
 
-  const onChangePago = (documento, raw) => {
+  const onChangePago = (doc, raw) => {
+    const num = parseFloat(raw) || 0;
     setPagos(prev => {
-      const next = { ...prev, [documento]: raw };
-      const suma = Object.values(next)
-        .reduce((acc, cur) => acc + (parseFloat(cur) || 0), 0);
-      setTotalPago(suma);
+      const next = { ...prev, [doc]: num };
+      setTotalPago(Object.values(next).reduce((a,b) => a+b, 0));
       return next;
     });
   };
@@ -92,7 +91,7 @@ export default function Cobranza({ clienteSeleccionado }) {
     const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
     const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
     const descuentoPct = disc ? disc.f_descuento1 : 0;
-    const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible *  (descuentoPct / 100));
+    const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
     onChangePago(documento, balanceConDescuento.toFixed(2));
   };
 
@@ -106,7 +105,7 @@ export default function Cobranza({ clienteSeleccionado }) {
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
       const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
       const descuentoPct = disc ? disc.f_descuento1 : 0;
-      const balanceDesc = cuenta.f_balance * (1 - descuentoPct / 100);
+      const balanceDesc = cuenta.f_balance- (cuenta.f_base_imponible * descuentoPct/100);
       const asignado = Math.min(restante, balanceDesc);
       nuevos[cuenta.f_documento] = asignado.toFixed(2);
       restante -= asignado;
@@ -124,40 +123,46 @@ export default function Cobranza({ clienteSeleccionado }) {
   };
 
   const realizarCobranzaLocal = () => {
-    // 1) arma el detalle completo
-    const allDetails = cuentas.map(cuenta => {
-      const fechaFactura = parseDateString(cuenta.f_fecha);
-      const dias = Math.floor((Date.now() - fechaFactura.getTime()) / (1000*60*60*24));
-      const disc = descuentosLocal.find(
-        d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin
-      );
-      const descuentoPct     = disc ? disc.f_descuento1 : 0;
-      const valorDescuento   = cuenta.f_base_imponible * (descuentoPct/100);
-      const balanceConDesc   = cuenta.f_base_imponible - valorDescuento;
-      const montoPagado      = parseFloat(pagos[cuenta.f_documento]||0);
-  
-      return {
-        documento:          cuenta.f_documento,
-        monto:              montoPagado,
-        descuentoPct,
-        valorDescuento,
-        balanceConDescuento: balanceConDesc,
-      };
-    });
-  
-    // 2) filtra sólo las que tengan un pago (o un valor de descuento > 0)
-    const invoiceDetails = allDetails.filter(d => d.monto > 0 /* ó d.valorDescuento > 0 */);
-  
-    console.log('▶️ invoiceDetails filtrados:', invoiceDetails);
-  
-    navigation.navigate('ConfirmarCobranza', {
-      clienteSeleccionado,
-      pagos,
-      totalPago,
-      invoiceDetails,    
-    });
+    if (totalPago <= 0) {
+      Alert.alert('Error', 'Seleccione la factura a pagar');
+      return;
+    } else {
+      // 1) arma el detalle completo
+      const allDetails = cuentas.map(cuenta => {
+        const fechaFactura = parseDateString(cuenta.f_fecha);
+        const dias = Math.floor((Date.now() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24));
+        const disc = descuentosLocal.find(
+          d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin
+        );
+        const descuentoPct = disc ? disc.f_descuento1 : 0;
+        const valorDescuento = cuenta.f_base_imponible * (descuentoPct / 100);
+        const balanceConDesc = cuenta.f_base_imponible - valorDescuento;
+        const montoPagado = parseFloat(pagos[cuenta.f_documento] || 0);
+
+        return {
+          documento: cuenta.f_documento,
+          monto: montoPagado,
+          descuentoPct,
+          valorDescuento,
+          balanceConDescuento: balanceConDesc,
+        };
+      });
+
+      // 2) filtra sólo las que tengan un pago (o un valor de descuento > 0)
+      const invoiceDetails = allDetails.filter(d => d.monto > 0 /* ó d.valorDescuento > 0 */);
+
+      console.log('▶️ invoiceDetails filtrados:', invoiceDetails);
+
+      navigation.navigate('ConfirmarCobranza', {
+        clienteSeleccionado,
+        pagos,
+        totalPago,
+        invoiceDetails,
+      });
+    }
+
   };
-  
+
 
   if (loading) {
     return <ActivityIndicator size="large" style={{ flex: 1 }} />;
@@ -188,8 +193,8 @@ export default function Cobranza({ clienteSeleccionado }) {
         data={cuentas}
         keyExtractor={item => item.f_documento}
         renderItem={({ item }) => {
-          const fechaFactura = parseDateString(item.f_fecha); 
-          
+          const fechaFactura = parseDateString(item.f_fecha);
+
           const diasTranscurridos = Math.floor(
             (Date.now() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24)
           );
@@ -201,18 +206,18 @@ export default function Cobranza({ clienteSeleccionado }) {
           const descuentoPct = disc ? disc.f_descuento1 : 0;
           const valorDescuento = item.f_base_imponible * (descuentoPct / 100);
           const balanceConDescuento = item.f_balance - valorDescuento;
-          
+
           return (
             <View style={styles.item}>
               <View style={{ flex: 2 }}>
-                
+
                 <Text>{item.f_documento}</Text>
                 <Text>Vence: {item.f_fecha}</Text>
                 <Text>Monto: {item.f_monto}</Text>
                 <Text>Base Imponible: {item.f_base_imponible}</Text>
-                <Pressable onPress={() => {console.log(item)}} style={styles.button2}>
+                {/* <Pressable onPress={() => { console.log(item) }} style={styles.button2}>
                   <Text style={styles.buttonText}>Ver Detalle</Text>
-                </Pressable>
+                </Pressable> */}
                 <Text>Balance: {item.f_balance}</Text>
                 <Text>Descuento: {descuentoPct}% ({valorDescuento.toFixed(2)})</Text>
                 <Text>Balance c/ descuento: {balanceConDescuento.toFixed(2)}</Text>

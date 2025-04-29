@@ -9,7 +9,7 @@ import {
   Modal,
   Alert,
   TouchableOpacity,
-  StyleSheet,
+  StyleSheet, TextInput
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { database } from '../src/database/database';
@@ -27,6 +27,7 @@ export default function ConsultaRecibos({ navigation }) {
   const [recibos, setRecibos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notasNC, setNotasNC] = useState([]);
+  const [searchTextCliente, setSearchTextCliente] = useState('');
 
   // Filtros por fecha
   const [startDate, setStartDate] = useState(new Date());
@@ -75,8 +76,8 @@ export default function ConsultaRecibos({ navigation }) {
       const collection = database.collections.get('t_nota_credito_venta_pda2');
       // trae todos los registros
       const all = await collection.query().fetch();
-console.log(`🏷️  Notas de crédito encontradas: ${all.length}`);
-console.log(all.map(r => r._raw));
+      console.log(`🏷️  Notas de crédito encontradas: ${all.length}`);
+      console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
       console.log('*** NOTAS DE CRÉDITO ***');
       console.log(all.map(rec => rec._raw));
@@ -92,8 +93,8 @@ console.log(all.map(r => r._raw));
       const collection = database.collections.get('t_aplicaciones_pda2');
       // trae todos los registros
       const all = await collection.query().fetch();
-console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
-console.log(all.map(r => r._raw));
+      console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
+      console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
       console.log('*** Aplicaciones ***');
       console.log(all.map(rec => rec._raw));
@@ -103,7 +104,7 @@ console.log(all.map(r => r._raw));
       console.error('Error cargando notas de crédito:', err);
     }
   };
-  
+
 
   // Cargar todos los recibos
   const cargarRecibos = async () => {
@@ -134,6 +135,11 @@ console.log(all.map(r => r._raw));
       setLoading(false);
     }
   };
+
+  const filteredClientsList = clientsList.filter(c =>
+    c.f_nombre.toLowerCase().includes(searchTextCliente.toLowerCase()) ||
+    c.f_id.toString().toLowerCase().includes(searchTextCliente.toLowerCase())
+  );
 
   // Filtrar por fecha y cliente
   useEffect(() => {
@@ -253,23 +259,43 @@ console.log(all.map(r => r._raw));
         <View style={consultaStyles.headerRow}>
           <Text style={consultaStyles.headerTitle}>Recibos PDA</Text>
           <View style={consultaStyles.headerButtons}>
-            
+
             <Pressable onPress={cargarEstado} style={consultaStyles.headerButton}>
               <Ionicons name="sync-outline" size={24} color="#fff" />
             </Pressable>
-            <Pressable onPress={cargarNC} style={consultaStyles.headerButton}>
-              <Ionicons name="cash-outline" size={24} color="#fff" />
-            </Pressable>
+
 
             <Pressable onPress={() => setShowClientModal(true)} style={consultaStyles.headerButton}>
               <Ionicons name="people-outline" size={24} color="#fff" />
             </Pressable>
+
+            {/* Si hay cliente seleccionado, mostrar su nombre y un botón para limpiar */}
+
             <Pressable onPress={() => navigation.navigate('SelectClientesCobranza')} style={consultaStyles.headerButton}>
               <Ionicons name="add-circle-outline" size={24} color="#fff" />
             </Pressable>
           </View>
         </View>
+
       </View>
+      {selectedClient && (
+  <View style={consultaStyles.selectedClientCard}>
+    <Text style={consultaStyles.selectedClientName}>
+      {selectedClient.f_nombre}
+    </Text>
+    <Pressable
+      onPress={() => {
+        setSelectedClient(null);
+        setSearchTextCliente('');
+      }}
+      style={consultaStyles.selectedClientClear}
+    >
+      <Ionicons name="close-circle-outline" size={24} color="#333" />
+    </Pressable>
+  </View>
+)}
+
+
 
       {/* Filtros de Fecha */}
       <View style={consultaStyles.filterCard}>
@@ -333,15 +359,22 @@ console.log(all.map(r => r._raw));
 
       {/* Modal de Cliente para filtrar */}
       <Modal visible={showClientModal} transparent animationType="fade">
+
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, marginBottom: 12 }}
+              placeholder="Buscar cliente..."
+              value={searchTextCliente}
+              onChangeText={setSearchTextCliente}
+            />
             <Text style={styles.modalTitle}>Seleccione Cliente</Text>
             <FlatList
-              data={clientsList}
+              data={filteredClientsList}
               keyExtractor={c => c.f_id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => { setSelectedClient(item); setShowClientModal(false); }}>
-                  <Text style={styles.modalItem}>{item.f_nombre}</Text>
+                  <Text style={styles.modalItem}>({item.f_id}) {item.f_nombre}</Text>
                 </TouchableOpacity>
               )}
             />

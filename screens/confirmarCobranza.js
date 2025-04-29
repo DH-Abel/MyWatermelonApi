@@ -80,6 +80,18 @@ export default function ConfirmarCobranza() {
     };
 
     const guardar = async () => {
+        //const montoCheque = parseFloat(chequeMonto) || 0;
+
+        if(chequeMonto >0 && (!chequeBanco)){
+            Alert.alert('Error', 'Seleccione un banco para el cheque.');
+            return;
+        }
+
+        if(transferenciaMonto >0 && (!transferenciaBanco)){
+            Alert.alert('Error', 'Seleccione un banco para la transferencia.');
+            return;
+        }
+
         if (!validSum) {
             Alert.alert('Error', 'La suma de los pagos debe igualar el total.');
             return;
@@ -181,8 +193,6 @@ export default function ConfirmarCobranza() {
             console.error(err);
             Alert.alert('Error', 'No se pudo guardar.');
         }
-       
-        // Luego enviamos
 
     };
 
@@ -235,6 +245,7 @@ export default function ConfirmarCobranza() {
                     <TextInput
                         style={[styles.input, { flex: 1 }]}
                         placeholder="Núm. Cheque"
+                        keyboardType="numeric"
                         value={chequeNumero}
                         onChangeText={setChequeNumero}
                     />

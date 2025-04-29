@@ -11,13 +11,6 @@ const SelectedClienteCobranza = ({
   setClienteSeleccionado,
   creditoDisponible,
   setCreditoDisponible,
-  descuentoCredito,
-  setDescuentoCredito,
-  descuentoGlobal,
-  condicionSeleccionada,
-  condicionPedido,
-  condicionPedidoElegida,
-  modalVisibleCondicion,
   setModalVisibleCondicion,
   nota,
   setNota
@@ -74,22 +67,13 @@ const SelectedClienteCobranza = ({
           </View>
 
           {/* Condición de pedido */}
-          <View style={uiStyles.seccion}>
-            <Text style={uiStyles.label}>Condición seleccionada:</Text>
-            <Text style={uiStyles.condicion}>
-              {condicionSeleccionada ? condicionSeleccionada.nombre : 'Ninguna'}
-            </Text>
-            <Pressable onPress={() => setModalVisibleCondicion(true)} style={[styles.button, uiStyles.buttonMargin]}>  
-              <Text style={styles.buttonText}>Cambiar condición</Text>
-            </Pressable>
-          </View>
+        
 
           {/* Info financiera */}
           <View style={uiStyles.infoCard}>
             <Text style={uiStyles.infoText}>💳 Límite de crédito: {formatear(clienteSeleccionado.f_limite_credito)}</Text>
             <Text style={uiStyles.infoText}>📉 Balance actual: {formatear(balanceCliente)}</Text>
             <Text style={uiStyles.infoText}>✅ Disponible: {formatear(creditoDisponible)}</Text>
-            <Text style={uiStyles.infoText}>🏷️ Descuento: {descuentoGlobal} %</Text>
           </View>
 
           {/* Nota */}
@@ -103,13 +87,6 @@ const SelectedClienteCobranza = ({
             numberOfLines={4}
           />
 
-          {/* Modal */}
-          <ModalOptions
-            modalVisibleCondicion={modalVisibleCondicion}
-            setModalVisibleCondicion={setModalVisibleCondicion}
-            condicionPedido={condicionPedido}
-            condicionPedidoElegida={condicionPedidoElegida}
-          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

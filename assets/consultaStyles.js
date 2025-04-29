@@ -170,7 +170,7 @@ export const consultaStyles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: 'bold',
-  },pedidoTitleSection: {
+  }, pedidoTitleSection: {
     marginBottom: 8,
   },
   pedidoInfoSection: {
@@ -190,6 +190,29 @@ export const consultaStyles = StyleSheet.create({
     borderRadius: 6,
     marginBottom: 4,
   },
-  
-  
+  selectedClientCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  selectedClientName: {
+    flexShrink: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  selectedClientClear: {
+    marginLeft: 8,
+    padding: 4,
+  },
+
+
 });
