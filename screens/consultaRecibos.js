@@ -77,10 +77,10 @@ export default function ConsultaRecibos({ navigation }) {
       // trae todos los registros
       const all = await collection.query().fetch();
       console.log(`🏷️  Notas de crédito encontradas: ${all.length}`);
-      console.log(all.map(r => r._raw));
+      //console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
       console.log('*** NOTAS DE CRÉDITO ***');
-      console.log(all.map(rec => rec._raw));
+     // console.log(all.map(rec => rec._raw));
       // si quieres guardarlos en estado para listarlos en pantalla, hazlo:
       setNotasNC(all.map(rec => rec._raw));
     } catch (err) {
@@ -93,12 +93,12 @@ export default function ConsultaRecibos({ navigation }) {
       const collection = database.collections.get('t_aplicaciones_pda2');
       // trae todos los registros
       const all = await collection.query().fetch();
-      console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
-      console.log(all.map(r => r._raw));
+      //console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
+      //console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
-      console.log('*** Aplicaciones ***');
-      console.log(all.map(rec => rec._raw));
-      // si quieres guardarlos en estado para listarlos en pantalla, hazlo:
+      //console.log('*** Aplicaciones ***');
+      //console.log(all.map(rec => rec._raw));
+      // si quieres guardarlos en estado para listarlos en pantalla, hazl:
       setNotasNC(all.map(rec => rec._raw));
     } catch (err) {
       console.error('Error cargando notas de crédito:', err);
@@ -110,6 +110,7 @@ export default function ConsultaRecibos({ navigation }) {
   const cargarRecibos = async () => {
     try {
       const cols = database.collections.get('t_recibos_pda2');
+      console.log (cols._raw)
       const subscr = cols.query().observe().subscribe(all => {
         setFullRecibos(all);
         setLoading(false);
@@ -140,6 +141,31 @@ export default function ConsultaRecibos({ navigation }) {
     c.f_nombre.toLowerCase().includes(searchTextCliente.toLowerCase()) ||
     c.f_id.toString().toLowerCase().includes(searchTextCliente.toLowerCase())
   );
+
+  const limpiarBase = async () => {
+    setLoading(true);
+    try {
+      await database.write(async () => {
+        console.log('🔄 Iniciando limpieza de BD');
+        await database.unsafeResetDatabase();
+      });
+      console.log('✅ BD vacía');
+      await cargarRecibos();  // vuelves a suscribirte al DB limpio
+      Alert.alert('Listo', 'Base de datos limpiada');
+    } catch (err) {
+      console.error('Error limpiando BD:', err);
+      Alert.alert('Error', 'No se pudo limpiar la base de datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('🏷️ Recibos filtrados:', recibos);
+    recibos.forEach((recibo, idx) => {
+      console.log(`Recibo ${idx + 1}:`, recibo);
+    });
+  }, [recibos]);
 
   // Filtrar por fecha y cliente
   useEffect(() => {
@@ -251,7 +277,7 @@ export default function ConsultaRecibos({ navigation }) {
 
   return (
     <SafeAreaView style={consultaStyles.container}>
-      <Pressable onPress={() => database.unsafeResetDatabase()}>
+      <Pressable onPress={limpiarBase} style={{ marginBottom: 12, backgroundColor: '#FF3B30', padding: 10, borderRadius: 8, alignItems: 'center' }}>
         <Text style={consultaStyles.title}>LIMPIAR BASE DE DATOS</Text>
       </Pressable>
       {/* Header con Sync, cliente, y + */}

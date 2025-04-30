@@ -17,6 +17,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { database } from '../src/database/database';
 import { enviarRecibo } from '../src/sincronizaciones/enviarRecibo';
 import { Q } from '@nozbe/watermelondb';
+import {formatear} from '../assets/formatear'
 
 export default function ConfirmarCobranza() {
     console.log('guardando')
@@ -65,6 +66,7 @@ export default function ConfirmarCobranza() {
     };
     const validSum = Math.abs(sumPagos() - totalPago) < 0.01;
 
+
     const openBankModal = type => {
         setBankType(type);
         setShowBankModal(true);
@@ -106,7 +108,7 @@ export default function ConfirmarCobranza() {
                     r.f_documento = `REC${id}`;
                     r.f_tiporecibo = 'REC';
                     r.f_norecibo = id;
-                    r.f_monto = parseFloat(totalPago) || 0;
+                    r.f_monto = parseFloat(totalPago) || 0.00;
                     r.f_fecha = hoy;
                     r.f_concepto = 'COBRO';
                     r.f_idcliente = clienteSeleccionado.f_id;
@@ -198,9 +200,11 @@ export default function ConfirmarCobranza() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        
+            <View style={styles.header && {borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 10}}>
                 <Text style={styles.headerSubtitle}>{clienteSeleccionado.f_nombre}</Text>
-                <Text style={styles.headerSubtitle}>Total: {totalPago.toFixed(2)}</Text>
+                <Text style={styles.headerSubtitle}>Total: {formatear(totalPago)}</Text>
+                <Text style={styles.headerSubtitle}>Descuento: {formatear((invoiceDetails.reduce((a, b) => a + b.valorDescuento, 0)))}</Text>
             </View>
 
             <View style={styles.card}>
@@ -312,7 +316,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f0f2f5' },
     header: { padding: 10, backgroundColor: '#007AFF', alignItems: 'center' },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-    headerSubtitle: { fontSize: 16, color: 'white', marginTop: 4, fontWeight: 'bold' },
+    headerSubtitle: { fontSize: 16, color: 'black', marginTop: 4, fontWeight: 'bold' },
     card: {
         backgroundColor: '#fff',
         marginHorizontal: 16,
