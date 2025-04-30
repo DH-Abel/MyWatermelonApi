@@ -108,13 +108,13 @@ export default function ConfirmarCobranza() {
                     r.f_documento = `REC${id}`;
                     r.f_tiporecibo = 'REC';
                     r.f_norecibo = id;
-                    r.f_monto = parseFloat(totalPago) || 0.00;
+                    r.f_monto = parseFloat(totalPago) || 0;
                     r.f_fecha = hoy;
                     r.f_concepto = 'COBRO';
                     r.f_idcliente = clienteSeleccionado.f_id;
                     r.f_cobrador = 12;
                     r.f_efectivo = parseFloat(efectivo) || 0;
-                    r.f_monto_transferencia = transferenciaMonto;
+                    r.f_monto_transferencia = parseFloat(transferenciaMonto) || 0;
                     r.f_cheque = parseFloat(chequeMonto) || 0;
                     r.f_cheque_numero = chequeNumero;
                     r.f_cheque_banco = chequeBanco?.f_idbanco || '';
