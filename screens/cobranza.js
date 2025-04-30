@@ -17,6 +17,7 @@ export default function Cobranza({ clienteSeleccionado }) {
   const [pagos, setPagos] = useState({});
   const [descuentosLocal, setDescuentosLocal] = useState([]);
   const [totalPago, setTotalPago] = useState(0);
+  const [totalDescuento, setTotalDescuento] = useState(0);
   const [montoDistribuir, setMontoDistribuir] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -37,6 +38,8 @@ export default function Cobranza({ clienteSeleccionado }) {
     // Caer al parser de JS (ISO, etc)
     return new Date(dateStr);
   };
+
+  
 
   useEffect(() => {
     if (clienteSeleccionado?.f_id) {
@@ -95,7 +98,7 @@ export default function Cobranza({ clienteSeleccionado }) {
       ? manual
       : (disc ? disc.f_descuento1 : 0);
     const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
-    if ((parseFloat(raw) || 0) > balanceConDescuento) {
+    if (((parseFloat(raw)).toFixed(2) || 0) > balanceConDescuento.toFixed(2)) {
       Alert.alert('Error', 'El monto ingresado supera el balance con descuento');
       return;
     }
@@ -163,9 +166,6 @@ export default function Cobranza({ clienteSeleccionado }) {
 
       },
     ])
-    setPagos({});
-    setTotalPago(0);
-    setMontoDistribuir('');
   };
 
   const handleLongPress = (documento, currentPct) => {
