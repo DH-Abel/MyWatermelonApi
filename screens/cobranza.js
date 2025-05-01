@@ -7,7 +7,7 @@ import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
 import { useNavigation } from '@react-navigation/native';
-import { formatear } from '../assets/formatear';
+import { formatear,formatearFecha } from '../assets/formatear';
 
 export default function Cobranza({ clienteSeleccionado }) {
 
@@ -305,7 +305,7 @@ export default function Cobranza({ clienteSeleccionado }) {
         sumaDescuentos += valorDescuento;
       }
     });
-    setTotalDescuento(sumaDescuentos);
+    setTotalDescuento(sumaDescuentos.toFixed(2));
   }, [pagos, descuentosLocal, manualDescuentos, cuentas]);
 
 
@@ -355,11 +355,8 @@ export default function Cobranza({ clienteSeleccionado }) {
             ? manual
             : (disc ? disc.f_descuento1 : 0);
 
-          const valorDescuento = item.f_base_imponible * (descuentoPct / 100);
-          const balanceConDescuento = item.f_balance - valorDescuento;
-
-
-
+          const valorDescuento = item.f_base_imponible.toFixed(2) * (descuentoPct / 100);
+          const balanceConDescuento = item.f_balance.toFixed(2) - valorDescuento.toFixed(2);
 
 
           // En el cálculo de descuento dentro de renderItem:
@@ -374,14 +371,14 @@ export default function Cobranza({ clienteSeleccionado }) {
 
 
                   <Text style={{ fontWeight: 'bold' }}>{item.f_documento}</Text>
-                  <Text>Vence: {item.f_fecha}</Text>
+                  <Text>Fecha: {formatearFecha(item.f_fecha)}</Text>
                   <Text>Monto: {formatear(item.f_monto)}</Text>
                   <Text>Base Imponible: {formatear(item.f_base_imponible)}</Text>
                   {/* <Pressable onPress={() => { console.log(item) }} style={styles.button2}>
                   <Text style={styles.buttonText}>Ver Detalle</Text>
                 </Pressable> */}
                   <Text>Balance: {formatear(item.f_balance)}</Text>
-                  <Text>Descuento: {descuentoPct}% ({formatear(valorDescuento)})</Text>
+                  <Text>Descuento: {descuentoPct}% ({formatear(valorDescuento.toFixed(2))})</Text>
                   <Text style={{ fontWeight: 'bold' }}>Balance c/ descuento: {formatear(balanceConDescuento)}</Text>
 
                 </Pressable>

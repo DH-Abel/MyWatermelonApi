@@ -112,7 +112,7 @@ export const mySchema = appSchema({
         { name: 'f_idcliente', type: 'number' },
         { name: 'f_cobrador', type: 'number' }, // id del cobrador
         { name: 'f_efectivo', type: 'number' }, //monto en efectivo
-        { name: 'f_monto_transferencia', type: 'string' },
+        { name: 'f_monto_transferencia', type: 'number' },
         { name: 'f_cheque', type: 'number' }, //monto del cheque
         { name: 'f_cheque_numero', type: 'number' },
         { name: 'f_cheque_banco', type: 'number' }, //id del banco del cheque

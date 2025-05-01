@@ -23,8 +23,7 @@ export const enviarRecibo = async ({
       ...recibo,
       f_monto: Number(recibo.f_monto) || 0,
       f_efectivo: Number(recibo.f_efectivo) || 0,
-      f_monto_transferencia:
-        recibo.f_monto_transferencia === '' ? null : Number(recibo.f_monto_transferencia),
+      f_monto_transferencia: Number(recibo.f_monto_transferencia) || 0,
       f_cheque: Number(recibo.f_cheque) || 0,
       f_cheque_numero:
         recibo.f_cheque_numero === '' ? null : Number(recibo.f_cheque_numero),
@@ -104,19 +103,15 @@ export const enviarRecibo = async ({
       // });
     }
 
-  } catch (error) {
+  }  catch (error) {
     console.error("Error al enviar cobranza:", error);
     if (error.response?.data?.error?.includes("duplicate key")) {
       Alert.alert("Error", "La cobranza ya existe en la empresa.");
     } else {
       Alert.alert("Error", "No se pudo enviar. Intenta de nuevo más tarde.");
     }
-    if (currentRoute !== 'ConsultaRecibos') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'ConsultaRecibos' }],
-      });
-    }
+    // Propaga el error para que la función guardar() pueda capturarlo
+    throw error;
   } finally {
     setIsSending(false);
   }

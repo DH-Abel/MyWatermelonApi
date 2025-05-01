@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    TextInput,
-    FlatList,
-    Pressable,
-    Alert,
-    SafeAreaView,
-    StyleSheet,
-    Modal,
-    TouchableOpacity,
-    ActivityIndicator,
-} from 'react-native';
+import {View,Text,TextInput,FlatList,Pressable,Alert,SafeAreaView,StyleSheet,Modal,
+        TouchableOpacity,ActivityIndicator, KeyboardAvoidingView, Platform} from 'react-native';
+        
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { database } from '../src/database/database';
 import { enviarRecibo } from '../src/sincronizaciones/enviarRecibo';
 import { Q } from '@nozbe/watermelondb';
 import {formatear} from '../assets/formatear'
+import { CommonActions } from '@react-navigation/native';
+
 
 export default function ConfirmarCobranza() {
     console.log('guardando')
@@ -46,17 +39,28 @@ export default function ConfirmarCobranza() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isSending, setIsSending] = useState(false);
 
+    const [searchQuery, setSearchQuery] = useState('');
+
     useEffect(() => {
         (async () => {
-            try {
-                const cols = database.collections.get('t_bancos');
-                const list = await cols.query().fetch();
-                setBanks(list);
-            } catch (err) {
-                console.error(err);
-            }
+          try {
+            const cols = database.collections.get('t_bancos');
+            const hasQuery = searchQuery.trim().length > 0;
+            const query = hasQuery
+              ? cols.query(
+                  Q.where('f_nombre', Q.like(`%${searchQuery.trim()}%`)),
+                  Q.sortBy('f_nombre', Q.asc),
+                )
+              : cols.query(
+                  Q.sortBy('f_nombre', Q.asc),
+                );
+            const list = await query.fetch();
+            setBanks(list);
+          } catch (err) {
+            console.error(err);
+          }
         })();
-    }, []);
+      }, [searchQuery]);
 
     const sumPagos = () => {
         const e = parseFloat(efectivo) || 0;
@@ -82,144 +86,175 @@ export default function ConfirmarCobranza() {
     };
 
     const guardar = async () => {
-        //const montoCheque = parseFloat(chequeMonto) || 0;
-
-        if(chequeMonto >0 && (!chequeBanco)){
-            Alert.alert('Error', 'Seleccione un banco para el cheque.');
-            return;
+        // 1) Validaciones iniciales
+        if (chequeMonto > 0 && !chequeBanco) {
+          Alert.alert('Error', 'Seleccione un banco para el cheque.');
+          return;
         }
-
-        if(transferenciaMonto >0 && (!transferenciaBanco)){
-            Alert.alert('Error', 'Seleccione un banco para la transferencia.');
-            return;
+        if (transferenciaMonto > 0 && !transferenciaBanco) {
+          Alert.alert('Error', 'Seleccione un banco para la transferencia.');
+          return;
         }
-
         if (!validSum) {
-            Alert.alert('Error', 'La suma de los pagos debe igualar el total.');
-            return;
+          Alert.alert('Error', 'La suma de los pagos debe igualar el total.');
+          return;
         }
+      
         try {
-            const timestamp = Math.floor(Date.now() / 1000).toString();
-            const id = timestamp;
-            const hoy = new Date().toLocaleDateString('en-GB');
-            await database.write(async () => {
-                const recCol = database.collections.get('t_recibos_pda2');
-                await recCol.create(r => {
-                    r.f_documento = `REC${id}`;
-                    r.f_tiporecibo = 'REC';
-                    r.f_norecibo = id;
-                    r.f_monto = parseFloat(totalPago) || 0;
-                    r.f_fecha = hoy;
-                    r.f_concepto = 'COBRO';
-                    r.f_idcliente = clienteSeleccionado.f_id;
-                    r.f_cobrador = 12;
-                    r.f_efectivo = parseFloat(efectivo) || 0;
-                    r.f_monto_transferencia = parseFloat(transferenciaMonto) || 0;
-                    r.f_cheque = parseFloat(chequeMonto) || 0;
-                    r.f_cheque_numero = chequeNumero;
-                    r.f_cheque_banco = chequeBanco?.f_idbanco || '';
-                    r.f_banco_transferencia = transferenciaBanco?.f_idbanco || '';
-                    r.f_cheque_recibido = hoy;
-                    r.f_cheque_cobro = chequeCobroDate
-                        ? chequeCobroDate.toLocaleDateString('en-GB')
-                        : hoy;
-                    r.f_aprobado = false;
-                    r.f_anulado = false;
-                    r.f_enviado = false;
-                });
-                const appCol = database.collections.get('t_aplicaciones_pda2');
-                for (let [doc, raw] of Object.entries(pagos)) {
-                    const m = parseFloat(raw) || 0;
-                    if (m > 0) {
-                        await appCol.create(a => {
-                            a.f_documento_aplico = `REC${id}`;
-                            a.f_documento_aplicado = doc;
-                            a.f_tipo_doc = 'FAC';
-                            a.f_concepto = m === sumPagos() ? 'SALDO' : 'ABONO';
-                            a.f_monto = m;
-                            a.f_fecha = hoy;
-                            a.f_cliente = clienteSeleccionado.f_id;
-                        });
-                    }
-                }
-                // console.log('🚀 invoiceDetails antes de escribir:', invoiceDetails);
-
-                // 3) Crear nota de crédito por cada factura con descuento
-                const notaCol = database.collections.get('t_nota_credito_venta_pda2');
-                for (let detail of invoiceDetails) {
-                    if (detail.valorDescuento > 0) {
-                        await notaCol.create(nc => {
-                            nc.f_documento = `NC${timestamp}`; // prefijo NC
-                            nc.f_tipo = 'NC';
-                            nc.f_nodoc = parseInt(timestamp, 10);
-                            nc.f_monto = detail.valorDescuento;
-                            nc.f_fecha = hoy;
-                            nc.f_concepto = `descuento ${detail.descuentoPct}% pronto pago`;
-                            nc.f_idcliente = clienteSeleccionado.f_id;
-                            nc.f_tipo_nota = 1;
-                            nc.f_factura = detail.documento; // factura a la que aplica
-                            nc.f_ncf = '';   // sin devolución
-                            nc.f_porc = detail.descuentoPct;
-                            nc.f_enviado = false;
-                            nc.f_documento_principal = `REC${id}`;
-                        });
-
-                    }
-                }
+          // 2) Escribo recibo, aplicaciones y notas en la base local
+          const timestamp = Math.floor(Date.now() / 1000).toString();
+          const id = timestamp;
+          const hoy = new Date().toLocaleDateString('en-GB');
+      
+          await database.write(async () => {
+            // --- creación de recibo ---
+            const recCol = database.collections.get('t_recibos_pda2');
+            await recCol.create(r => {
+              r.f_documento = `REC${id}`;
+              r.f_tiporecibo = 'REC';
+              r.f_norecibo = id;
+              r.f_monto = parseFloat(totalPago) || 0;
+              r.f_fecha = hoy;
+              r.f_concepto = 'COBRO';
+              r.f_idcliente = clienteSeleccionado.f_id;
+              r.f_cobrador = 12;
+              r.f_efectivo = parseFloat(efectivo) || 0;
+              r.f_monto_transferencia = parseFloat(transferenciaMonto) || 0;
+              r.f_cheque = parseFloat(chequeMonto) || 0;
+              r.f_cheque_numero = chequeNumero;
+              r.f_cheque_banco = chequeBanco?.f_idbanco || '';
+              r.f_banco_transferencia = transferenciaBanco?.f_idbanco || '';
+              r.f_cheque_recibido = hoy;
+              r.f_cheque_cobro = chequeCobroDate
+                ? chequeCobroDate.toLocaleDateString('en-GB')
+                : hoy;
+              r.f_aprobado = false;
+              r.f_anulado = false;
+              r.f_enviado = false;
             });
-            Alert.alert('Hecho', 'Cobranza guardada');
-            try {
-                const recRaw = (await database.collections.get('t_recibos_pda2')
-                    .query(Q.where('f_norecibo', id)).fetch())[0]._raw;
-    
-                const appsRaw = (await database.collections.get('t_aplicaciones_pda2')
-                    .query(Q.where('f_documento_aplico', recRaw.f_documento))
-                    .fetch()).map(m => m._raw);
-                const ncRaw = (await database.collections.get('t_nota_credito_venta_pda2')
-                    .query(Q.where('f_documento_principal', recRaw.f_documento))
-                    .fetch()).map(m => m._raw);
-               // Alert.alert('Envio de recibo', 'Enviando recibo...');
-               let intento = 0;
-               let enviado = false;
-               while (intento < 2 && !enviado) {
-                 try {
-                   await enviarRecibo({
-                     recibo: recRaw,
-                     aplicaciones: appsRaw,
-                     notas: ncRaw,
-                     navigation,
-                     setIsSending
-                   });
-                   enviado = true;
-                   Alert.alert('Hecho', 'Recibo enviado y guardado', [
-                     { text: 'OK', onPress: () => navigation.navigate('ConsultaRecibos') }
-                   ]);
-                 } catch (err) {
-                   intento++;
-                   if (intento === 2) {
-                     Alert.alert('Error', 'No se pudo enviar la cobranza tras dos intentos. Verifique conexión e intente más tarde.');
-                   }
-                 }
-               }
-               setIsSending(false);
-               
-            } catch (err) {
-                Alert.alert('Error', 'Recibo guardado, pero no se pudo enviar', err.message,[{ text: 'OK', onPress: () => navigation.navigate('consultaRecibos') }]);
+      
+            // --- aplicaciones ---
+            const appCol = database.collections.get('t_aplicaciones_pda2');
+            for (let [doc, raw] of Object.entries(pagos)) {
+              const monto = parseFloat(raw) || 0;
+              if (monto > 0) {
+                await appCol.create(a => {
+                  a.f_documento_aplico = `REC${id}`;
+                  a.f_documento_aplicado = doc;
+                  a.f_tipo_doc = 'FAC';
+                  a.f_concepto = monto === sumPagos() ? 'SALDO' : 'ABONO';
+                  a.f_monto = monto;
+                  a.f_fecha = hoy;
+                  a.f_cliente = clienteSeleccionado.f_id;
+                });
+              }
             }
+      
+            // --- notas de crédito ---
+            const notaCol = database.collections.get('t_nota_credito_venta_pda2');
+            for (let detail of invoiceDetails) {
+              if (detail.valorDescuento > 0) {
+                await notaCol.create(nc => {
+                  nc.f_documento = `NC${timestamp}`;
+                  nc.f_tipo = 'NC';
+                  nc.f_nodoc = parseInt(timestamp, 10);
+                  nc.f_monto = detail.valorDescuento;
+                  nc.f_fecha = hoy;
+                  nc.f_concepto = `descuento ${detail.descuentoPct}% pronto pago`;
+                  nc.f_idcliente = clienteSeleccionado.f_id;
+                  nc.f_tipo_nota = 1;
+                  nc.f_factura = detail.documento;
+                  nc.f_ncf = '';
+                  nc.f_porc = detail.descuentoPct;
+                  nc.f_enviado = false;
+                  nc.f_documento_principal = `REC${id}`;
+                });
+              }
+            }
+          });
+      
+          // 3) Preparo datos crudos para envío
+          const recRaw = (await database
+            .collections.get('t_recibos_pda2')
+            .query(Q.where('f_norecibo', id))
+            .fetch())[0]._raw;
+      
+          const appsRaw = (await database
+            .collections.get('t_aplicaciones_pda2')
+            .query(Q.where('f_documento_aplico', recRaw.f_documento))
+            .fetch()).map(m => m._raw);
+      
+          const ncRaw = (await database
+            .collections.get('t_nota_credito_venta_pda2')
+            .query(Q.where('f_documento_principal', recRaw.f_documento))
+            .fetch()).map(m => m._raw);
+      
+          // 4) Intento de envío (hasta 2 veces)
+          setIsSending(true);
+          let intento = 0;
+          let enviado = false;
+          while (intento < 2 && !enviado) {
+            try {
+              await enviarRecibo({ recibo: recRaw, aplicaciones: appsRaw, notas: ncRaw, navigation, setIsSending });
+              enviado = true;
+            } catch (err) {
+              intento++;
+            }
+          }
+      
+          // 5) Alertas según resultado real
+          if (enviado) {
+            Alert.alert('Hecho', 'Recibo guardado y enviado', [
+              {
+                text: 'OK',
+                onPress: () =>
+                  navigation.dispatch(
+                    CommonActions.reset({
+                      index: 0,
+                      routes: [{ name: 'ConsultaRecibos' }],
+                    })
+                  ),
+              },
+            ]);
+          } else {
+            Alert.alert('Guardado', 'Recibo guardado localmente, pero no se pudo enviar', [
+              {
+                text: 'OK',
+                onPress: () => navigation.navigate('ConsultaRecibos'),
+              },
+            ]);
+          }
+      
         } catch (err) {
-            console.error(err);
-            Alert.alert('Error', 'No se pudo guardar.');
+          console.error(err);
+          Alert.alert('Error', 'No se pudo guardar el recibo: ' + err.message);
+        } finally {
+          setIsSending(false);
         }
-
-    };
+      };
+      
 
     return (
+        <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
+      >
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          enableOnAndroid
+          extraScrollHeight={20}
+          keyboardOpeningTime={0}
+        >
         <SafeAreaView style={styles.container}>
-        
-            <View style={styles.header && {borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 10}}>
+
+        <View style={[
+    styles.header,
+    { borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 10 }
+]}>
                 <Text style={styles.headerSubtitle}>{clienteSeleccionado.f_nombre}</Text>
                 <Text style={styles.headerSubtitle}>Total: {formatear(totalPago)}</Text>
-                <Text style={styles.headerSubtitle}>Descuento: {formatear((invoiceDetails.reduce((a, b) => a + b.valorDescuento, 0)))}</Text>
+                <Text style={styles.headerSubtitle}>Descuento: {formatear((invoiceDetails.reduce((a, b) => a + b.valorDescuento, 0)).toFixed(2))}</Text>
             </View>
 
             <View style={styles.card}>
@@ -294,28 +329,39 @@ export default function ConfirmarCobranza() {
             </Pressable>
 
             <Modal visible={showBankModal} transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Seleccione Banco</Text>
-                        {banks.length === 0 ? (
-                            <ActivityIndicator />
-                        ) : (
-                            <FlatList
-                                data={banks}
-                                keyExtractor={(item, idx) => item.f_idbanco?.toString() || idx.toString()}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity onPress={() => selectBank(item)}>
-                                        <Text style={styles.bankItem}>{item.f_nombre}</Text>
-                                    </TouchableOpacity>
-                                )}
-                            />
-                        )}
-                        <Pressable onPress={() => setShowBankModal(false)} style={styles.closeModal}>
-                            <Text style={styles.buttonText}>Cerrar</Text>
-                        </Pressable>
-                    </View>
-                </View>
-            </Modal>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Seleccione Banco</Text>
+      
+      {/* BUSCADOR */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Buscar banco..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+
+      {banks.length === 0 ? (
+        <ActivityIndicator />
+      ) : (
+        <FlatList
+          data={banks}
+          keyExtractor={(item, idx) => item.f_idbanco?.toString() || idx.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => selectBank(item)}>
+              <Text style={styles.bankItem}>{item.f_nombre}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+      <Pressable onPress={() => setShowBankModal(false)} style={styles.closeModal}>
+        <Text style={styles.buttonText}>Cerrar</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+
+
 
             <DateTimePickerModal
                 isVisible={showDatePicker}
@@ -324,6 +370,8 @@ export default function ConfirmarCobranza() {
                 onCancel={() => setShowDatePicker(false)}
             />
         </SafeAreaView>
+            </KeyboardAwareScrollView>
+  </KeyboardAvoidingView>
     );
 }
 
@@ -397,4 +445,11 @@ const styles = StyleSheet.create({
         marginTop: 12,
         alignItems: 'center',
     },
+    searchInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        padding: 8,
+        marginBottom: 8,
+      },
 });
