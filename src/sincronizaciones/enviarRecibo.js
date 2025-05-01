@@ -98,10 +98,10 @@ export const enviarRecibo = async ({
     Alert.alert("Éxito", "Cobranza enviada correctamente");
     if (currentRoute !== 'ConsultaRecibos') {
       await AsyncStorage.removeItem('recibo_guardado');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'ConsultaRecibos' }],
-      });
+      // navigation.reset({
+      //   index: 0,
+      //   routes: [{ name: 'ConsultaRecibos' }],
+      // });
     }
 
   } catch (error) {

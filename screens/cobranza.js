@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useCallback,useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet,
   ActivityIndicator, Modal
@@ -27,6 +27,8 @@ export default function Cobranza({ clienteSeleccionado }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentDoc, setCurrentDoc] = useState(null);
   const [inputDesc, setInputDesc] = useState('');
+  const [descuentoTotal, setDescuentoTotal] = useState(0);
+  
 
   const parseDateString = (dateStr) => {
     if (typeof dateStr !== 'string') return new Date(dateStr);
@@ -39,7 +41,7 @@ export default function Cobranza({ clienteSeleccionado }) {
     return new Date(dateStr);
   };
 
-  
+
 
   useEffect(() => {
     if (clienteSeleccionado?.f_id) {
@@ -98,7 +100,8 @@ export default function Cobranza({ clienteSeleccionado }) {
       ? manual
       : (disc ? disc.f_descuento1 : 0);
     const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
-    if (((parseFloat(raw)).toFixed(2) || 0) > balanceConDescuento.toFixed(2)) {
+    
+    if (((parseFloat(raw)).toFixed(2) || 0) > parseFloat(balanceConDescuento.toFixed(2))) {
       Alert.alert('Error', 'El monto ingresado supera el balance con descuento');
       return;
     }
@@ -121,9 +124,9 @@ export default function Cobranza({ clienteSeleccionado }) {
     const descuentoPct = manual != null
       ? manual
       : (disc ? disc.f_descuento1 : 0);
-      const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
-      onChangePago(documento, balanceConDescuento.toFixed(2));
-  
+    const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
+    onChangePago(documento, balanceConDescuento.toFixed(2));
+
 
   };
 
@@ -220,10 +223,22 @@ export default function Cobranza({ clienteSeleccionado }) {
         d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin
       );
       const manual = manualDescuentos[cuenta.f_documento];
-      const descuentoPct = manual != null ? manual : (disc ? disc.f_descuento1 : 0);
-      const valorDescuento = cuenta.f_base_imponible.toFixed(2) * (descuentoPct / 100);
-      const balanceConDesc = cuenta.f_base_imponible.toFixed(2) - valorDescuento.toFixed(2);
+      let descuentoPct = manual != null ? manual : (disc ? disc.f_descuento1 : 0);
+      let valorDescuento = cuenta.f_base_imponible.toFixed(2) * (descuentoPct / 100);
+      let balanceConDesc = cuenta.f_balance.toFixed(2) - valorDescuento.toFixed(2);
       const montoPagado = parseFloat(pagos[cuenta.f_documento] || 0);
+
+
+      if (descuentoPct > 0) {
+        const requerido = cuenta.f_balance - valorDescuento;
+        if (parseFloat(montoPagado.toFixed(2)) < parseFloat(requerido.toFixed(2))) {
+          // invalida el descuento
+          descuentoPct = 0;
+          valorDescuento = 0;
+        }
+      }
+
+    
 
       return {
         documento: cuenta.f_documento,
@@ -233,6 +248,8 @@ export default function Cobranza({ clienteSeleccionado }) {
         balanceConDescuento: balanceConDesc,
       };
     });
+    // 2) filtra sólo las que tengan un pago (o un descuento válido)
+
 
     // tras haber creado allDetails:
     const totalBalanceConDesc = allDetails.reduce((sum, d) =>
@@ -243,9 +260,11 @@ export default function Cobranza({ clienteSeleccionado }) {
     }
 
 
-    // 2) filtra sólo las que tengan un pago (o un valor de descuento > 0)
-    const invoiceDetails = allDetails.filter(d => d.monto > 0 /* ó d.valorDescuento > 0 */);
+    // 2) filtra sólo las que tengan un pago (o un descuento válido)
 
+    const invoiceDetails = allDetails.filter(
+      d => d.monto > 0 || d.valorDescuento > 0
+    );
     //console.log('▶️ invoiceDetails filtrados:', invoiceDetails);
 
     navigation.navigate('ConfirmarCobranza', {
@@ -257,6 +276,37 @@ export default function Cobranza({ clienteSeleccionado }) {
 
 
   };
+  useEffect(() => {
+    let sumaDescuentos = 0;
+    Object.entries(pagos).forEach(([documento, raw]) => {
+      const cuenta = cuentas.find(c => c.f_documento === documento);
+      if (!cuenta) return;
+  
+      const fechaFac = parseDateString(cuenta.f_fecha);
+      const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
+      const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+      const manual = manualDescuentos[documento];
+      let descuentoPct = manual != null
+        ? manual
+        : (disc ? disc.f_descuento1 : 0);
+  
+      const montoPagado = parseFloat(raw) || 0;
+      if (montoPagado > 0 && descuentoPct > 0) {
+        // calcula el valor nominal del descuento
+        let valorDescuento = cuenta.f_base_imponible * (descuentoPct / 100);
+  
+        // valida con la lógica de allDetails: si el pago es insuficiente, anula el descuento
+        const requerido = cuenta.f_balance.toFixed(2) - valorDescuento.toFixed(2);
+        if (montoPagado.toFixed(2) < requerido.toFixed(2)) {
+          descuentoPct = 0;
+          valorDescuento = 0;
+        }
+  
+        sumaDescuentos += valorDescuento;
+      }
+    });
+    setTotalDescuento(sumaDescuentos);
+  }, [pagos, descuentosLocal, manualDescuentos, cuentas]);
 
 
   if (loading) {
@@ -268,7 +318,7 @@ export default function Cobranza({ clienteSeleccionado }) {
       <View style={styles.header}>
         <Text style={styles.title}>Cobranza de Cliente</Text>
         <Text >Total a pagar: {formatear(totalPago)}</Text>
-        <Text> Total Descuento: {formatear()}</Text>
+        <Text> Total Descuento: {formatear(totalDescuento)}</Text>
       </View>
       <View style={styles.distribuirContainer}>
         <TextInput

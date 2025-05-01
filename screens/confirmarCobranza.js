@@ -27,7 +27,7 @@ export default function ConfirmarCobranza() {
 
     const raw = route.params.invoiceDetails;
     const invoiceDetails = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    console.log('Parsed invoiceDetails:', invoiceDetails);
+   // console.log('Parsed invoiceDetails:', invoiceDetails);
     const { clienteSeleccionado, pagos, totalPago } = route.params;
 
     //   console.log('📥 invoiceDetails recibidos en ConfirmarCobranza:', invoiceDetails);
@@ -178,16 +178,31 @@ export default function ConfirmarCobranza() {
                 const ncRaw = (await database.collections.get('t_nota_credito_venta_pda2')
                     .query(Q.where('f_documento_principal', recRaw.f_documento))
                     .fetch()).map(m => m._raw);
-                Alert.alert('Envio de recibo', 'Enviando recibo...');
-                await enviarRecibo({
-                    recibo: recRaw,
-                    aplicaciones: appsRaw,
-                    notas: ncRaw,
-                    navigation,
-                    setIsSending
-                });
-                setIsSending(false);
-                Alert.alert('Hecho', 'Recibo enviado y guardado',[{ text: 'OK', onPress: () => navigation.navigate('ConsultaRecibos') }])
+               // Alert.alert('Envio de recibo', 'Enviando recibo...');
+               let intento = 0;
+               let enviado = false;
+               while (intento < 2 && !enviado) {
+                 try {
+                   await enviarRecibo({
+                     recibo: recRaw,
+                     aplicaciones: appsRaw,
+                     notas: ncRaw,
+                     navigation,
+                     setIsSending
+                   });
+                   enviado = true;
+                   Alert.alert('Hecho', 'Recibo enviado y guardado', [
+                     { text: 'OK', onPress: () => navigation.navigate('ConsultaRecibos') }
+                   ]);
+                 } catch (err) {
+                   intento++;
+                   if (intento === 2) {
+                     Alert.alert('Error', 'No se pudo enviar la cobranza tras dos intentos. Verifique conexión e intente más tarde.');
+                   }
+                 }
+               }
+               setIsSending(false);
+               
             } catch (err) {
                 Alert.alert('Error', 'Recibo guardado, pero no se pudo enviar', err.message,[{ text: 'OK', onPress: () => navigation.navigate('consultaRecibos') }]);
             }
@@ -271,7 +286,7 @@ export default function ConfirmarCobranza() {
             </View>
 
             <Pressable
-                onPress={guardar} //navigation.navigate('SelectClientesCobranza')
+                onPress={guardar} 
                 style={[styles.saveButton, !validSum && styles.disabled]}
                 disabled={!validSum || isSending}
             >

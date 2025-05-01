@@ -160,12 +160,12 @@ export default function ConsultaRecibos({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    console.log('🏷️ Recibos filtrados:', recibos);
-    recibos.forEach((recibo, idx) => {
-      console.log(`Recibo ${idx + 1}:`, recibo);
-    });
-  }, [recibos]);
+  // useEffect(() => {
+  //   console.log('🏷️ Recibos filtrados:', recibos);
+  //   recibos.forEach((recibo, idx) => {
+  //     console.log(`Recibo ${idx + 1}:`, recibo);
+  //   });
+  // }, [recibos]);
 
   // Filtrar por fecha y cliente
   useEffect(() => {
