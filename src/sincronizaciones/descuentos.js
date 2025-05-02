@@ -42,11 +42,27 @@ const sincronizarDescuentos = async () => {
   }
 
   syncInProgress = true;
+  const tableName = 't_desc_x_pago_cliente';
   try {
+
+     // 1) Obtener fecha de última sincronización
+     const syncCol = database.collections.get('t_sync');
+     const syncRecords = await syncCol.query(Q.where('f_tabla', tableName)).fetch();
+     const lastSyncRaw = syncRecords.length > 0 ? syncRecords[0].f_fecha : null;
+ 
+     // 2) Formatear lastSync o usar epoch
+     let lastSync;
+     if (lastSyncRaw) {
+       const asNumber = Number(lastSyncRaw);
+       const date = !isNaN(asNumber) ? new Date(asNumber) : new Date(lastSyncRaw);
+       lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
+     } else {
+       lastSync = new Date(0).toISOString();
+     } 
     console.log('Sincronizando descuentos…');
 
     // 1) Traer datos remotos
-    const { data: raw } = await api.get('/descuentos');
+    const { data: raw } = await api.get(`/descuentos/${encodeURIComponent(lastSync)}`);
     if (!Array.isArray(raw)) {
       console.warn('/descuentos no devolvió un array');
       return;

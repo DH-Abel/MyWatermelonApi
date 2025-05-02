@@ -2,6 +2,7 @@ import api from '../../api/axios';
 import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
 import { syncHistory } from './syncHistory';
+import { InteractionManager } from 'react-native';
 
 let syncInProgress = false;
 
@@ -19,11 +20,29 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
   if (syncInProgress) return;
   syncInProgress = true;
   const tableName = 't_cuenta_cobrar';
+  let batchActions = [];
 
   try {
-    // 1) Fetch y normalizar remotos
-    const { data: raw } = await api.get(`/cuenta_cobrar/cxc/${idCliente}`);
-    let remote = Array.isArray(raw) ? raw : [raw];
+    // 1) Obtener fecha de última sincronización
+    const syncCol = database.collections.get('t_sync');
+    const syncRecords = await syncCol.query(Q.where('f_tabla', tableName)).fetch();
+    const lastSyncRaw = syncRecords.length > 0 ? syncRecords[0].f_fecha : null;
+
+    // 2) Formatear lastSync o usar epoch
+    let lastSync;
+    if (lastSyncRaw) {
+      const asNumber = Number(lastSyncRaw);
+      const date = !isNaN(asNumber) ? new Date(asNumber) : new Date(lastSyncRaw);
+      lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
+    } else {
+      lastSync = new Date(0).toISOString();
+    }
+
+    // 3) Fetch incremental de la API
+    const { data: raw } = await api.get(
+      `/cuenta_cobrar/cxc/${encodeURIComponent(lastSync)}`
+    );
+    const remote = Array.isArray(raw) ? raw : [raw];
     const cuentasRemotas = remote.map(item => ({
       documento:          trimString(item.f_documento),
       idCliente:          toInt(item.f_idcliente),
@@ -38,21 +57,18 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
       descuento:          toFloat(item.f_descuento),
     }));
 
-    // 2) Leer locales del mismo cliente
+    // 4) Leer sólo locales necesarios
     const col = database.collections.get(tableName);
-    const locales = await col
-      .query(Q.where('f_idcliente', idCliente))
-      .fetch();
-    const localMap = new Map(
-      locales.map(rec => [rec.f_documento, rec])
-    );
+    const uniqueDocIDs = Array.from(new Set(cuentasRemotas.map(c => c.documento)));
+    const locales = uniqueDocIDs.length > 0
+      ? await col.query(Q.where('f_documento', Q.oneOf(uniqueDocIDs))).fetch()
+      : [];
+    const localMap = new Map(locales.map(rec => [rec.f_documento, rec]));
 
-    // 3) Preparar batch de acciones
-    const batchActions = [];
+    // 5) Preparar batch de acciones
     for (const c of cuentasRemotas) {
       const local = localMap.get(c.documento);
       if (local) {
-        // Sólo actualizar si cambió algún campo
         const changed =
           local.f_nodoc             !== c.noDoc ||
           local.f_tipodoc           !== c.tipoDoc ||
@@ -63,61 +79,65 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
           Math.abs(local.f_impuesto - c.impuesto) > 0.001 ||
           Math.abs(local.f_base_imponible - c.baseImponible) > 0.001 ||
           Math.abs(local.f_descuento - c.descuento) > 0.001;
-
         if (changed) {
           batchActions.push(
-            local.prepareUpdate(record => {
-              record.f_nodoc             = c.noDoc;
-              record.f_tipodoc           = c.tipoDoc;
-              record.f_fecha             = c.fecha;
-              record.f_fecha_vencimiento = c.fechaVencimiento;
-              record.f_monto             = c.monto;
-              record.f_balance           = c.balance;
-              record.f_impuesto          = c.impuesto;
-              record.f_base_imponible    = c.baseImponible;
-              record.f_descuento         = c.descuento;
+            local.prepareUpdate(rec => {
+              rec.f_nodoc             = c.noDoc;
+              rec.f_tipodoc           = c.tipoDoc;
+              rec.f_fecha             = c.fecha;
+              rec.f_fecha_vencimiento = c.fechaVencimiento;
+              rec.f_monto             = c.monto;
+              rec.f_balance           = c.balance;
+              rec.f_impuesto          = c.impuesto;
+              rec.f_base_imponible    = c.baseImponible;
+              rec.f_descuento         = c.descuento;
             })
           );
         }
       } else {
         batchActions.push(
-          col.prepareCreate(record => {
-            // Usar el documento como ID en WatermelonDB
-            record._raw.id              = c.documento;
-            record.f_idcliente          = c.idCliente;
-            record.f_documento          = c.documento;
-            record.f_tipodoc            = c.tipoDoc;
-            record.f_nodoc              = c.noDoc;
-            record.f_fecha              = c.fecha;
-            record.f_fecha_vencimiento  = c.fechaVencimiento;
-            record.f_monto              = c.monto;
-            record.f_balance            = c.balance;
-            record.f_impuesto           = c.impuesto;
-            record.f_base_imponible     = c.baseImponible;
-            record.f_descuento          = c.descuento;
+          col.prepareCreate(rec => {
+            rec._raw.id              = c.documento;
+            rec.f_idcliente          = c.idCliente;
+            rec.f_documento          = c.documento;
+            rec.f_tipodoc            = c.tipoDoc;
+            rec.f_nodoc              = c.noDoc;
+            rec.f_fecha              = c.fecha;
+            rec.f_fecha_vencimiento  = c.fechaVencimiento;
+            rec.f_monto              = c.monto;
+            rec.f_balance            = c.balance;
+            rec.f_impuesto           = c.impuesto;
+            rec.f_base_imponible     = c.baseImponible;
+            rec.f_descuento          = c.descuento;
           })
         );
       }
     }
+  } catch (error) {
+    console.error('Error preparando sincronización:', error);
+    syncInProgress = false;
+    return;
+  }
 
-    // 4) Ejecutar batch dentro de un writer
-    await database.write(async () => {
+  // 6) Ejecutar batch después de interacciones para no bloquear UI
+  InteractionManager.runAfterInteractions(() => {
+    database.write(async () => {
       if (batchActions.length > 0) {
-        await database.batch(batchActions);
-        console.log(`Batch ejecutado: ${batchActions.length} acciones.`);
+        const chunkSize = 500;
+        for (let i = 0; i < batchActions.length; i += chunkSize) {
+          const chunk = batchActions.slice(i, i + chunkSize);
+          await database.batch(chunk);
+        }
+        console.log(`Batch de ${batchActions.length} acciones ejecutado.`);
       } else {
         console.log('No hay cambios en cuentas por cobrar.');
       }
-    });
-
-    // 5) Registrar historial de sincronización
-    await syncHistory(tableName);
-    console.log('Sincronización de cuentas por cobrar completada.');
-  } catch (error) {
-    console.error('Error sincronizando cuentas por cobrar:', error);
-  } finally {
-    syncInProgress = false;
-  }
+    })
+    .then(() => syncHistory(tableName))
+    .then(() => console.log('Sincronización completada.'))
+    .catch(err => console.error('Error en DB o historial:', err))
+    .finally(() => { syncInProgress = false; });
+  });
 };
 
 export default cargarCuentasCobrarLocales;

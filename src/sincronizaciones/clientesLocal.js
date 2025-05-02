@@ -69,9 +69,23 @@ const sincronizarClientes = async () => {
   }
 
   syncInProgress = true;
+  const tableName = 't_clientes';
   try {
+    const syncCol = database.collections.get('t_sync');
+    const syncRecords = await syncCol.query(Q.where('f_tabla', tableName)).fetch();
+    const lastSyncRaw = syncRecords.length > 0 ? syncRecords[0].f_fecha : null;
+
+    // 2) Formatear lastSync o usar epoch
+    let lastSync;
+    if (lastSyncRaw) {
+      const asNumber = Number(lastSyncRaw);
+      const date = !isNaN(asNumber) ? new Date(asNumber) : new Date(lastSyncRaw);
+      lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
+    } else {
+      lastSync = new Date(0).toISOString();
+    } 
     // 1) Fetch y normaliza
-    const { data: raw } = await api.get('/clientes');
+    const { data: raw } = await api.get(`/clientes/${encodeURIComponent(lastSync)}`);
     const clientesRemotos = raw.map((cli) => ({
       f_id:                  parseInt(cli.f_id, 10),
       f_nombre:              normalizeText(cli.f_nombre),

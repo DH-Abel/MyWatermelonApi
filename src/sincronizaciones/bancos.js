@@ -29,7 +29,7 @@ const toInt = (v) => {
 const sincronizarBancos = async () => {
   if (syncInProgress) return;
   const nombreTabla = 't_bancos';
-  const INTERVALO = 48 * 60 * 60 * 1000; // 48 horas
+  const INTERVALO = 0 * 0 * 1 * 1000; // 48 horas
   const lastSync = await getLastSync(nombreTabla);
 
   if (Date.now() - lastSync < INTERVALO) {
@@ -43,10 +43,23 @@ const sincronizarBancos = async () => {
 
   syncInProgress = true;
   try {
+    const syncCol = database.collections.get('t_sync');
+    const syncRecords = await syncCol.query(Q.where('f_tabla', nombreTabla)).fetch();
+    const lastSyncRaw = syncRecords.length > 0 ? syncRecords[0].f_fecha : null;
+
+    let lastSync;
+    if (lastSyncRaw) {
+      const asNumber = Number(lastSyncRaw);
+      const date = !isNaN(asNumber) ? new Date(asNumber) : new Date(lastSyncRaw);
+      lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
+    } else {
+      lastSync = new Date(0).toISOString();
+    } 
+
     console.log('Sincronizando bancos…');
 
     // 1) Traer y normalizar remotos
-    const { data: raw } = await api.get('/bancos');
+    const { data: raw } = await api.get(`/bancos/${encodeURIComponent(lastSync)}`);
     if (!Array.isArray(raw)) return;
     const remoteItems = raw.map(item => ({
       idBanco:     toInt(item.f_idbanco),

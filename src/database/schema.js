@@ -139,7 +139,7 @@ export const mySchema = appSchema({
     tableSchema({
       name: 't_bancos',
       columns: [
-        { name: 'f_idbanco', type: 'string' },
+        { name: 'f_idbanco', type: 'number' },
         { name: 'f_nombre', type: 'string' },
         { name: 'f_cooperativa', type: 'boolean' }, //Para saber si es banco o cooperativa
       ]

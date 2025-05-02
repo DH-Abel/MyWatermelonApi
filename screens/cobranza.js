@@ -44,16 +44,23 @@ export default function Cobranza({ clienteSeleccionado }) {
 
 
   useEffect(() => {
-    if (clienteSeleccionado?.f_id) {
-      setLoading(true);
-      cargarCuentasCobrarLocales(clienteSeleccionado.f_id)
-        .then(async () => {
-          await loadLocal();
-          await loadDescuentos();
-        })
-        .finally(() => setLoading(false));
-    }
+    if (!clienteSeleccionado?.f_id) return;
+  
+    // 1) Carga local inmediata
+    setLoading(true);
+    loadLocal()
+      .then(loadDescuentos)
+      .finally(() => setLoading(false));
+  
+    // 2) Sincroniza en segundo plano
+    cargarCuentasCobrarLocales(clienteSeleccionado.f_id)
+      .then(() => {
+        // Una vez remotos descargados y volcados, refresca la lista
+        loadLocal();
+      })
+      .catch(err => console.error('Sync fallida:', err));
   }, [clienteSeleccionado]);
+  
 
   const loadLocal = async () => {
     try {

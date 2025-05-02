@@ -10,7 +10,7 @@ export const syncHistory = async (nombreTabla) => {
 
         if (exist.length > 0) {
             await exist[0].update(record=>{
-                record.f_fecha = Date.now().toString();
+                record.f_fecha = new Date().toISOString();
             });
         }else{
             await syncCollection.create(record =>{
