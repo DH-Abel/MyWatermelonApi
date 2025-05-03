@@ -188,7 +188,6 @@ export default function Cobranza({ clienteSeleccionado }) {
     const pct = parseFloat(inputDesc);
     if (!isNaN(pct) && currentDoc) {
       setManualDescuentos(prev => ({ ...prev, [currentDoc]: pct }));
-      setManualDescuentos(prev => ({ ...prev, [currentDoc]: pct }));
       // validar si el pago existente supera el nuevo balance con descuento
       const cuenta = cuentas.find(c => c.f_documento === currentDoc);
       if (cuenta) {
