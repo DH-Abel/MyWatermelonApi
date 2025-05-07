@@ -37,24 +37,33 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
     } else {
       lastSync = new Date(0).toISOString();
     }
+    const isFirstSync = !lastSyncRaw
+      || lastSync === '1970-01-01T00:00:00.000Z';  // o tu placeholder inicial
 
-    // 3) Fetch incremental de la API
-    const { data: raw } = await api.get(
-      `/cuenta_cobrar/cxc/${encodeURIComponent(lastSync)}`
-    );
+    const endPoint = isFirstSync
+      ? '/cuenta_cobrar/cxc/first_sync'
+      : `/cuenta_cobrar/cxc/${encodeURIComponent(lastSync)}`;  // <-- backticks
+
+    console.log('[SYNC] lastSyncRaw=', lastSyncRaw,
+      'formatted=', lastSync,
+      'isFirstSync=', isFirstSync,
+      '→ calling', endPoint);
+
+    const { data: raw } = await api.get(endPoint);
+
     const remote = Array.isArray(raw) ? raw : [raw];
     const cuentasRemotas = remote.map(item => ({
-      documento:          trimString(item.f_documento),
-      idCliente:          toInt(item.f_idcliente),
-      tipoDoc:            trimString(item.f_tipodoc),
-      noDoc:              toInt(item.f_nodoc),
-      fecha:              trimString(item.f_fecha),
-      fechaVencimiento:   trimString(item.f_fecha_vencimiento),
-      monto:              toFloat(item.f_monto),
-      balance:            toFloat(item.f_balance),
-      impuesto:           toFloat(item.f_impuesto),
-      baseImponible:      toFloat(item.f_base_imponible),
-      descuento:          toFloat(item.f_descuento),
+      documento: trimString(item.f_documento),
+      idCliente: toInt(item.f_idcliente),
+      tipoDoc: trimString(item.f_tipodoc),
+      noDoc: toInt(item.f_nodoc),
+      fecha: trimString(item.f_fecha),
+      fechaVencimiento: trimString(item.f_fecha_vencimiento),
+      monto: toFloat(item.f_monto),
+      balance: toFloat(item.f_balance),
+      impuesto: toFloat(item.f_impuesto),
+      baseImponible: toFloat(item.f_base_imponible),
+      descuento: toFloat(item.f_descuento),
     }));
 
     // 4) Leer sólo locales necesarios
@@ -70,9 +79,9 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
       const local = localMap.get(c.documento);
       if (local) {
         const changed =
-          local.f_nodoc             !== c.noDoc ||
-          local.f_tipodoc           !== c.tipoDoc ||
-          local.f_fecha             !== c.fecha ||
+          local.f_nodoc !== c.noDoc ||
+          local.f_tipodoc !== c.tipoDoc ||
+          local.f_fecha !== c.fecha ||
           local.f_fecha_vencimiento !== c.fechaVencimiento ||
           Math.abs(local.f_monto - c.monto) > 0.001 ||
           Math.abs(local.f_balance - c.balance) > 0.001 ||
@@ -82,33 +91,33 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
         if (changed) {
           batchActions.push(
             local.prepareUpdate(rec => {
-              rec.f_nodoc             = c.noDoc;
-              rec.f_tipodoc           = c.tipoDoc;
-              rec.f_fecha             = c.fecha;
+              rec.f_nodoc = c.noDoc;
+              rec.f_tipodoc = c.tipoDoc;
+              rec.f_fecha = c.fecha;
               rec.f_fecha_vencimiento = c.fechaVencimiento;
-              rec.f_monto             = c.monto;
-              rec.f_balance           = c.balance;
-              rec.f_impuesto          = c.impuesto;
-              rec.f_base_imponible    = c.baseImponible;
-              rec.f_descuento         = c.descuento;
+              rec.f_monto = c.monto;
+              rec.f_balance = c.balance;
+              rec.f_impuesto = c.impuesto;
+              rec.f_base_imponible = c.baseImponible;
+              rec.f_descuento = c.descuento;
             })
           );
         }
       } else {
         batchActions.push(
           col.prepareCreate(rec => {
-            rec._raw.id              = c.documento;
-            rec.f_idcliente          = c.idCliente;
-            rec.f_documento          = c.documento;
-            rec.f_tipodoc            = c.tipoDoc;
-            rec.f_nodoc              = c.noDoc;
-            rec.f_fecha              = c.fecha;
-            rec.f_fecha_vencimiento  = c.fechaVencimiento;
-            rec.f_monto              = c.monto;
-            rec.f_balance            = c.balance;
-            rec.f_impuesto           = c.impuesto;
-            rec.f_base_imponible     = c.baseImponible;
-            rec.f_descuento          = c.descuento;
+            rec._raw.id = c.documento;
+            rec.f_idcliente = c.idCliente;
+            rec.f_documento = c.documento;
+            rec.f_tipodoc = c.tipoDoc;
+            rec.f_nodoc = c.noDoc;
+            rec.f_fecha = c.fecha;
+            rec.f_fecha_vencimiento = c.fechaVencimiento;
+            rec.f_monto = c.monto;
+            rec.f_balance = c.balance;
+            rec.f_impuesto = c.impuesto;
+            rec.f_base_imponible = c.baseImponible;
+            rec.f_descuento = c.descuento;
           })
         );
       }
@@ -133,10 +142,10 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
         console.log('No hay cambios en cuentas por cobrar.');
       }
     })
-    .then(() => syncHistory(tableName))
-    .then(() => console.log('Sincronización completada.'))
-    .catch(err => console.error('Error en DB o historial:', err))
-    .finally(() => { syncInProgress = false; });
+      .then(() => syncHistory(tableName))
+      .then(() => console.log('Sincronización completada.'))
+      .catch(err => console.error('Error en DB o historial:', err))
+      .finally(() => { syncInProgress = false; });
   });
 };
 

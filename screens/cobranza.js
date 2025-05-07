@@ -76,7 +76,10 @@ export default function Cobranza({ clienteSeleccionado }) {
         const date2 = new Date(+yyyy2, +mm2 - 1, +dd2);
         return date1 - date2;
       });
-      setCuentas(cxcOrdenada);
+
+      const cxcActivas = cxcOrdenada.filter(c => parseFloat(c.f_balance)>0)
+
+      setCuentas(cxcActivas);
       setPagos({});
       setTotalPago(0);
       setMontoDistribuir('');
@@ -287,12 +290,13 @@ export default function Cobranza({ clienteSeleccionado }) {
     );
     //console.log('▶️ invoiceDetails filtrados:', invoiceDetails);
 
-    navigation.navigate('ConfirmarCobranza', {
-      clienteSeleccionado,
-      pagos,
-      totalPago,
-      invoiceDetails,
-    });
+      navigation.navigate('ConfirmarCobranza', {
+          clienteSeleccionado,
+          pagos,
+          totalPago,
+          invoiceDetails,
+          totalDescuento,      // <-- agregamos aquí
+        });
 
 
   };
@@ -304,11 +308,12 @@ export default function Cobranza({ clienteSeleccionado }) {
   
       const fechaFac = parseDateString(cuenta.f_fecha);
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-      const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+      const disc = cuenta.f_descuento>0 ?0 :descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
       const manual = manualDescuentos[documento];
-      let descuentoPct = manual != null
+      let descuentoPct = cuenta.f_descuento>0 ?0 :
+      (manual != null
         ? manual
-        : (disc ? disc.f_descuento1 : 0);
+        : (disc ? disc.f_descuento1 : 0));
   
       const montoPagado = parseFloat(raw) || 0;
       if (montoPagado > 0 && descuentoPct > 0) {
