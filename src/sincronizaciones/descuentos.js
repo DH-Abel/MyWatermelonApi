@@ -90,6 +90,8 @@ const sincronizarDescuentos = async () => {
           batchActions.push(
             local.prepareUpdate((r) => {
               r.f_descuento1 = f_descuento1;
+              r.f_dia_inicio = f_dia_inicio;
+              r.f_dia_fin    = f_dia_fin;
             })
           );
         }

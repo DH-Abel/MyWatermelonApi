@@ -134,6 +134,7 @@ export const mySchema = appSchema({
         { name: 'f_monto', type: 'number' },
         { name: 'f_fecha', type: 'string' },
         { name: 'f_cliente', type: 'number' },
+        { name: 'f_balance', type: 'number' }, //balance de la factura
       ]
     }),
     tableSchema({
@@ -177,10 +178,10 @@ export const mySchema = appSchema({
         { name: 'f_ncf', type: 'string' }, //Este es el documento de las devoluciones, en el sistema ARPA se usa con este nombre
         { name: 'f_porc', type: 'number' },
         { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
-        { name: 'f_documento_principal', type: 'string'}
+        { name: 'f_documento_principal', type: 'string' }
       ]
     }),
-    
+
   ]
 
 });

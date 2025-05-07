@@ -1,13 +1,13 @@
-import React, { useState, useEffect,useCallback,useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet,
-  ActivityIndicator, Modal
+  ActivityIndicator, Modal, Keyboard
 } from 'react-native';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
 import { useNavigation } from '@react-navigation/native';
-import { formatear,formatearFecha } from '../assets/formatear';
+import { formatear, formatearFecha } from '../assets/formatear';
 
 export default function Cobranza({ clienteSeleccionado }) {
 
@@ -28,7 +28,7 @@ export default function Cobranza({ clienteSeleccionado }) {
   const [currentDoc, setCurrentDoc] = useState(null);
   const [inputDesc, setInputDesc] = useState('');
   const [descuentoTotal, setDescuentoTotal] = useState(0);
-  
+
 
   const parseDateString = (dateStr) => {
     if (typeof dateStr !== 'string') return new Date(dateStr);
@@ -45,13 +45,13 @@ export default function Cobranza({ clienteSeleccionado }) {
 
   useEffect(() => {
     if (!clienteSeleccionado?.f_id) return;
-  
+
     // 1) Carga local inmediata
     setLoading(true);
     loadLocal()
       .then(loadDescuentos)
       .finally(() => setLoading(false));
-  
+
     // 2) Sincroniza en segundo plano
     cargarCuentasCobrarLocales(clienteSeleccionado.f_id)
       .then(() => {
@@ -60,7 +60,7 @@ export default function Cobranza({ clienteSeleccionado }) {
       })
       .catch(err => console.error('Sync fallida:', err));
   }, [clienteSeleccionado]);
-  
+
 
   const loadLocal = async () => {
     try {
@@ -77,7 +77,7 @@ export default function Cobranza({ clienteSeleccionado }) {
         return date1 - date2;
       });
 
-      const cxcActivas = cxcOrdenada.filter(c => parseFloat(c.f_balance)>0)
+      const cxcActivas = cxcOrdenada.filter(c => parseFloat(c.f_balance) > 0.00)
 
       setCuentas(cxcActivas);
       setPagos({});
@@ -104,14 +104,14 @@ export default function Cobranza({ clienteSeleccionado }) {
     const cuenta = cuentas.find(c => c.f_documento === documento);
     const fechaFac = parseDateString(cuenta.f_fecha);
     const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-    const disc = cuenta.f_descuento > 0 ? 0 :descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+    const disc = cuenta.f_descuento > 0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
     const manual = manualDescuentos[documento];
     const descuentoPct = cuenta.f_descuento > 0 ? 0 :
-    (manual != null
-      ? manual
-      : (disc ? disc.f_descuento1 : 0))
+      (manual != null
+        ? manual
+        : (disc ? disc.f_descuento1 : 0))
     const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
-    
+
     if (((parseFloat(raw)).toFixed(2) || 0) > parseFloat(balanceConDescuento.toFixed(2))) {
       Alert.alert('Error', 'El monto ingresado supera el balance con descuento');
       return;
@@ -130,12 +130,12 @@ export default function Cobranza({ clienteSeleccionado }) {
     if (!cuenta) return;
     const fechaFac = parseDateString(cuenta.f_fecha);
     const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-    const disc = cuenta.f_descuento>0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+    const disc = cuenta.f_descuento > 0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
     const manual = manualDescuentos[documento];
-    const descuentoPct = cuenta.f_descuento>0 ? 0 :
-    (manual != null
-      ? manual
-      : (disc ? disc.f_descuento1 : 0))
+    const descuentoPct = cuenta.f_descuento > 0 ? 0 :
+      (manual != null
+        ? manual
+        : (disc ? disc.f_descuento1 : 0))
     const balanceConDescuento = cuenta.f_balance - (cuenta.f_base_imponible * (descuentoPct / 100));
     onChangePago(documento, balanceConDescuento.toFixed(2));
 
@@ -154,9 +154,9 @@ export default function Cobranza({ clienteSeleccionado }) {
       if (restante <= 0) break;
       const fechaFac = parseDateString(cuenta.f_fecha);
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-      const disc = cuenta.f_descuento>0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+      const disc = cuenta.f_descuento > 0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
       const manual = manualDescuentos[cuenta.f_documento];
-      const descuentoPct = cuenta.f_descuento>0 ? 0 :(manual != null ? manual : (disc ? disc.f_descuento1 : 0));
+      const descuentoPct = cuenta.f_descuento > 0 ? 0 : (manual != null ? manual : (disc ? disc.f_descuento1 : 0));
       const balanceDesc = cuenta.f_balance.toFixed(2) - (cuenta.f_base_imponible.toFixed(2) * (descuentoPct / 100));
       const asignado = Math.min(restante, balanceDesc.toFixed(2));
       nuevos[cuenta.f_documento] = asignado.toFixed(2);
@@ -197,16 +197,16 @@ export default function Cobranza({ clienteSeleccionado }) {
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
       const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
 
-      if (disc ? disc.f_descuento1: 0<pct) {
+      if (disc ? disc.f_descuento1 : 0 < pct) {
         Alert.alert('Error', 'El descuento manual no puede ser mayor que el descuento automático');
         return;
       }
 
-      console.log('Descuento manual:', pct, 'disc' , disc.f_descuento1);
+      console.log('Descuento manual:', pct, 'disc', disc.f_descuento1);
 
       setManualDescuentos(prev => ({ ...prev, [currentDoc]: pct }));
       // validar si el pago existente supera el nuevo balance con descuento
-      
+
       if (cuenta) {
         const balanceConDesc = cuenta.f_balance - (cuenta.f_base_imponible * (pct / 100));
         const pagoActual = parseFloat(pagos[currentDoc] || 0);
@@ -261,7 +261,7 @@ export default function Cobranza({ clienteSeleccionado }) {
         }
       }
 
-    
+
 
       return {
         documento: cuenta.f_documento,
@@ -269,6 +269,7 @@ export default function Cobranza({ clienteSeleccionado }) {
         descuentoPct,
         valorDescuento,
         balanceConDescuento: balanceConDesc,
+        balance: cuenta.f_balance
       };
     });
     // 2) filtra sólo las que tengan un pago (o un descuento válido)
@@ -289,14 +290,15 @@ export default function Cobranza({ clienteSeleccionado }) {
       d => d.monto > 0 || d.valorDescuento > 0
     );
     //console.log('▶️ invoiceDetails filtrados:', invoiceDetails);
+    Keyboard.dismiss();
+    navigation.navigate('ConfirmarCobranza', {
 
-      navigation.navigate('ConfirmarCobranza', {
-          clienteSeleccionado,
-          pagos,
-          totalPago,
-          invoiceDetails,
-          totalDescuento,      // <-- agregamos aquí
-        });
+      clienteSeleccionado,
+      pagos,
+      totalPago,
+      invoiceDetails,
+      totalDescuento,      // <-- agregamos aquí
+    });
 
 
   };
@@ -305,28 +307,28 @@ export default function Cobranza({ clienteSeleccionado }) {
     Object.entries(pagos).forEach(([documento, raw]) => {
       const cuenta = cuentas.find(c => c.f_documento === documento);
       if (!cuenta) return;
-  
+
       const fechaFac = parseDateString(cuenta.f_fecha);
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-      const disc = cuenta.f_descuento>0 ?0 :descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+      const disc = cuenta.f_descuento > 0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
       const manual = manualDescuentos[documento];
-      let descuentoPct = cuenta.f_descuento>0 ?0 :
-      (manual != null
-        ? manual
-        : (disc ? disc.f_descuento1 : 0));
-  
+      let descuentoPct = cuenta.f_descuento > 0 ? 0 :
+        (manual != null
+          ? manual
+          : (disc ? disc.f_descuento1 : 0));
+
       const montoPagado = parseFloat(raw) || 0;
       if (montoPagado > 0 && descuentoPct > 0) {
         // calcula el valor nominal del descuento
         let valorDescuento = cuenta.f_base_imponible * (descuentoPct / 100);
-  
+
         // valida con la lógica de allDetails: si el pago es insuficiente, anula el descuento
         const requerido = cuenta.f_balance.toFixed(2) - valorDescuento.toFixed(2);
         if (montoPagado.toFixed(2) < requerido.toFixed(2)) {
           descuentoPct = 0;
           valorDescuento = 0;
         }
-  
+
         sumaDescuentos += valorDescuento;
       }
     });
@@ -376,12 +378,12 @@ export default function Cobranza({ clienteSeleccionado }) {
           );
 
           const manual = manualDescuentos[item.f_documento];
-          const descuentoPct = item.f_descuento>0 ? 0 :
-          (manual != null
-            ? manual
-            : (disc ? disc.f_descuento1 : 0));
+          const descuentoPct = item.f_descuento > 0 ? 0 :
+            (manual != null
+              ? manual
+              : (disc ? disc.f_descuento1 : 0));
 
-          const valorDescuento = item.f_descuento>0 ? 0 : (item.f_base_imponible.toFixed(2) * (descuentoPct / 100));
+          const valorDescuento = item.f_descuento > 0 ? 0 : (item.f_base_imponible.toFixed(2) * (descuentoPct / 100));
           const balanceConDescuento = item.f_balance.toFixed(2) - valorDescuento.toFixed(2);
           const descuentoTransp = item.f_descuento
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet, Modal,
-  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform
+  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform,ScrollView
 } from 'react-native';
 
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -94,6 +94,10 @@ export default function ConfirmarCobranza() {
       Alert.alert('Error', 'Seleccione un banco para el cheque.');
       return;
     }
+    if (chequeMonto > 0 && !chequeCobroDate) {
+      Alert.alert('Error', 'Seleccione una fecha de cobro del cheque.');
+      return;
+    }
     if (transferenciaMonto > 0 && !transferenciaBanco) {
       Alert.alert('Error', 'Seleccione un banco para la transferencia.');
       return;
@@ -138,17 +142,26 @@ export default function ConfirmarCobranza() {
 
         // --- aplicaciones ---
         const appCol = database.collections.get('t_aplicaciones_pda2');
+        const descuentosMap = invoiceDetails.reduce((m, det) => {
+          m[det.documento] = det.valorDescuento || 0;
+          return m;
+        }, {});
         for (let [doc, raw] of Object.entries(pagos)) {
           const monto = parseFloat(raw) || 0;
+          const origBalance = invoiceDetails.find(i => i.documento === doc)?.balance || 10;
+          const descuento = descuentosMap[doc] || 0;
+          const newBalance = origBalance - monto - descuento;
+
           if (monto > 0) {
             await appCol.create(a => {
               a.f_documento_aplico = `REC${id}`;
               a.f_documento_aplicado = doc;
               a.f_tipo_doc = 'FAC';
-              a.f_concepto = monto === sumPagos() ? 'SALDO' : 'ABONO';
+              a.f_concepto = newBalance.toFixed(2) == 0.00 ? 'SALDO' : 'ABONO';
               a.f_monto = monto;
               a.f_fecha = hoy;
               a.f_cliente = clienteSeleccionado.f_id;
+              a.f_balance = newBalance.toFixed(2);
             });
           }
         }
@@ -165,7 +178,7 @@ export default function ConfirmarCobranza() {
               nc.f_fecha = hoy;
               nc.f_concepto = `descuento ${detail.descuentoPct}% pronto pago`;
               nc.f_idcliente = clienteSeleccionado.f_id;
-              nc.f_tipo_nota = 1;
+              nc.f_tipo_nota = 0;
               nc.f_factura = detail.documento;
               nc.f_ncf = '';
               nc.f_porc = detail.descuentoPct;
@@ -243,12 +256,12 @@ export default function ConfirmarCobranza() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
     >
-      <KeyboardAwareScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        enableOnAndroid
-        extraScrollHeight={20}
-        keyboardOpeningTime={0}
-      >
+      <ScrollView 
+    style={{ flex: 1 }}
+    contentContainerStyle={{ flexGrow: 1 }}
+    enableOnAndroid
+    keyboardShouldPersistTaps="handled"
+  >
         <SafeAreaView style={styles.container}>
 
           <View style={[
@@ -272,7 +285,7 @@ export default function ConfirmarCobranza() {
               />
               <Pressable
                 style={styles.completeButton}
-                onPress={() =>{ setEfectivo(totalPago.toString()), setTransferenciaMonto(null),setTransferenciaBanco(null), setChequeMonto(null),setChequeBanco(null)}}
+                onPress={() => { setEfectivo((totalPago).toFixed(2)), setTransferenciaMonto(null), setTransferenciaBanco(null), setChequeMonto(null), setChequeBanco(null), setChequeNumero(null), setChequeCobroDate(null) }}
               >
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
@@ -299,32 +312,24 @@ export default function ConfirmarCobranza() {
               </Pressable>
               <Pressable
                 style={styles.completeButton}
-                onPress={() => { setTransferenciaMonto(totalPago.toString()), setChequeMonto(null), setChequeBanco(null), setEfectivo(null) }}
+                onPress={() => { setTransferenciaMonto(totalPago.toFixed(2)), setChequeMonto(null), setChequeBanco(null), setEfectivo(null), setChequeNumero(null), setChequeCobroDate(null) }}
               >
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
             </View>
           </View>
 
-
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Cheque / Orden</Text>
             <View style={styles.row}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, { flex: 2 }]}
                 keyboardType="numeric"
                 placeholder="0.00"
                 value={chequeMonto}
                 onChangeText={setChequeMonto}
               />
-              <Pressable
-                style={styles.completeButton}
-                onPress={() => { setChequeMonto(totalPago.toString()), setTransferenciaMonto(null), setTransferenciaBanco(null), setEfectivo(null) }}
-              >
-                <Ionicons name="add-outline" size={24} color="#fff" />
-              </Pressable>
-            </View>
-            <View style={styles.row}>
+
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Núm. Cheque"
@@ -332,6 +337,15 @@ export default function ConfirmarCobranza() {
                 value={chequeNumero}
                 onChangeText={setChequeNumero}
               />
+              <Pressable
+                style={styles.completeButton}
+                onPress={() => { setChequeMonto(totalPago.toFixed(2)), setTransferenciaMonto(null), setTransferenciaBanco(null), setEfectivo(null) }}
+              >
+                <Ionicons name="add-outline" size={24} color="#fff" />
+              </Pressable>
+            </View>
+            <View style={styles.row}>
+
               <Pressable
                 onPress={() => openBankModal('cheque')}
                 style={styles.bankButton}
@@ -404,7 +418,7 @@ export default function ConfirmarCobranza() {
             onCancel={() => setShowDatePicker(false)}
           />
         </SafeAreaView>
-      </KeyboardAwareScrollView>
+      </ScrollView >
     </KeyboardAvoidingView>
   );
 }
@@ -485,7 +499,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 8,
     marginBottom: 8,
-  }, 
+  },
   completeButton: {
     backgroundColor: '#007AFF',
     padding: 8,

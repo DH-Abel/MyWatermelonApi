@@ -14,12 +14,15 @@ import {
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
+import { rRecibo } from './reportes/rRecibos';
+import { printTest } from './funciones/print';
 import NetInfo from '@react-native-community/netinfo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { formatear } from '../assets/formatear';
 import { consultaStyles } from '../assets/consultaStyles';
 // Asume que tienes una función para enviar recibos
 import { enviarRecibo } from '../src/sincronizaciones/enviarRecibo';
+
 
 export default function ConsultaRecibos({ navigation }) {
   // Estados principales
@@ -47,6 +50,40 @@ export default function ConsultaRecibos({ navigation }) {
   const [detalleAplicaciones, setDetalleAplicaciones] = useState([]);
   const [detalleLoading, setDetalleLoading] = useState(false);
 
+  // 1) Función que devuelve el detalle unificado (no usa estado interno)
+async function getDetalleRecibo(recibo) {
+  const docRecibo = recibo._raw?.f_documento || recibo.f_documento;
+  
+  // 2) Traer aplicaciones
+  const apps = await database
+    .collections.get('t_aplicaciones_pda2')
+    .query(Q.where('f_documento_aplico', docRecibo))
+    .fetch();  // f_documento_aplico, f_documento_aplicado, f_monto :contentReference[oaicite:1]{index=1}:contentReference[oaicite:2]{index=2}
+
+  // 3) Traer notas de crédito vinculadas al recibo
+  const notas = await database
+    .collections.get('t_nota_credito_venta_pda2')
+    .query(Q.where('f_documento_principal', docRecibo))
+    .fetch();  // f_documento_principal, f_factura, f_monto :contentReference[oaicite:3]{index=3}:contentReference[oaicite:4]{index=4}
+
+  // 4) Sumar descuento por factura
+  const descuentosPorFactura = {};
+  notas.forEach(nc => {
+    const fac = nc._raw.f_factura;
+    descuentosPorFactura[fac] = (descuentosPorFactura[fac] || 0) + nc._raw.f_monto;
+  });
+
+  // 5) Construir array de detalle
+  return apps.map(app => ({
+    f_documento_aplicado: app._raw.f_documento_aplicado,
+    f_monto:              app._raw.f_monto,
+    descuento:            descuentosPorFactura[app._raw.f_documento_aplicado] || 0,
+    f_concepto:           app._raw.f_concepto,
+    f_balance:            app._raw.f_balance,
+  }));
+}
+
+  
   const cols = database.collections.get('t_nota_credito_venta_pda2');
 
   // Parsear fecha dd/mm/yyyy → Date
@@ -93,8 +130,8 @@ export default function ConsultaRecibos({ navigation }) {
       const collection = database.collections.get('t_aplicaciones_pda2');
       // trae todos los registros
       const all = await collection.query().fetch();
-      //console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
-      //console.log(all.map(r => r._raw));
+      console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
+      console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
       //console.log('*** Aplicaciones ***');
       //console.log(all.map(rec => rec._raw));
@@ -232,6 +269,7 @@ export default function ConsultaRecibos({ navigation }) {
     }
   };
 
+
   // Abrir modal detalle
   const openDetalleModal = recibo => {
     setSelectedRecibo(recibo);
@@ -240,10 +278,16 @@ export default function ConsultaRecibos({ navigation }) {
   };
 
   // Imprimir recibo
-  const imprimirRecibo = recibo => {
-    // aquí llamas a tu printTest o función correspondiente
-    // ejemplo: printTest(generarReporteRecibo(recibo, detalleAplicaciones));
+  const imprimirRecibo = async reciboRecord => {
+    // 1) Obtén el objeto plano
+    const recibo = reciboRecord._raw || reciboRecord;
+    // 2) Espera a tener el detalle unificado
+    const detalle = await getDetalleRecibo(reciboRecord);
+    // 3) Genera el string ESC/POS e imprime
+    const reporte = rRecibo(recibo, detalle, clientesMap);
+    printTest(reporte);
   };
+  
 
   // Enviar recibo
   const handleEnviarRecibo = async recibo => {

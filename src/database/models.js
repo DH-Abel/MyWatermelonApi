@@ -120,6 +120,7 @@ export class Aplicaciones_pda extends Model {
   @field('f_monto') f_monto;
   @text('f_fecha') f_fecha;
   @field('f_cliente') f_cliente;
+  @field('f_balance') f_balance;
 }
 export class DescuentosxPago extends Model {
   static table = 't_desc_x_pago_cliente';
