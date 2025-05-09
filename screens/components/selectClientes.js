@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,memo  } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
+import { FlashList } from '@shopify/flash-list';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
@@ -65,9 +66,13 @@ const SelectClientScreen = () => {
         onChangeText={setSearchTextClientes}
       />
       <View style={styles.listContainer2}>
-        <KeyboardAwareFlatList
+        <FlashList
           data={clientesFiltrados}
           keyExtractor={item => item.f_id.toString()}
+          estimatedItemSize={100}
+          initialNumToRender={8}
+          windowSize={3}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <View style={styles.item}>
               <TouchableOpacity onPress={() => handleSelect(item)}>

@@ -6,9 +6,11 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
 import { useNavigation } from '@react-navigation/native';
 import { formatear, formatearFecha } from '../assets/formatear';
+
 
 export default function Cobranza({ clienteSeleccionado }) {
 
@@ -183,28 +185,28 @@ export default function Cobranza({ clienteSeleccionado }) {
     if (montoIntento > 0 || montoIntento === 0) {
       const cuentaActual = cuentas.find(c => c.f_documento === documento);
       const fechaActual = parseDateString(cuentaActual.f_fecha).getTime();
-    
+
       // Obtener documentos pendientes
-       const pendientes = cuentas.filter(c => {
-           const req = getBalanceConDescuento(c);
-           // usamos pagosDraft aquí
-           const pagado = parseFloat(pagosDraft[c.f_documento] || 0);
-           return pagado < parseFloat(req.toFixed(2));
-         });
-    
+      const pendientes = cuentas.filter(c => {
+        const req = getBalanceConDescuento(c);
+        // usamos pagosDraft aquí
+        const pagado = parseFloat(pagosDraft[c.f_documento] || 0);
+        return pagado < parseFloat(req.toFixed(2));
+      });
+
       // Encontrar la fecha más antigua
       const minFecha = Math.min(...pendientes.map(c => parseDateString(c.f_fecha).getTime()));
-    
+
       // Si la factura que se intenta editar NO está entre las más antiguas, bloquear
       if (fechaActual > minFecha) {
         Alert.alert('Error', 'Debe saldar primero la(s) factura(s) más antigua(s).');
         return;
       }
-      
+
       // Extra: prevenir que facturas más nuevas queden saldadas si esta se borra
       const fechaMinima = minFecha;
       const docActual = documento;
-      
+
       const pagosIncompatibles = cuentas.filter(c => {
         const fechaC = parseDateString(c.f_fecha).getTime();
         // 1) Pago redondeado a 2 decimales
@@ -212,7 +214,7 @@ export default function Cobranza({ clienteSeleccionado }) {
         // 2) Balance con descuento redondeado a 2 decimales
         const balance = parseFloat(getBalanceConDescuento(c).toFixed(2));
         const esOtraFactura = c.f_documento !== docActual;
-      
+
         // 3) Si es más nueva Y está “fully paid” (pago >= balance) Y no es la que editamos
         return (
           fechaC > fechaMinima &&
@@ -220,9 +222,9 @@ export default function Cobranza({ clienteSeleccionado }) {
           esOtraFactura
         );
       });
-      
-     
-      
+
+
+
       if (pagosIncompatibles.length > 0) {
         Alert.alert(
           'Error',
@@ -231,8 +233,8 @@ export default function Cobranza({ clienteSeleccionado }) {
         return;
       }
     }
-    
-    
+
+
 
 
     const fechaFac = parseDateString(cuenta.f_fecha);
@@ -316,7 +318,9 @@ export default function Cobranza({ clienteSeleccionado }) {
         : (disc ? disc.f_descuento1 : 0);
 
       // 5) Obtenemos el balance ya con descuento
-      const { balanceConDescuento } = calculateDiscount(cuenta, 0, initialPct);
+         // ✅ calcular _directamente_ el balance con descuento (igual que en renderItem/onChangePago)
+   const valorDescuento    = cuenta.f_base_imponible * (initialPct / 100);
+   const balanceConDescuento = cuenta.f_balance - valorDescuento;
       // --- Nuevo bloque END ---
 
       const asignado = Math.min(restante, balanceConDescuento);
@@ -504,29 +508,37 @@ export default function Cobranza({ clienteSeleccionado }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Cobranza de Cliente</Text>
-        <Text >Total a pagar: {formatear(totalPago)}</Text>
-        <Text> Total Descuento: {formatear(totalDescuento)}</Text>
+        {/* Agrupamos los textos en su propio contenedor */}
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Cobranza de Cliente</Text>
+          <Text>Total a pagar: {formatear(totalPago)}</Text>
+          <Text>Total Descuento: {formatear(totalDescuento)}</Text>
+        </View>
+
+        {/* Ahora el distribuirContainer es un sibling */}
+        <View style={styles.distribuirContainer}>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            placeholder="Monto distribuir"
+            value={montoDistribuir}
+            onChangeText={setMontoDistribuir}
+          />
+          <View style={styles.buttonsRow}>
+            <Pressable onPress={distribuirPagos} style={styles.button}>
+              <Text style={styles.buttonText}>Distribuir</Text>
+            </Pressable>
+            <Pressable onPress={limpiar} style={[styles.button, styles.clearButton]}>
+              <Ionicons name="trash-outline" size={24} color="#fff" />
+            </Pressable>
+          </View>
+        </View>
       </View>
-      <View style={styles.distribuirContainer}>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          placeholder="Monto a distribuir"
-          value={montoDistribuir}
-          onChangeText={setMontoDistribuir}
-        />
-        <Pressable onPress={distribuirPagos} style={styles.button}>
-          <Text style={styles.buttonText}>Distribuir Monto</Text>
-        </Pressable>
-        <Pressable onPress={limpiar} style={[styles.button, styles.clearButton]}>
-          <Text style={styles.buttonText}>Limpiar</Text>
-        </Pressable>
-      </View>
+
       <FlashList
         data={cuentas}
         // 1) Para que re-renderice cada vez que pagos cambie:
-        extraData={pagos}
+        extraData={[pagos, manualDescuentos]}
         // 2) Tamaño medio estimado de cada fila (px) — ajústalo a tu layout:
         estimatedItemSize={100}
         keyExtractor={item => item.f_documento}
@@ -552,7 +564,7 @@ export default function Cobranza({ clienteSeleccionado }) {
           const balanceConDescuento = item.f_balance.toFixed(2) - valorDescuento.toFixed(2);
           const descuentoTransp = item.f_descuento
           const isPaid = pagos[item.f_documento] == balanceConDescuento.toFixed(2);
-          
+
 
 
           // En el cálculo de descuento dentro de renderItem:
@@ -567,7 +579,7 @@ export default function Cobranza({ clienteSeleccionado }) {
 
 
                   <Text style={{ fontWeight: 'bold' }}>{item.f_documento}</Text>
-                  <Text>Fecha: {formatearFecha(item.f_fecha)}</Text>
+                  <Text>Fecha: {formatearFecha(item.f_fecha)}  ({diasTranscurridos} dias)</Text>
                   <Text>Monto: {formatear(item.f_monto)}</Text>
                   <Text>Base Imponible: {formatear(item.f_base_imponible)}</Text>
                   {/* <Pressable onPress={() => { console.log(item) }} style={styles.button2}>
@@ -575,8 +587,11 @@ export default function Cobranza({ clienteSeleccionado }) {
                 </Pressable> */}
                   <Text>Balance: {formatear(item.f_balance)}</Text>
                   <Text>Descuento: {descuentoPct}% ({formatear(valorDescuento.toFixed(2))})</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {descuentoTransp > 0 ? <Text style={{ fontWeight: 'bold' }}>Descuento Transp.: {formatear(descuentoTransp)}</Text> : null}
+                  </View>
                   <Text style={{ fontWeight: 'bold' }}>Balance c/ descuento: {formatear(balanceConDescuento)}</Text>
-                  <Text style={{ fontWeight: 'bold' }}>Descuento Transparentado: {formatear(descuentoTransp)}</Text>
+
                 </Pressable>
               </View>
               <View style={{ alignItems: 'center', flex: 1 }}>
@@ -627,12 +642,43 @@ export default function Cobranza({ clienteSeleccionado }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fb' },
-  header: { padding: 16, backgroundColor: '#fff', marginBottom: 8 },
-  title: { fontSize: 18, fontWeight: 'bold' },
-  distribuirContainer: { flexDirection: 'row', padding: 16, backgroundColor: '#fff', marginBottom: 8, alignItems: 'center' },
+  header: {
+    flexDirection: 'row',           // layout horizontal
+    justifyContent: 'space-between',// separa bloques
+    alignItems: 'center',           // centra verticalmente
+    padding: 16,
+    backgroundColor: '#fff',
+    marginBottom: 8,
+  },
+  headerContent: {
+    flex: 2,                        // ocupa espacio antes de distribuirContainer
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  distribuirContainer: {
+    flex: 1,
+    
+    flexDirection: 'column',    // apila verticalmente
+    alignItems: 'flex-end',     // alinea contenido a la derecha
+    justifyContent: 'center',
+  },
   item: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#fff', marginBottom: 4 },
-  input: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, marginRight: 8 },
-  button: { backgroundColor: '#007AFF', padding: 8, borderRadius: 8, alignItems: 'center' },
+  input: {
+    width: 120,            // ancho fijo para que siempre se vea
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 8,
+  },
+    buttonsRow: {
+        flexDirection: 'row',       // botones lado a lado
+        marginTop: 8,               // separación del input
+      },
+  button: { backgroundColor: '#007AFF', padding: 8, borderRadius: 8, alignItems: 'center', height: 38 },
   input2: { width: 80, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, marginHorizontal: 8, width: '90%' },
   button2: { backgroundColor: '#007AFF', padding: 8, borderRadius: 8, width: '90%', alignItems: 'center', marginTop: 8 },
   clearButton: { marginLeft: 8, backgroundColor: '#FF3B30' },

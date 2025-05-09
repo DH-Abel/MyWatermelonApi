@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, TouchableOpacity, Alert,Keyboard  } from 'react-native';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
+import { FlatList } from 'react-native-gesture-handler';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
 import  sincronizarClientes  from '../../src/sincronizaciones/clientesLocal.js';
+import { FlashList } from '@shopify/flash-list';
 
 const SelectClientesCobranza = () => {
   const navigation = useNavigation();
@@ -63,11 +65,16 @@ const SelectClientesCobranza = () => {
         placeholder="Buscar cliente..."
         value={searchTextClientes}
         onChangeText={setSearchTextClientes}
+        
       />
       <View style={styles.listContainer2}>
-        <KeyboardAwareFlatList
+        <FlashList
           data={clientesFiltrados}
           keyExtractor={item => item.f_id.toString()}
+          estimatedItemSize={100}
+          initialNumToRender={8}
+            keyboardShouldPersistTaps="handled"
+          windowSize={3}
           renderItem={({ item }) => (
             <View style={styles.item}>
               <TouchableOpacity onPress={() => handleSelect(item)}>
