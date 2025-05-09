@@ -179,16 +179,60 @@ export default function Cobranza({ clienteSeleccionado }) {
 
     // 1) Validación de orden de pago
     const montoIntento = parseFloat(raw) || 0;
-    if (montoIntento > 0) {
-      const elegibles = getEligibleDocuments();
-      if (!elegibles.includes(documento)) {
+    const pagosDraft = { ...pagos, [documento]: raw };
+    if (montoIntento > 0 || montoIntento === 0) {
+      const cuentaActual = cuentas.find(c => c.f_documento === documento);
+      const fechaActual = parseDateString(cuentaActual.f_fecha).getTime();
+    
+      // Obtener documentos pendientes
+       const pendientes = cuentas.filter(c => {
+           const req = getBalanceConDescuento(c);
+           // usamos pagosDraft aquí
+           const pagado = parseFloat(pagosDraft[c.f_documento] || 0);
+           return pagado < parseFloat(req.toFixed(2));
+         });
+    
+      // Encontrar la fecha más antigua
+      const minFecha = Math.min(...pendientes.map(c => parseDateString(c.f_fecha).getTime()));
+    
+      // Si la factura que se intenta editar NO está entre las más antiguas, bloquear
+      if (fechaActual > minFecha) {
+        Alert.alert('Error', 'Debe saldar primero la(s) factura(s) más antigua(s).');
+        return;
+      }
+      
+      // Extra: prevenir que facturas más nuevas queden saldadas si esta se borra
+      const fechaMinima = minFecha;
+      const docActual = documento;
+      
+      const pagosIncompatibles = cuentas.filter(c => {
+        const fechaC = parseDateString(c.f_fecha).getTime();
+        // 1) Pago redondeado a 2 decimales
+        const pago = parseFloat((parseFloat(pagos[c.f_documento]) || 0).toFixed(2));
+        // 2) Balance con descuento redondeado a 2 decimales
+        const balance = parseFloat(getBalanceConDescuento(c).toFixed(2));
+        const esOtraFactura = c.f_documento !== docActual;
+      
+        // 3) Si es más nueva Y está “fully paid” (pago >= balance) Y no es la que editamos
+        return (
+          fechaC > fechaMinima &&
+          pago >= balance &&
+          esOtraFactura
+        );
+      });
+      
+     
+      
+      if (pagosIncompatibles.length > 0) {
         Alert.alert(
           'Error',
-          'Debe saldar primero la(s) factura(s) más antigua(s).'
+          'No puede modificar esta factura mientras otras más recientes estén saldadas.'
         );
         return;
       }
     }
+    
+    
 
 
     const fechaFac = parseDateString(cuenta.f_fecha);
@@ -249,37 +293,37 @@ export default function Cobranza({ clienteSeleccionado }) {
     }
     let restante = parseFloat(montoDistribuir) || 0;
     const nuevos = {};
-  
+
     for (const cuenta of cuentas) {
       if (restante <= 0) break;
-  
+
       // --- Nuevo bloque START ---
       // 1) Días desde la factura
       const fechaFac = parseDateString(cuenta.f_fecha);
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-  
+
       // 2) Descuento automático (si aplica)
       const disc = cuenta.f_descuento > 0
         ? null
         : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
-  
+
       // 3) Descuento manual (si el usuario lo puso)
       const manual = manualDescuentos[cuenta.f_documento];
-  
+
       // 4) Porcentaje inicial a pasar al helper
       const initialPct = manual != null
         ? manual
         : (disc ? disc.f_descuento1 : 0);
-  
+
       // 5) Obtenemos el balance ya con descuento
       const { balanceConDescuento } = calculateDiscount(cuenta, 0, initialPct);
       // --- Nuevo bloque END ---
-  
+
       const asignado = Math.min(restante, balanceConDescuento);
       nuevos[cuenta.f_documento] = asignado.toFixed(2);
       restante = parseFloat((restante - asignado).toFixed(2));
     }
-  
+
     setPagos(nuevos);
     const suma = Object.values(nuevos).reduce((acc, cur) => acc + (parseFloat(cur) || 0), 0);
     setTotalPago(suma.toFixed(2));
@@ -423,33 +467,33 @@ export default function Cobranza({ clienteSeleccionado }) {
     Object.entries(pagos).forEach(([documento, raw]) => {
       const cuenta = cuentas.find(c => c.f_documento === documento);
       if (!cuenta) return;
-  
+
       // 1) Días desde la factura
       const fechaFactura = parseDateString(cuenta.f_fecha);
       const dias = Math.floor((Date.now() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24));
-  
+
       // 2) Descuento automático
       const disc = cuenta.f_descuento > 0
         ? null
         : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
-  
+
       // 3) Descuento manual
       const manual = manualDescuentos[documento];
-  
+
       // 4) % inicial
       const initialPct = manual != null
         ? manual
         : (disc ? disc.f_descuento1 : 0);
-  
+
       const { descuentoPct, valorDescuento } = calculateDiscount(cuenta, raw, initialPct);
-  
+
       if (descuentoPct > 0) {
         sumaDescuentos += valorDescuento;
       }
     });
     setTotalDescuento(sumaDescuentos.toFixed(2));
   }, [pagos, descuentosLocal, manualDescuentos, cuentas]);
-  
+
 
 
 
@@ -479,8 +523,12 @@ export default function Cobranza({ clienteSeleccionado }) {
           <Text style={styles.buttonText}>Limpiar</Text>
         </Pressable>
       </View>
-      <FlatList
+      <FlashList
         data={cuentas}
+        // 1) Para que re-renderice cada vez que pagos cambie:
+        extraData={pagos}
+        // 2) Tamaño medio estimado de cada fila (px) — ajústalo a tu layout:
+        estimatedItemSize={100}
         keyExtractor={item => item.f_documento}
         renderItem={({ item }) => {
           const fechaFactura = parseDateString(item.f_fecha);
@@ -503,6 +551,8 @@ export default function Cobranza({ clienteSeleccionado }) {
           const valorDescuento = item.f_descuento > 0 ? 0 : (item.f_base_imponible.toFixed(2) * (descuentoPct / 100));
           const balanceConDescuento = item.f_balance.toFixed(2) - valorDescuento.toFixed(2);
           const descuentoTransp = item.f_descuento
+          const isPaid = pagos[item.f_documento] == balanceConDescuento.toFixed(2);
+          
 
 
           // En el cálculo de descuento dentro de renderItem:
@@ -531,7 +581,7 @@ export default function Cobranza({ clienteSeleccionado }) {
               </View>
               <View style={{ alignItems: 'center', flex: 1 }}>
                 <TextInput
-                  style={styles.input2}
+                  style={[styles.input2, isPaid ? { borderColor: 'green', borderWidth: 3 } : {}]}
                   keyboardType="numeric"
                   value={pagos[item.f_documento] || ''}
                   onChangeText={val => onChangePago(item.f_documento, val)}
