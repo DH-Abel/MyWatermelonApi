@@ -14,7 +14,6 @@ import {
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
-import NumeroALetras from 'numero-a-letras';
 import { rRecibo } from './reportes/rRecibos';
 import { printTest } from './funciones/print';
 import NetInfo from '@react-native-community/netinfo';

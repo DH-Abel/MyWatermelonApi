@@ -540,7 +540,9 @@ export default function Cobranza({ clienteSeleccionado }) {
         // 1) Para que re-renderice cada vez que pagos cambie:
         extraData={[pagos, manualDescuentos]}
         // 2) Tamaño medio estimado de cada fila (px) — ajústalo a tu layout:
-        estimatedItemSize={100}
+        estimatedItemSize={30}
+          initialNumToRender={8}
+          windowSize={8}
         keyExtractor={item => item.f_documento}
         renderItem={({ item }) => {
           const fechaFactura = parseDateString(item.f_fecha);
