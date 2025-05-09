@@ -22,6 +22,7 @@ export const enviarRecibo = async ({
     // saneamos los campos que pueden venir como "" y deben ser NUMERIC o NULL
     const payload = {
       ...recibo,
+      f_nota: recibo.f_nota || null, // null en lugar de ""
       f_fecha: formatearFechaRec(recibo.f_fecha), // formatear fecha a yyyy/mm/dd
       f_monto: Number(recibo.f_monto) || 0,
       f_efectivo: Number(recibo.f_efectivo) || 0,

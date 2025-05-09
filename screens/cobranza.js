@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet,
-  ActivityIndicator, Modal, Keyboard
+  View, Text, TextInput, Pressable, Alert, SafeAreaView, StyleSheet,
+  ActivityIndicator, Modal, Keyboard, Dimensions
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
 import { useNavigation } from '@react-navigation/native';
 import { formatear, formatearFecha } from '../assets/formatear';
+import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
 
 
 export default function Cobranza({ clienteSeleccionado }) {
@@ -31,6 +31,30 @@ export default function Cobranza({ clienteSeleccionado }) {
   const [currentDoc, setCurrentDoc] = useState(null);
   const [inputDesc, setInputDesc] = useState('');
   const [descuentoTotal, setDescuentoTotal] = useState(0);
+
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+
+
+  const [dataProvider, setDataProvider] = useState(
+    new DataProvider((r1, r2) => r1 !== r2).cloneWithRows(
+      cuentas.map(cuenta => ({
+        ...cuenta._raw,
+        pago: pagos[cuenta._raw.f_documento] || '',
+        manualDescuento: manualDescuentos[cuenta._raw.f_documento] ?? null
+      }))
+    )
+  );
+
+
+  const layoutProvider = useMemo(() => new LayoutProvider(
+    // Función que, por cada índice, devuelve un tipo de vista
+    index => 'NORMAL',
+    // Para cada tipo, defines ancho y alto en píxeles
+    (type, dim) => {
+      dim.width = SCREEN_WIDTH;   // ancho de pantalla (importa Dimensions)
+      dim.height = 165;            // alto aproximado de cada fila
+    }
+  ), []);
 
   // Helper para calcular y validar descuento
   const calculateDiscount = (cuenta, pagoRaw, descuentoPct) => {
@@ -257,7 +281,19 @@ export default function Cobranza({ clienteSeleccionado }) {
       const suma = Object.values(next)
         .reduce((acc, cur) => acc + (parseFloat(cur) || 0), 0);
       setTotalPago(suma);
+
       return next;
+    });
+
+    // 2) Actualiza solo la fila cambiada en el DataProvider
+    setDataProvider(prevProv => {
+      const oldRows = prevProv.getAllData();        // array de objetos fila anteriores
+      const newRows = oldRows.map(row =>
+        row.f_documento === documento
+          ? { ...row, pago: raw }                   // nueva referencia SOLO aquí
+          : row                                      // mismas referencias en las demás
+      );
+      return prevProv.cloneWithRows(newRows);
     });
   };
 
@@ -318,9 +354,9 @@ export default function Cobranza({ clienteSeleccionado }) {
         : (disc ? disc.f_descuento1 : 0);
 
       // 5) Obtenemos el balance ya con descuento
-         // ✅ calcular _directamente_ el balance con descuento (igual que en renderItem/onChangePago)
-   const valorDescuento    = cuenta.f_base_imponible * (initialPct / 100);
-   const balanceConDescuento = cuenta.f_balance - valorDescuento;
+      // ✅ calcular _directamente_ el balance con descuento (igual que en renderItem/onChangePago)
+      const valorDescuento = cuenta.f_base_imponible * (initialPct / 100);
+      const balanceConDescuento = cuenta.f_balance - valorDescuento;
       // --- Nuevo bloque END ---
 
       const asignado = Math.min(restante, balanceConDescuento);
@@ -362,14 +398,14 @@ export default function Cobranza({ clienteSeleccionado }) {
       const cuenta = cuentas.find(c => c.f_documento === currentDoc);
       const fechaFac = parseDateString(cuenta.f_fecha);
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
-      const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+      const disc = cuenta.f_descuento> 0 ? 0 :descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
 
       console.log('Descuento manualL:', pct, 'disc', disc.f_descuento1);
 
       const maxAutomatic = disc ? disc.f_descuento1 : 0;
 
       if (pct > maxAutomatic) {
-        Alert.alert('Error', 'El descuento manuaLl no puede ser mayor que el descuento automático');
+        Alert.alert('Error', 'El descuento manual no puede ser mayor que el descuento automático');
         return;
       }
 
@@ -500,10 +536,25 @@ export default function Cobranza({ clienteSeleccionado }) {
 
 
 
+  useEffect(() => {
+    const filas = cuentas.map(cuenta => ({
+      // traemos todos los campos f_* de la cuenta
+      ...cuenta._raw,
+      // el pago actual, para refrescar la celda si cambió
+      pago: pagos[cuenta._raw.f_documento] || '',
+      // ¡aquí metemos el descuento manual actual!
+      manualDescuento: manualDescuentos[cuenta._raw.f_documento] ?? null
+    }));
+    setDataProvider(prev =>
+      prev.cloneWithRows(filas)
+    );
+  }, [cuentas, pagos, manualDescuentos]);
+
 
   if (loading) {
     return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -535,70 +586,57 @@ export default function Cobranza({ clienteSeleccionado }) {
         </View>
       </View>
 
-      <FlashList
-        data={cuentas}
-        // 1) Para que re-renderice cada vez que pagos cambie:
-        extraData={[pagos, manualDescuentos]}
-        // 2) Tamaño medio estimado de cada fila (px) — ajústalo a tu layout:
-        estimatedItemSize={30}
-          initialNumToRender={8}
-          windowSize={8}
-        keyExtractor={item => item.f_documento}
-        renderItem={({ item }) => {
+      <RecyclerListView
+        style={{ flex: 1 }}
+        layoutProvider={layoutProvider}
+        dataProvider={dataProvider}
+        rowRenderer={(type, item) => {
+          // 1) Cálculo de días y descuentos
           const fechaFactura = parseDateString(item.f_fecha);
-
           const diasTranscurridos = Math.floor(
             (Date.now() - fechaFactura.getTime()) / (1000 * 60 * 60 * 24)
           );
           const disc = descuentosLocal.find(
-            d =>
-              diasTranscurridos >= d.f_dia_inicio &&
-              diasTranscurridos <= d.f_dia_fin
+            d => diasTranscurridos >= d.f_dia_inicio && diasTranscurridos <= d.f_dia_fin
           );
+          const manual = item.manualDescuento;
+          const descuentoPct = item.f_descuento > 0
+            ? 0
+            : (manual != null ? manual : (disc ? disc.f_descuento1 : 0));
 
-          const manual = manualDescuentos[item.f_documento];
-          const descuentoPct = item.f_descuento > 0 ? 0 :
-            (manual != null
-              ? manual
-              : (disc ? disc.f_descuento1 : 0));
+          // 2) Montos
+          const valorDescuento = parseFloat(item.f_base_imponible) * (descuentoPct / 100);
+          const balanceConDescuento = parseFloat(item.f_balance) - valorDescuento;
+          const isPaid = (pagos[item.f_documento] || '') === balanceConDescuento.toFixed(2);
 
-          const valorDescuento = item.f_descuento > 0 ? 0 : (item.f_base_imponible.toFixed(2) * (descuentoPct / 100));
-          const balanceConDescuento = item.f_balance.toFixed(2) - valorDescuento.toFixed(2);
-          const descuentoTransp = item.f_descuento
-          const isPaid = pagos[item.f_documento] == balanceConDescuento.toFixed(2);
-
-
-
-          // En el cálculo de descuento dentro de renderItem:
-
-
+          // 3) Render
           return (
             <View style={styles.item}>
               <View style={{ flex: 2 }}>
                 <Pressable
                   onLongPress={() => handleLongPress(item.f_documento, descuentoPct)}
-                  delayLongPress={500}>
-
-
+                  delayLongPress={500}
+                >
                   <Text style={{ fontWeight: 'bold' }}>{item.f_documento}</Text>
-                  <Text>Fecha: {formatearFecha(item.f_fecha)}  ({diasTranscurridos} dias)</Text>
                   <Text>Monto: {formatear(item.f_monto)}</Text>
-                  <Text>Base Imponible: {formatear(item.f_base_imponible)}</Text>
-                  {/* <Pressable onPress={() => { console.log(item) }} style={styles.button2}>
-                  <Text style={styles.buttonText}>Ver Detalle</Text>
-                </Pressable> */}
+                  <Text>Fecha: {formatearFecha(item.f_fecha)} ({diasTranscurridos} dias)</Text>
                   <Text>Balance: {formatear(item.f_balance)}</Text>
-                  <Text>Descuento: {descuentoPct}% ({formatear(valorDescuento.toFixed(2))})</Text>
+                  <Text>Base Imponible: {formatear(item.f_base_imponible)}</Text>
+                  <Text>Descuento: {(descuentoPct || 0)}%</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {descuentoTransp > 0 ? <Text style={{ fontWeight: 'bold' }}>Descuento Transp.: {formatear(descuentoTransp)}</Text> : null}
+                    {item.f_descuento > 0 ? <Text>Descuento Transp.: {formatear(item.f_descuento)}</Text> : null}
                   </View>
                   <Text style={{ fontWeight: 'bold' }}>Balance c/ descuento: {formatear(balanceConDescuento)}</Text>
+                  
 
                 </Pressable>
               </View>
               <View style={{ alignItems: 'center', flex: 1 }}>
                 <TextInput
-                  style={[styles.input2, isPaid ? { borderColor: 'green', borderWidth: 3 } : {}]}
+                  style={[
+                    styles.input2,
+                    isPaid ? { borderColor: 'green', borderWidth: 3 } : {}
+                  ]}
                   keyboardType="numeric"
                   value={pagos[item.f_documento] || ''}
                   onChangeText={val => onChangePago(item.f_documento, val)}
@@ -613,7 +651,11 @@ export default function Cobranza({ clienteSeleccionado }) {
         }}
       />
 
-      <Pressable onPress={realizarCobranzaLocal} style={styles.footerButton} disabled={isSaving}>
+      <Pressable
+        onPress={realizarCobranzaLocal}
+        style={styles.footerButton}
+        disabled={isSaving}
+      >
         <Text style={styles.footerText}>Confirmar Cobro</Text>
       </Pressable>
 
@@ -662,7 +704,7 @@ const styles = StyleSheet.create({
   },
   distribuirContainer: {
     flex: 1,
-    
+
     flexDirection: 'column',    // apila verticalmente
     alignItems: 'flex-end',     // alinea contenido a la derecha
     justifyContent: 'center',
@@ -676,10 +718,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 8,
   },
-    buttonsRow: {
-        flexDirection: 'row',       // botones lado a lado
-        marginTop: 8,               // separación del input
-      },
+  buttonsRow: {
+    flexDirection: 'row',       // botones lado a lado
+    marginTop: 8,               // separación del input
+  },
   button: { backgroundColor: '#007AFF', padding: 8, borderRadius: 8, alignItems: 'center', height: 38 },
   input2: { width: 80, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8, marginHorizontal: 8, width: '90%' },
   button2: { backgroundColor: '#007AFF', padding: 8, borderRadius: 8, width: '90%', alignItems: 'center', marginTop: 8 },

@@ -142,6 +142,7 @@ export default function ConfirmarCobranza() {
           r.f_aprobado = false;
           r.f_anulado = false;
           r.f_enviado = false;
+          r.f_nota = 'test'
         });
 
         // --- aplicaciones ---
