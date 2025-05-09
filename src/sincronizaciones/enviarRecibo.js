@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import api from "../../api/axios";
 import { database } from "../database/database";
 import { Q } from '@nozbe/watermelondb';
+import {formatearFechaRec} from "../../assets/formatear.js"
 
 export const enviarRecibo = async ({
   recibo,            // objeto _raw del recibo
@@ -21,11 +22,12 @@ export const enviarRecibo = async ({
     // saneamos los campos que pueden venir como "" y deben ser NUMERIC o NULL
     const payload = {
       ...recibo,
+      f_fecha: formatearFechaRec(recibo.f_fecha), // formatear fecha a yyyy/mm/dd
       f_monto: Number(recibo.f_monto) || 0,
       f_efectivo: Number(recibo.f_efectivo) || 0,
       f_monto_transferencia: Number(recibo.f_monto_transferencia) || 0,
       f_cheque: Number(recibo.f_cheque) || 0,
-      f_cheque_numero:
+      f_cheque_numero: 
         recibo.f_cheque_numero === '' ? null : Number(recibo.f_cheque_numero),
       f_cheque_banco:
         recibo.f_cheque_banco === '' ? null : Number(recibo.f_cheque_banco),
@@ -45,13 +47,14 @@ export const enviarRecibo = async ({
 
     // 3) Enviar notas (usa el array que te pasaron)
     for (const nota of notas) {
+      
       // convierto campos que puedan venir como string o nulos
       const payloadNC = {
         f_documento: nota.f_documento,     // string
         f_tipo: nota.f_tipo,               // string
         f_nodoc: Number(nota.f_nodoc),     // integer
         f_monto: Number(nota.f_monto),     // numeric
-        f_fecha: nota.f_fecha,             // string fecha
+        f_fecha: formatearFechaRec(nota.f_fecha),             // string fecha
         f_concepto: nota.f_concepto,               // string
         f_idcliente: Number(nota.f_idcliente),       // integer
         f_tipo_nota: nota.f_tipo_nota,              // (string o integer según tu API)

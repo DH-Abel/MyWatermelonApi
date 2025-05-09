@@ -23,6 +23,7 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
   let batchActions = [];
 
   try {
+   
     // 1) Obtener fecha de última sincronización
     const syncCol = database.collections.get('t_sync');
     const syncRecords = await syncCol.query(Q.where('f_tabla', tableName)).fetch();
@@ -129,24 +130,30 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
   }
 
   // 6) Ejecutar batch después de interacciones para no bloquear UI
-  InteractionManager.runAfterInteractions(() => {
-    database.write(async () => {
+  try {
+    // Espera a que el hilo de UI esté libre
+    await new Promise(resolve =>
+      InteractionManager.runAfterInteractions(resolve)
+    );
+
+    // Aplica el batch en la base de datos
+    await database.write(async () => {
       if (batchActions.length > 0) {
         const chunkSize = 500;
         for (let i = 0; i < batchActions.length; i += chunkSize) {
-          const chunk = batchActions.slice(i, i + chunkSize);
-          await database.batch(chunk);
+          const slice = batchActions.slice(i, i + chunkSize);
+          await database.batch(slice);
         }
-        console.log(`Batch de ${batchActions.length} acciones ejecutado.`);
-      } else {
-        console.log('No hay cambios en cuentas por cobrar.');
       }
-    })
-      .then(() => syncHistory(tableName))
-      .then(() => console.log('Sincronización completada.'))
-      .catch(err => console.error('Error en DB o historial:', err))
-      .finally(() => { syncInProgress = false; });
-  });
+    });
+
+    // Actualiza el historial
+    await syncHistory(tableName);
+  } catch (error) {
+    console.error('Error en sincronización completa:', error);
+  } finally {
+    syncInProgress = false;
+  }
 };
 
 export default cargarCuentasCobrarLocales;

@@ -14,6 +14,7 @@ import {
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
+import NumeroALetras from 'numero-a-letras';
 import { rRecibo } from './reportes/rRecibos';
 import { printTest } from './funciones/print';
 import NetInfo from '@react-native-community/netinfo';
@@ -51,39 +52,39 @@ export default function ConsultaRecibos({ navigation }) {
   const [detalleLoading, setDetalleLoading] = useState(false);
 
   // 1) Función que devuelve el detalle unificado (no usa estado interno)
-async function getDetalleRecibo(recibo) {
-  const docRecibo = recibo._raw?.f_documento || recibo.f_documento;
-  
-  // 2) Traer aplicaciones
-  const apps = await database
-    .collections.get('t_aplicaciones_pda2')
-    .query(Q.where('f_documento_aplico', docRecibo))
-    .fetch();  // f_documento_aplico, f_documento_aplicado, f_monto :contentReference[oaicite:1]{index=1}:contentReference[oaicite:2]{index=2}
+  async function getDetalleRecibo(recibo) {
+    const docRecibo = recibo._raw?.f_documento || recibo.f_documento;
 
-  // 3) Traer notas de crédito vinculadas al recibo
-  const notas = await database
-    .collections.get('t_nota_credito_venta_pda2')
-    .query(Q.where('f_documento_principal', docRecibo))
-    .fetch();  // f_documento_principal, f_factura, f_monto :contentReference[oaicite:3]{index=3}:contentReference[oaicite:4]{index=4}
+    // 2) Traer aplicaciones
+    const apps = await database
+      .collections.get('t_aplicaciones_pda2')
+      .query(Q.where('f_documento_aplico', docRecibo))
+      .fetch();  // f_documento_aplico, f_documento_aplicado, f_monto :contentReference[oaicite:1]{index=1}:contentReference[oaicite:2]{index=2}
 
-  // 4) Sumar descuento por factura
-  const descuentosPorFactura = {};
-  notas.forEach(nc => {
-    const fac = nc._raw.f_factura;
-    descuentosPorFactura[fac] = (descuentosPorFactura[fac] || 0) + nc._raw.f_monto;
-  });
+    // 3) Traer notas de crédito vinculadas al recibo
+    const notas = await database
+      .collections.get('t_nota_credito_venta_pda2')
+      .query(Q.where('f_documento_principal', docRecibo))
+      .fetch();  // f_documento_principal, f_factura, f_monto :contentReference[oaicite:3]{index=3}:contentReference[oaicite:4]{index=4}
 
-  // 5) Construir array de detalle
-  return apps.map(app => ({
-    f_documento_aplicado: app._raw.f_documento_aplicado,
-    f_monto:              app._raw.f_monto,
-    descuento:            descuentosPorFactura[app._raw.f_documento_aplicado] || 0,
-    f_concepto:           app._raw.f_concepto,
-    f_balance:            app._raw.f_balance,
-  }));
-}
+    // 4) Sumar descuento por factura
+    const descuentosPorFactura = {};
+    notas.forEach(nc => {
+      const fac = nc._raw.f_factura;
+      descuentosPorFactura[fac] = (descuentosPorFactura[fac] || 0) + nc._raw.f_monto;
+    });
 
-  
+    // 5) Construir array de detalle
+    return apps.map(app => ({
+      f_documento_aplicado: app._raw.f_documento_aplicado,
+      f_monto: app._raw.f_monto,
+      descuento: descuentosPorFactura[app._raw.f_documento_aplicado] || 0,
+      f_concepto: app._raw.f_concepto,
+      f_balance: app._raw.f_balance,
+    }));
+  }
+
+
   const cols = database.collections.get('t_nota_credito_venta_pda2');
 
   // Parsear fecha dd/mm/yyyy → Date
@@ -117,7 +118,7 @@ async function getDetalleRecibo(recibo) {
       //console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
       console.log('*** NOTAS DE CRÉDITO ***');
-     // console.log(all.map(rec => rec._raw));
+      // console.log(all.map(rec => rec._raw));
       // si quieres guardarlos en estado para listarlos en pantalla, hazlo:
       setNotasNC(all.map(rec => rec._raw));
     } catch (err) {
@@ -147,7 +148,7 @@ async function getDetalleRecibo(recibo) {
   const cargarRecibos = async () => {
     try {
       const cols = database.collections.get('t_recibos_pda2');
-      console.log (cols._raw)
+      console.log(cols._raw)
       const subscr = cols.query().observe().subscribe(all => {
         setFullRecibos(all);
         setLoading(false);
@@ -283,11 +284,21 @@ async function getDetalleRecibo(recibo) {
     const recibo = reciboRecord._raw || reciboRecord;
     // 2) Espera a tener el detalle unificado
     const detalle = await getDetalleRecibo(reciboRecord);
+
+    const bancos = await database
+      .collections.get('t_bancos')
+      .query()
+      .fetch();
+    const bancosMap = bancos.reduce((m, b) => {
+      m[b._raw.f_idbanco] = b._raw.f_nombre;
+      return m;
+    }, {});
+
     // 3) Genera el string ESC/POS e imprime
-    const reporte = rRecibo(recibo, detalle, clientesMap);
+    const reporte = rRecibo(recibo, detalle, clientesMap, bancosMap);
     printTest(reporte);
   };
-  
+
 
   // Enviar recibo
   const handleEnviarRecibo = async recibo => {
@@ -349,21 +360,21 @@ async function getDetalleRecibo(recibo) {
 
       </View>
       {selectedClient && (
-  <View style={consultaStyles.selectedClientCard}>
-    <Text style={consultaStyles.selectedClientName}>
-      {selectedClient.f_nombre}
-    </Text>
-    <Pressable
-      onPress={() => {
-        setSelectedClient(null);
-        setSearchTextCliente('');
-      }}
-      style={consultaStyles.selectedClientClear}
-    >
-      <Ionicons name="close-circle-outline" size={24} color="#333" />
-    </Pressable>
-  </View>
-)}
+        <View style={consultaStyles.selectedClientCard}>
+          <Text style={consultaStyles.selectedClientName}>
+            {selectedClient.f_nombre}
+          </Text>
+          <Pressable
+            onPress={() => {
+              setSelectedClient(null);
+              setSearchTextCliente('');
+            }}
+            style={consultaStyles.selectedClientClear}
+          >
+            <Ionicons name="close-circle-outline" size={24} color="#333" />
+          </Pressable>
+        </View>
+      )}
 
 
 

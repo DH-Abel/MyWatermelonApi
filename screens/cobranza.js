@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet,
   ActivityIndicator, Modal, Keyboard
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
@@ -41,6 +42,42 @@ export default function Cobranza({ clienteSeleccionado }) {
     return new Date(dateStr);
   };
 
+  // Devuelve el balance remanente ya aplicando descuento (igual que en onChangePago y saldar)
+  const getBalanceConDescuento = cuenta => {
+    const fechaFac = parseDateString(cuenta.f_fecha);
+    const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
+    // Busca descuento automático
+    const disc = cuenta.f_descuento > 0
+      ? null
+      : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
+    // Busca descuento manual
+    const manual = manualDescuentos[cuenta.f_documento];
+    const pct = cuenta.f_descuento > 0
+      ? 0
+      : (manual != null ? manual : (disc ? disc.f_descuento1 : 0));
+    return cuenta.f_balance - (cuenta.f_base_imponible * (pct / 100));
+  };
+
+  // Retorna el array de f_documento que puedes pagar ahora
+  const getEligibleDocuments = () => {
+    // 1) Filtra solo las facturas con pago parcial < balanceConDescuento
+    const pendientes = cuentas.filter(c => {
+      const req = getBalanceConDescuento(c);
+      const pagado = parseFloat(pagos[c.f_documento] || 0);
+      return pagado < parseFloat(req.toFixed(2));
+    });
+    if (pendientes.length === 0) return [];
+    // 2) Encuentra la fecha mínima de entre las pendientes
+    const fechas = pendientes.map(c => parseDateString(c.f_fecha));
+    const minFecha = new Date(Math.min(...fechas.map(f => f.getTime())));
+    // 3) Devuelve todas las facturas cuya fecha == minFecha
+    return pendientes
+      .filter(c => parseDateString(c.f_fecha).getTime() === minFecha.getTime())
+      .map(c => c.f_documento);
+  };
+
+
+
 
 
   useEffect(() => {
@@ -56,7 +93,7 @@ export default function Cobranza({ clienteSeleccionado }) {
     cargarCuentasCobrarLocales(clienteSeleccionado.f_id)
       .then(() => {
         // Una vez remotos descargados y volcados, refresca la lista
-        loadLocal();
+        loadLocal().then(loadDescuentos).catch(err => console.error('Sync fallida:', err));;
       })
       .catch(err => console.error('Sync fallida:', err));
   }, [clienteSeleccionado]);
@@ -68,18 +105,21 @@ export default function Cobranza({ clienteSeleccionado }) {
         .collections.get('t_cuenta_cobrar')
         .query(Q.where('f_idcliente', clienteSeleccionado.f_id))
         .fetch();
-      // Ordenar facturas por fecha ascendente (más antigua primero)
-      const cxcOrdenada = results.sort((a, b) => {
-        const [dd1, mm1, yyyy1] = a.f_fecha.split('/');
-        const date1 = new Date(+yyyy1, +mm1 - 1, +dd1);
-        const [dd2, mm2, yyyy2] = b.f_fecha.split('/');
-        const date2 = new Date(+yyyy2, +mm2 - 1, +dd2);
-        return date1 - date2;
+
+      // Primero filtras las activas
+      const activas = results.filter(c => parseFloat(c.f_balance) > 0);
+
+      // Ahora las ordenas por fecha ascendente y, a igualdad de fecha, por documento
+      const ordenadas = activas.sort((a, b) => {
+        const dateA = parseDateString(a.f_fecha);
+        const dateB = parseDateString(b.f_fecha);
+        if (dateA < dateB) return -1;
+        if (dateA > dateB) return 1;
+        // mismo día ⇒ orden alfabético de f_documento
+        return a.f_documento.localeCompare(b.f_documento);
       });
 
-      const cxcActivas = cxcOrdenada.filter(c => parseFloat(c.f_balance) > 0.00)
-
-      setCuentas(cxcActivas);
+      setCuentas(ordenadas);
       setPagos({});
       setTotalPago(0);
       setMontoDistribuir('');
@@ -87,6 +127,7 @@ export default function Cobranza({ clienteSeleccionado }) {
       console.error('Error cargando cuentas:', error);
     }
   };
+
 
   const loadDescuentos = async () => {
     try {
@@ -102,6 +143,26 @@ export default function Cobranza({ clienteSeleccionado }) {
 
   const onChangePago = (documento, raw) => {
     const cuenta = cuentas.find(c => c.f_documento === documento);
+
+    // 1) Validación de orden de pago
+    const montoIntento = parseFloat(raw) || 0;
+    if (montoIntento > 0) {
+      const elegibles = getEligibleDocuments();
+      if (!elegibles.includes(documento)) {
+        Alert.alert(
+          'Error',
+          'Debe saldar primero la(s) factura(s) más antigua(s).'
+        );
+        return;
+      }
+    }
+    if (((parseFloat(raw)) || 0) >
+      parseFloat(balanceConDescuento)) {
+      Alert.alert('Error', 'El monto ingresado supera el balance con descuento');
+      return;
+    }
+
+
     const fechaFac = parseDateString(cuenta.f_fecha);
     const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
     const disc = cuenta.f_descuento > 0 ? 0 : descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
@@ -126,6 +187,15 @@ export default function Cobranza({ clienteSeleccionado }) {
   };
 
   const saldar = (documento) => {
+    // Validación de orden antes de prefijar el pago
+    const elegibles = getEligibleDocuments();
+    if (!elegibles.includes(documento)) {
+      Alert.alert(
+        'Error',
+        'Debe saldar primero la(s) factura(s) más antigua(s).'
+      );
+      return;
+    }
     const cuenta = cuentas.find(c => c.f_documento === documento);
     if (!cuenta) return;
     const fechaFac = parseDateString(cuenta.f_fecha);
@@ -177,6 +247,7 @@ export default function Cobranza({ clienteSeleccionado }) {
           setPagos({})
           setTotalPago(0)
           setMontoDistribuir('')
+          setManualDescuentos({})
         }
 
       },
@@ -197,8 +268,12 @@ export default function Cobranza({ clienteSeleccionado }) {
       const dias = Math.floor((Date.now() - fechaFac.getTime()) / (1000 * 60 * 60 * 24));
       const disc = descuentosLocal.find(d => dias >= d.f_dia_inicio && dias <= d.f_dia_fin);
 
-      if (disc ? disc.f_descuento1 : 0 < pct) {
-        Alert.alert('Error', 'El descuento manual no puede ser mayor que el descuento automático');
+      console.log('Descuento manualL:', pct, 'disc', disc.f_descuento1);
+
+      const maxAutomatic = disc ? disc.f_descuento1 : 0;
+
+      if (pct > maxAutomatic) {
+        Alert.alert('Error', 'El descuento manuaLl no puede ser mayor que el descuento automático');
         return;
       }
 

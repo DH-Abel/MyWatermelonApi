@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet, Modal,
-  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform,ScrollView
+  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -13,6 +13,8 @@ import { enviarRecibo } from '../src/sincronizaciones/enviarRecibo';
 import { Q } from '@nozbe/watermelondb';
 import { formatear } from '../assets/formatear'
 import { CommonActions } from '@react-navigation/native';
+import { printTest } from '../screens/funciones/print';
+import { rRecibo } from '../screens/reportes/rRecibos'
 
 
 export default function ConfirmarCobranza() {
@@ -41,6 +43,7 @@ export default function ConfirmarCobranza() {
   const [bankType, setBankType] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -108,6 +111,7 @@ export default function ConfirmarCobranza() {
     }
 
     try {
+      setIsSaving(true);
       // 2) Escribo recibo, aplicaciones y notas en la base local
       const timestamp = Math.floor(Date.now() / 1000).toString();
       const id = timestamp;
@@ -128,7 +132,7 @@ export default function ConfirmarCobranza() {
           r.f_efectivo = parseFloat(efectivo) || 0;
           r.f_monto_transferencia = parseFloat(transferenciaMonto) || 0;
           r.f_cheque = parseFloat(chequeMonto) || 0;
-          r.f_cheque_numero = chequeNumero;
+          r.f_cheque_numero = parseInt(chequeNumero) || 0;
           r.f_cheque_banco = chequeBanco?.f_idbanco || '';
           r.f_banco_transferencia = transferenciaBanco?.f_idbanco || '';
           r.f_cheque_recibido = hoy;
@@ -152,6 +156,8 @@ export default function ConfirmarCobranza() {
           const descuento = descuentosMap[doc] || 0;
           const newBalance = origBalance - monto - descuento;
 
+          console.log('Aplicando pago:', doc, 'Monto:', monto, 'Descuento:', descuento, 'Nuevo balance:', newBalance.toFixed(2), 'Balance original:', origBalance.toFixed(2));
+
           if (monto > 0) {
             await appCol.create(a => {
               a.f_documento_aplico = `REC${id}`;
@@ -161,7 +167,7 @@ export default function ConfirmarCobranza() {
               a.f_monto = monto;
               a.f_fecha = hoy;
               a.f_cliente = clienteSeleccionado.f_id;
-              a.f_balance = newBalance.toFixed(2);
+              a.f_balance = parseFloat(newBalance.toFixed(2)) || 0;
             });
           }
         }
@@ -176,7 +182,7 @@ export default function ConfirmarCobranza() {
               nc.f_nodoc = parseInt(timestamp, 10);
               nc.f_monto = detail.valorDescuento;
               nc.f_fecha = hoy;
-              nc.f_concepto = `descuento ${detail.descuentoPct}% pronto pago`;
+              nc.f_concepto = `DESC.POR PAGO %${detail.descuentoPct}`;
               nc.f_idcliente = clienteSeleccionado.f_id;
               nc.f_tipo_nota = 0;
               nc.f_factura = detail.documento;
@@ -204,6 +210,30 @@ export default function ConfirmarCobranza() {
         .collections.get('t_nota_credito_venta_pda2')
         .query(Q.where('f_documento_principal', recRaw.f_documento))
         .fetch()).map(m => m._raw);
+
+      // 4) Imprimo recibo localmente
+      const detalleParaImprimir = invoiceDetails.map(det => ({
+        f_documento_aplicado: det.documento,
+        f_monto: det.monto,
+        descuento: det.valorDescuento,
+        f_concepto: det.balanceConDescuento === det.monto + det.valorDescuento
+          ? 'SALDO' : 'ABONO',
+        f_balance: det.balance - det.monto - det.valorDescuento,
+      }));
+      const clientesMap = { [clienteSeleccionado.f_id]: clienteSeleccionado };
+
+      const bancos = await database
+        .collections.get('t_bancos')
+        .query()
+        .fetch();
+      const bancosMap = bancos.reduce((m, b) => {
+        m[b._raw.f_idbanco] = b._raw.f_nombre;
+        return m;
+      }, {});
+      
+      const reporte = rRecibo(recRaw, detalleParaImprimir, clientesMap, bancosMap);
+      await printTest(reporte);
+
 
       // 4) Intento de envío (hasta 2 veces)
       setIsSending(true);
@@ -246,6 +276,7 @@ export default function ConfirmarCobranza() {
       Alert.alert('Error', 'No se pudo guardar el recibo: ' + err.message);
     } finally {
       setIsSending(false);
+      setIsSaving(false);
     }
   };
 
@@ -256,12 +287,12 @@ export default function ConfirmarCobranza() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
     >
-      <ScrollView 
-    style={{ flex: 1 }}
-    contentContainerStyle={{ flexGrow: 1 }}
-    enableOnAndroid
-    keyboardShouldPersistTaps="handled"
-  >
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        enableOnAndroid
+        keyboardShouldPersistTaps="handled"
+      >
         <SafeAreaView style={styles.container}>
 
           <View style={[
@@ -285,7 +316,7 @@ export default function ConfirmarCobranza() {
               />
               <Pressable
                 style={styles.completeButton}
-                onPress={() => { setEfectivo((totalPago).toFixed(2)), setTransferenciaMonto(null), setTransferenciaBanco(null), setChequeMonto(null), setChequeBanco(null), setChequeNumero(null), setChequeCobroDate(null) }}
+                onPress={() => { setEfectivo(parseFloat(totalPago.toString()).toFixed(2)), setTransferenciaMonto(null), setTransferenciaBanco(null), setChequeMonto(null), setChequeBanco(null), setChequeNumero(null), setChequeCobroDate(null) }}
               >
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
@@ -312,7 +343,7 @@ export default function ConfirmarCobranza() {
               </Pressable>
               <Pressable
                 style={styles.completeButton}
-                onPress={() => { setTransferenciaMonto(totalPago.toFixed(2)), setChequeMonto(null), setChequeBanco(null), setEfectivo(null), setChequeNumero(null), setChequeCobroDate(null) }}
+                onPress={() => { setTransferenciaMonto(parseFloat(totalPago.toString()).toFixed(2)), setChequeMonto(null), setChequeBanco(null), setEfectivo(null), setChequeNumero(null), setChequeCobroDate(null) }}
               >
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
@@ -339,7 +370,7 @@ export default function ConfirmarCobranza() {
               />
               <Pressable
                 style={styles.completeButton}
-                onPress={() => { setChequeMonto(totalPago.toFixed(2)), setTransferenciaMonto(null), setTransferenciaBanco(null), setEfectivo(null) }}
+                onPress={() => { setChequeMonto(parseFloat(totalPago.toString()).toFixed(2)), setTransferenciaMonto(null), setTransferenciaBanco(null), setEfectivo(null) }}
               >
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
@@ -371,7 +402,7 @@ export default function ConfirmarCobranza() {
           <Pressable
             onPress={guardar}
             style={[styles.saveButton, !validSum && styles.disabled]}
-            disabled={!validSum || isSending}
+            disabled={!validSum || isSending || isSaving}
           >
             <Text style={styles.saveText}>{isSending ? 'Enviando...' : 'Guardar y Enviar'}</Text>
           </Pressable>
