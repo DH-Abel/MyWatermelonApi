@@ -17,6 +17,7 @@ import SelectClientesCobranza from '../components/selectClientesCobranza';
 import SelectedClienteCobranza from '../components/selectedClienteCobranza';
 import ConfirmarCobranza from '../confirmarCobranza';
 import ConsultaRecibos from "../consultaRecibos";
+import MenuPrincipal from "../menu";
 
 
 enableScreens();
@@ -26,7 +27,9 @@ const Stack = createNativeStackNavigator();
 export default function MyStack() {
     return (
         <NavigationContainer>
-        <Stack.Navigator initialRouteName="ConsultaRecibos" screenOptions={{ headerShown: false }}>
+        <Stack.Navigator initialRouteName="MenuPrincipal" screenOptions={{ headerShown: false }}>
+          {/* Menu Principal */}
+          <Stack.Screen name="MenuPrincipal" component={MenuPrincipal} />
           {/* Flujo de cobranza */}
           <Stack.Screen name="ConsultaRecibos" component={ConsultaRecibos} />
           <Stack.Screen name="SelectClientesCobranza" component={SelectClientesCobranza} />
