@@ -29,7 +29,7 @@ const toInt = (v) => {
 const sincronizarBancos = async () => {
   if (syncInProgress) return;
   const nombreTabla = 't_bancos';
-  const INTERVALO = 0 * 0 * 1 * 1000; // 48 horas
+  const INTERVALO = 150 * 0 * 0 * 1000; // 48 horas
   const lastSync = await getLastSync(nombreTabla);
 
   if (Date.now() - lastSync < INTERVALO) {

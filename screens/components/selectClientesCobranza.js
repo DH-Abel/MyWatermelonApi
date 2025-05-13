@@ -73,7 +73,7 @@ const SelectClientesCobranza = () => {
           keyExtractor={item => item.f_id.toString()}
           estimatedItemSize={100}
           initialNumToRender={8}
-            keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="handled"
           windowSize={3}
           renderItem={({ item }) => (
             <View style={styles.item}>

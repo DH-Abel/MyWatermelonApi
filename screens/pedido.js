@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, ActivityIndicator, TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
   StyleSheet, KeyboardAvoidingView, Platform, ScrollView
@@ -13,6 +13,8 @@ import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
 import { FlashList } from '@shopify/flash-list';
+import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
+import { Dimensions } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute } from '@react-navigation/native';
@@ -53,8 +55,8 @@ export default function Pedido({
   const navigation = useNavigation();
   const parentNavigation = navigation.getParent();
 
-  // ...
-  //const orderToEdit = orderToEditProp || route.params?.orderToEdit;
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+
   const isEditing = !!orderToEdit;
 
   const totalBruto = Object.values(pedido).reduce(
@@ -185,38 +187,90 @@ export default function Pedido({
     }
   };
 
-  const productosFiltrados = productos.filter((producto) =>
-    (producto.f_descripcion || '')
-      .toLowerCase()
-      .includes(searchTextProductos.toLowerCase()) ||
-    (producto.f_referencia ? producto.f_referencia.toString().toLowerCase() : '')
-      .includes(searchTextProductos.toLowerCase())
+  // ─── Memoizamos el filtrado para que su referencia sólo cambie al variar productos o texto ───
+  const productosFiltrados = useMemo(() =>
+    productos.filter((producto) =>
+      (producto.f_descripcion || '')
+        .toLowerCase()
+        .includes(searchTextProductos.toLowerCase()) ||
+      (producto.f_referencia ? producto.f_referencia.toString() : '')
+        .toLowerCase()
+        .includes(searchTextProductos.toLowerCase())
+    ),
+    [productos, searchTextProductos]
   );
+  // ────────────────────────────────────────────────────────────────────────────────────────────
 
-  const actualizarCantidad = (f_referencia, cantidad, producto) => {
-    if (cantidad === '') {
-      setPedido((prevPedido) => {
-        const nuevoPedido = { ...prevPedido };
-        delete nuevoPedido[f_referencia];
-        return nuevoPedido;
-      });
-    } else {
-      const cantidadNumerica = parseInt(cantidad, 10) || 0;
-      setPedido((prevPedido) => ({
-        ...prevPedido,
-        [f_referencia]: prevPedido[f_referencia]
-          ? { ...prevPedido[f_referencia], cantidad: cantidadNumerica }
-          : {
-            f_referencia: producto.f_referencia,
-            f_precio5: producto.f_precio5,
-            cantidad: cantidadNumerica,
-            f_referencia_suplidor: producto.f_referencia_suplidor,
-            f_descripcion: producto.f_descripcion,
-            f_existencia: producto.f_existencia,
-          },
-      }));
+  // ─── RecyclerListView setup ─────────────────────────────────────────────
+  // Lazy init para que sólo se ejecute en el primer render
+const [dataProvider, setDataProvider] = useState(() =>
+  new DataProvider((r1, r2) => r1 !== r2)
+    .cloneWithRows(
+      productosFiltrados.map(prod => ({
+        ...prod._raw,
+        cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
+      }))
+    )
+);
+
+  const layoutProvider = useMemo(() => new LayoutProvider(
+    // un solo tipo de fila
+    index => 'NORMAL',
+    // dimensiones de cada fila
+    (type, dim) => {
+      dim.width = SCREEN_WIDTH;
+      dim.height = 120;    // ajusta esta altura a tu diseño
     }
-  };
+  ), []);
+
+  useEffect(() => {
+    // 1) Creamos un array de objetos planos: todos los campos _raw + la cantidad actual
+    const filas = productosFiltrados.map(prod => ({
+      ...prod._raw,
+      cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
+    }));
+
+     setDataProvider(prev => prev.cloneWithRows(filas));
+}, [productosFiltrados]);
+
+ const actualizarCantidad = (f_referencia, cantidad, producto) => {
+  setPedido(prev => {
+    // 1) Construimos el nuevo estado 'next'
+    const next = cantidad === ''
+      ? (() => {
+          const o = { ...prev };
+          delete o[f_referencia];
+          return o;
+        })()
+      : {
+          ...prev,
+          [f_referencia]: prev[f_referencia]
+            ? { 
+                ...prev[f_referencia], 
+                cantidad: parseInt(cantidad, 10) || 0 
+              }
+            : {
+                f_referencia: producto.f_referencia,
+                f_precio5: producto.f_precio5,
+                cantidad: parseInt(cantidad, 10) || 0,
+                f_referencia_suplidor: producto.f_referencia_suplidor,
+                f_descripcion: producto.f_descripcion,
+                f_existencia: producto.f_existencia,
+              }
+        };
+
+    // 2) Actualizamos el RecyclerListView DataProvider en el mismo batch
+    const filas = productosFiltrados.map(prod => ({
+      ...prod._raw,
+      cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
+    }));
+    setDataProvider(dp => dp.cloneWithRows(filas));
+
+    // 3) Devolvemos el nuevo estado de 'pedido'
+    return next;
+  });
+};
+
 
   const eliminarDelPedido = (f_referencia) => {
     Alert.alert(
@@ -297,12 +351,12 @@ export default function Pedido({
     setCreditoDisponible(nuevoCredito);
   }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      cargarProductos();
-    }, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
+  // useEffect(() => {
+  //   const intervalId = setInterval(() => {
+  //     cargarProductos();
+  //   }, 30000);
+  //   return () => clearInterval(intervalId);
+  // }, []);
 
   useEffect(() => {
     if (clienteSeleccionado) {
@@ -376,6 +430,54 @@ export default function Pedido({
   //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
   // }
 
+  // ─── Función para renderizar cada producto ───────────────────────────────
+  const rowRenderer = (type, item) => {
+    // Repite aquí la lógica que tenías dentro de `renderItem` de FlashList
+    const precioTransp =
+      (item.f_precio5 - item.f_precio5 * (Number(descuentoCredito) / 100))
+      * (checkBoxChecked ? 1.18 : 1);
+
+    return (
+      <View style={pedidoStyles.productCard}>
+        <View style={{ flex: 1 }}>
+          <Text style={pedidoStyles.productTitle}>
+            ({item.f_referencia}) - {item.f_referencia_suplidor}
+          </Text>
+          <Text style={pedidoStyles.productDescription}>
+            {item.f_descripcion}
+          </Text>
+          <Text style={pedidoStyles.productInfo}>
+            Precio: {formatear(item.f_precio5)} | Neto: {formatear(precioTransp)}
+          </Text>
+          <Text style={pedidoStyles.productInfo}>
+            Existencia: {item.f_existencia}
+          </Text>
+        </View>
+        <TextInput
+          style={pedidoStyles.quantityInput}
+          placeholder="QTY"
+          keyboardType="numeric"
+          // ahora el valor viene de item.cantidad, que proviene del DataProvider
+          value={item.cantidad.toString()}
+          onChangeText={(cantidad) =>
+            actualizarCantidad(item.f_referencia, cantidad, item)
+          }
+        />
+        <Pressable
+          style={pedidoStyles.plusButton}
+          onPress={() => {
+            const current = pedido[item.f_referencia]?.cantidad || 0;
+            actualizarCantidad(item.f_referencia, (current + 1).toString(), item);
+          }}
+        >
+          <Ionicons name="add-circle-outline" size={32} color="#007AFF" />
+        </Pressable>
+      </View>
+    );
+  };
+  // ────────────────────────────────────────────────────────────────────────
+
+
 
   // ----- Diseño Nuevo -----
   return (
@@ -383,7 +485,7 @@ export default function Pedido({
       {/* Encabezado: Descuento, botón Limpiar, crédito y total */}
       <View style={pedidoStyles.headerCard}>
         <View style={pedidoStyles.row}>
-        <Pressable style={pedidoStyles.clearButton} onPress={limpiarPedido}>
+          <Pressable style={pedidoStyles.clearButton} onPress={limpiarPedido}>
             <Ionicons name="trash-outline" size={24} color="white" />
           </Pressable>
           <Text style={pedidoStyles.label}>Descuento:</Text>
@@ -394,7 +496,7 @@ export default function Pedido({
             value={descuentoCredito}
             onChangeText={setDescuentoCredito}
           />
-       
+
           <MyCheckbox checked={checkBoxChecked} setChecked={setCheckBoxChecked} />
         </View>
         <View style={[pedidoStyles.row, { marginTop: 10 }]}>
@@ -424,59 +526,11 @@ export default function Pedido({
 
       {/* Listado de productos */}
       <View style={pedidoStyles.productListContainer}>
-        <FlashList
-          estimatedItemSize={64}
-          data={productosFiltrados}
-          keyExtractor={(item) => item.f_referencia.toString()}
-          extraScrollHeight={20}
-          renderItem={({ item }) => {
-            const precioGlobal = () => {
-              const precioTransp =
-                (item.f_precio5 -
-                  item.f_precio5 * (Number(descuentoCredito) / 100)) +
-                ((item.f_precio5 -
-                  item.f_precio5 * (Number(descuentoCredito) / 100)) * 0.18);
-              const precioNormal =
-                item.f_precio5 +
-                item.f_precio5 * 0.18 -
-                item.f_precio5 * (Number(descuentoCredito) / 100);
-              return checkBoxChecked ? precioTransp : precioNormal;
-            };
-
-            return (
-              <View style={pedidoStyles.productCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={pedidoStyles.productTitle}>
-                    ({item.f_referencia}) - {item.f_referencia_suplidor}
-                  </Text>
-                  <Text style={pedidoStyles.productDescription}>{item.f_descripcion}</Text>
-                  <Text style={pedidoStyles.productInfo}>
-                    Precio: {formatear(item.f_precio5)} | Neto: {formatear(precioGlobal())}
-                  </Text>
-                  <Text style={pedidoStyles.productInfo}>Existencia: {item.f_existencia}</Text>
-                </View>
-                <TextInput
-                  style={pedidoStyles.quantityInput}
-                  placeholder="QTY"
-                  keyboardType="numeric"
-                  value={pedido[item.f_referencia]?.cantidad?.toString() || ''}
-                  onChangeText={(cantidad) =>
-                    actualizarCantidad(item.f_referencia, cantidad, item)
-                  }
-                />
-                <Pressable
-                  style={pedidoStyles.plusButton}
-                  onPress={() => {
-                    const currentQuantity = pedido[item.f_referencia]?.cantidad || 0;
-                    actualizarCantidad(item.f_referencia, (currentQuantity + 1).toString(), item);
-                  }}
-                >
-                   <Ionicons name="add-circle-outline" size={32} color="#007AFF" />
-                </Pressable>
-              </View>
-            );
-          }}
-          ListEmptyComponent={<Text style={pedidoStyles.emptyText}>No se encontraron productos</Text>}
+        <RecyclerListView
+          style={{ flex: 1 }}
+          layoutProvider={layoutProvider}
+          dataProvider={dataProvider}
+          rowRenderer={rowRenderer}
         />
       </View>
 

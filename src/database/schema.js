@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 10, // Cambiar la versión de la base de datos, por si agrego campos o tablas
+  version: 2, // Cambiar la versión de la base de datos, por si agrego campos o tablas
   tables: [
     tableSchema({
       name: 't_productos_sucursal',

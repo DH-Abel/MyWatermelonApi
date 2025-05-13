@@ -28,7 +28,7 @@ const normalizeNumber = (v) => {
 
 const sincronizarDescuentos = async () => {
   const nombreTabla = 't_desc_x_pago_cliente';
-  const INTERVALO = 0 * 0 * 1 * 1000; // 8 horas en ms
+  const INTERVALO = 30 * 0 * 0 * 1000; // 8 horas en ms
 
   if (syncInProgress) return;
   const lastSync = await getLastSync(nombreTabla);

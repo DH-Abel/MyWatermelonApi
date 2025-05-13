@@ -3,10 +3,10 @@ import { schemaMigrations, addColumns } from '@nozbe/watermelondb/Schema/migrati
 export const migrations = schemaMigrations({
   migrations: [
     {
-      toVersion: 10,
+      toVersion: 2,
       steps: [
         addColumns({
-          table: 't_cuenta_cobrar',
+          table: 't_productos_sucursal',
           columns: [
             { name: 'f_base_imponible', type: 'number' },
             { name: 'f_impuesto', type: 'number' },

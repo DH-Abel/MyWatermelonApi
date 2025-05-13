@@ -38,38 +38,45 @@ const normalizeNumberField = (value) => {
 
 const needsUpdate = (local, remote) => {
   return (
-    normalizeText(local.f_nombre)       !== remote.f_nombre       ||
-    normalizeText(local.f_d_municipio)  !== remote.f_d_municipio  ||
-    normalizeText(local.f_telefono)     !== remote.f_telefono     ||
+    normalizeText(local.f_nombre) !== remote.f_nombre ||
+    normalizeText(local.f_d_municipio) !== remote.f_d_municipio ||
+    normalizeText(local.f_telefono) !== remote.f_telefono ||
     normalizeText(local.f_telefono_pro) !== remote.f_telefono_pro ||
-    normalizeText(local.f_direccion)    !== remote.f_direccion    ||
-    normalizeText(local.f_cedula)       !== remote.f_cedula       ||
-    local.f_vendedor     !== remote.f_vendedor     ||
-    local.f_zona         !== remote.f_zona         ||
+    normalizeText(local.f_direccion) !== remote.f_direccion ||
+    normalizeText(local.f_cedula) !== remote.f_cedula ||
+    local.f_vendedor !== remote.f_vendedor ||
+    local.f_zona !== remote.f_zona ||
     local.f_descuento_maximo !== remote.f_descuento_maximo ||
-    local.f_descuento1   !== remote.f_descuento1   ||
-    local.f_clasificacion!== remote.f_clasificacion||
-    local.f_dias_aviso   !== remote.f_dias_aviso   ||
+    local.f_descuento1 !== remote.f_descuento1 ||
+    local.f_clasificacion !== remote.f_clasificacion ||
+    local.f_dias_aviso !== remote.f_dias_aviso ||
     local.f_limite_credito !== remote.f_limite_credito ||
-    local.f_termino      !== remote.f_termino      ||
-    local.f_activo       !== remote.f_activo       ||
-    local.f_bloqueo_credito        !== remote.f_bloqueo_credito        ||
-    local.f_facturar_contra_entrega!== remote.f_facturar_contra_entrega||
-    local.f_bloqueo_ck  !== remote.f_bloqueo_ck
+    local.f_termino !== remote.f_termino ||
+    local.f_activo !== remote.f_activo ||
+    local.f_bloqueo_credito !== remote.f_bloqueo_credito ||
+    local.f_facturar_contra_entrega !== remote.f_facturar_contra_entrega ||
+    local.f_bloqueo_ck !== remote.f_bloqueo_ck
   );
 };
 
 const sincronizarClientes = async () => {
-  const intervalMS = 86//400000; // 24 hora en milisegundos
-  const lastSync = await getLastSync('t_clientes');
+  if (syncInProgress) return;
 
-  if (Date.now() - lastSync < intervalMS) {
-    console.log('Se realizo hace menos de 24 hora, no se sincroniza, faltan ' + ((intervalMS - (Date.now() - lastSync)) / 60000) + ' minutos');
+  const INTERVALO = 0 * 20 * 1000; // 1 hora
+
+  const tableName = 't_clientes';
+
+  const lastSync = await getLastSync(tableName);
+  if (Date.now() - lastSync < INTERVALO) {
+    console.log(
+      `Sincronización de descuentos omitida, faltan ${Math.round(
+        (INTERVALO - (Date.now() - lastSync)) / 1000 / 60
+      )} minutos`
+    );
     return;
   }
 
   syncInProgress = true;
-  const tableName = 't_clientes';
   try {
     const syncCol = database.collections.get('t_sync');
     const syncRecords = await syncCol.query(Q.where('f_tabla', tableName)).fetch();
@@ -83,37 +90,37 @@ const sincronizarClientes = async () => {
       lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
     } else {
       lastSync = new Date(0).toISOString();
-    } 
+    }
     // 1) Fetch y normaliza
     const { data: raw } = await api.get(`/clientes/${encodeURIComponent(lastSync)}`);
     const clientesRemotos = raw.map((cli) => ({
-      f_id:                  parseInt(cli.f_id, 10),
-      f_nombre:              normalizeText(cli.f_nombre),
-      f_d_municipio:         normalizeText(cli.f_d_municipio),
-      f_telefono:            normalizeText(cli.f_telefono),
-      f_telefono_pro:        normalizeText(cli.f_telefono_pro),
-      f_direccion:           normalizeText(cli.f_direccion),
-      f_cedula:              normalizeText(cli.f_cedula),
-      f_vendedor:            normalizeNumberField(cli.f_vendedor),
-      f_zona:                normalizeNumberField(cli.f_zona),
-      f_descuento_maximo:    normalizeNumberField(cli.f_descuento_maximo),
-      f_descuento1:          normalizeNumberField(cli.f_descuento1),
-      f_clasificacion:       normalizeNumberField(cli.f_clasificacion),
-      f_dias_aviso:          normalizeNumberField(cli.f_dias_aviso),
-      f_limite_credito:      normalizeNumberField(cli.f_limite_credito),
-      f_termino:             normalizeNumberField(cli.f_termino),
-      f_activo:              cli.f_activo,
-      f_bloqueo_credito:     cli.f_bloqueo_credito,
+      f_id: parseInt(cli.f_id, 10),
+      f_nombre: normalizeText(cli.f_nombre),
+      f_d_municipio: normalizeText(cli.f_d_municipio),
+      f_telefono: normalizeText(cli.f_telefono),
+      f_telefono_pro: normalizeText(cli.f_telefono_pro),
+      f_direccion: normalizeText(cli.f_direccion),
+      f_cedula: normalizeText(cli.f_cedula),
+      f_vendedor: normalizeNumberField(cli.f_vendedor),
+      f_zona: normalizeNumberField(cli.f_zona),
+      f_descuento_maximo: normalizeNumberField(cli.f_descuento_maximo),
+      f_descuento1: normalizeNumberField(cli.f_descuento1),
+      f_clasificacion: normalizeNumberField(cli.f_clasificacion),
+      f_dias_aviso: normalizeNumberField(cli.f_dias_aviso),
+      f_limite_credito: normalizeNumberField(cli.f_limite_credito),
+      f_termino: normalizeNumberField(cli.f_termino),
+      f_activo: cli.f_activo,
+      f_bloqueo_credito: cli.f_bloqueo_credito,
       f_facturar_contra_entrega: cli.f_facturar_contra_entrega,
-      f_bloqueo_ck:          cli.f_bloqueo_ck,
+      f_bloqueo_ck: cli.f_bloqueo_ck,
     }));
     console.log(`Fetched ${clientesRemotos.length} clientes remotos.`);
 
     // 2) Carga locales y prepara mapas
     const clientesCollection = database.collections.get('t_clientes');
-    const clientesLocales     = await clientesCollection.query().fetch();
-    const localMap            = new Map(clientesLocales.map(r => [r.f_id, r]));
-    const remoteIds           = new Set(clientesRemotos.map(c => c.f_id));
+    const clientesLocales = await clientesCollection.query().fetch();
+    const localMap = new Map(clientesLocales.map(r => [r.f_id, r]));
+    const remoteIds = new Set(clientesRemotos.map(c => c.f_id));
 
     // 3) Preparar acciones
     const batchActions = [];
@@ -124,50 +131,50 @@ const sincronizarClientes = async () => {
         if (needsUpdate(local, cli)) {
           batchActions.push(
             local.prepareUpdate((record) => {
-              record.f_nombre               = cli.f_nombre;
-              record.f_d_municipio          = cli.f_d_municipio;
-              record.f_telefono             = cli.f_telefono;
-              record.f_telefono_pro         = cli.f_telefono_pro;
-              record.f_direccion            = cli.f_direccion;
-              record.f_cedula               = cli.f_cedula;
-              record.f_vendedor             = cli.f_vendedor;
-              record.f_zona                 = cli.f_zona;
-              record.f_descuento_maximo     = cli.f_descuento_maximo;
-              record.f_descuento1           = cli.f_descuento1;
-              record.f_clasificacion        = cli.f_clasificacion;
-              record.f_dias_aviso           = cli.f_dias_aviso;
-              record.f_limite_credito       = cli.f_limite_credito;
-              record.f_termino              = cli.f_termino;
-              record.f_activo               = cli.f_activo;
-              record.f_bloqueo_credito      = cli.f_bloqueo_credito;
+              record.f_nombre = cli.f_nombre;
+              record.f_d_municipio = cli.f_d_municipio;
+              record.f_telefono = cli.f_telefono;
+              record.f_telefono_pro = cli.f_telefono_pro;
+              record.f_direccion = cli.f_direccion;
+              record.f_cedula = cli.f_cedula;
+              record.f_vendedor = cli.f_vendedor;
+              record.f_zona = cli.f_zona;
+              record.f_descuento_maximo = cli.f_descuento_maximo;
+              record.f_descuento1 = cli.f_descuento1;
+              record.f_clasificacion = cli.f_clasificacion;
+              record.f_dias_aviso = cli.f_dias_aviso;
+              record.f_limite_credito = cli.f_limite_credito;
+              record.f_termino = cli.f_termino;
+              record.f_activo = cli.f_activo;
+              record.f_bloqueo_credito = cli.f_bloqueo_credito;
               record.f_facturar_contra_entrega = cli.f_facturar_contra_entrega;
-              record.f_bloqueo_ck           = cli.f_bloqueo_ck;
+              record.f_bloqueo_ck = cli.f_bloqueo_ck;
             })
           );
         }
       } else {
         batchActions.push(
           clientesCollection.prepareCreate((record) => {
-            record._raw.id                = String(cli.f_id);
-            record.f_id                   = cli.f_id;
-            record.f_nombre               = cli.f_nombre;
-            record.f_d_municipio          = cli.f_d_municipio;
-            record.f_telefono             = cli.f_telefono;
-            record.f_telefono_pro         = cli.f_telefono_pro;
-            record.f_direccion            = cli.f_direccion;
-            record.f_cedula               = cli.f_cedula;
-            record.f_vendedor             = cli.f_vendedor;
-            record.f_zona                 = cli.f_zona;
-            record.f_descuento_maximo     = cli.f_descuento_maximo;
-            record.f_descuento1           = cli.f_descuento1;
-            record.f_clasificacion        = cli.f_clasificacion;
-            record.f_dias_aviso           = cli.f_dias_aviso;
-            record.f_limite_credito       = cli.f_limite_credito;
-            record.f_termino              = cli.f_termino;
-            record.f_activo               = cli.f_activo;
-            record.f_bloqueo_credito      = cli.f_bloqueo_credito;
+            record._raw.id = String(cli.f_id);
+            record.f_id = cli.f_id;
+            record.f_nombre = cli.f_nombre;
+            record.f_d_municipio = cli.f_d_municipio;
+            record.f_telefono = cli.f_telefono;
+            record.f_telefono_pro = cli.f_telefono_pro;
+            record.f_direccion = cli.f_direccion;
+            record.f_cedula = cli.f_cedula;
+            record.f_vendedor = cli.f_vendedor;
+            record.f_zona = cli.f_zona;
+            record.f_descuento_maximo = cli.f_descuento_maximo;
+            record.f_descuento1 = cli.f_descuento1;
+            record.f_clasificacion = cli.f_clasificacion;
+            record.f_dias_aviso = cli.f_dias_aviso;
+            record.f_limite_credito = cli.f_limite_credito;
+            record.f_termino = cli.f_termino;
+            record.f_activo = cli.f_activo;
+            record.f_bloqueo_credito = cli.f_bloqueo_credito;
             record.f_facturar_contra_entrega = cli.f_facturar_contra_entrega;
-            record.f_bloqueo_ck           = cli.f_bloqueo_ck;
+            record.f_bloqueo_ck = cli.f_bloqueo_ck;
           })
         );
       }

@@ -39,34 +39,52 @@ const toFloat = (v) => {
 
 const sincronizarProductos = async () => {
   if (syncInProgress) return;
-  const INTERVAL_MS = 60 * 60 * 1000; // 1 hora
-  const tableName = 't_productos_sucursal';
-  const lastSync = await getLastSync(tableName);
 
-  if (Date.now() - lastSync < INTERVAL_MS) {
+  const INTERVALO = 0 * 0 * 1000; // 1 hora
+  const tableName = 't_productos_sucursal';
+
+
+  const lastSync = await getLastSync(tableName);
+  if (Date.now() - lastSync < INTERVALO) {
     console.log(
-      `Sincronización de productos omitida, faltan ${Math.round(
-        (INTERVAL_MS - (Date.now() - lastSync)) / 60000
+      `Sincronización de descuentos omitida, faltan ${Math.round(
+        (INTERVALO - (Date.now() - lastSync)) / 1000 / 60
       )} minutos`
     );
     return;
   }
 
+
   syncInProgress = true;
   try {
+    const syncCol = database.collections.get('t_sync');
+    const syncRecords = await syncCol.query(Q.where('f_tabla', tableName)).fetch();
+    const lastSyncRaw = syncRecords.length > 0 ? syncRecords[0].f_fecha : null;
+
+    // 2) Formatear lastSync o usar epoch
+    let lastSync;
+    if (lastSyncRaw) {
+      const asNumber = Number(lastSyncRaw);
+      const date = !isNaN(asNumber) ? new Date(asNumber) : new Date(lastSyncRaw);
+      lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
+    } else {
+      lastSync = new Date(0).toISOString();
+    }
     console.log('Sincronizando productos…');
+
+    console.log('Llamando a /productos con fecha:', lastSync);
     // 1) Traer y normalizar remotos
-    const { data: raw } = await api.get('/productos');
+    const { data: raw } = await api.get(`/productos/${encodeURIComponent(lastSync)}`);
     if (!Array.isArray(raw)) {
       console.warn('Respuesta de /productos no es un array');
       return;
     }
     const productosRemotos = raw.map((p) => ({
-      referencia:         parseInt(p.f_referencia, 10),
-      descripcion:        trimString(p.f_descripcion),
+      referencia: parseInt(p.f_referencia, 10),
+      descripcion: trimString(p.f_descripcion),
       referenciaSuplidor: trimString(p.f_referencia_suplidor),
-      precio5:            toFloat(p.f_precio5),
-      existencia:         toFloat(p.f_existencia),
+      precio5: toFloat(p.f_precio5),
+      existencia: toFloat(p.f_existencia),
     }));
     console.log(`Fetched ${productosRemotos.length} productos remotos.`);
 
@@ -92,10 +110,10 @@ const sincronizarProductos = async () => {
         if (dif) {
           batchActions.push(
             local.prepareUpdate((record) => {
-              record.f_existencia           = prod.existencia;
-              record.f_descripcion          = prod.descripcion;
-              record.f_precio5              = prod.precio5;
-              record.f_referencia_suplidor  = prod.referenciaSuplidor;
+              record.f_existencia = prod.existencia;
+              record.f_descripcion = prod.descripcion;
+              record.f_precio5 = prod.precio5;
+              record.f_referencia_suplidor = prod.referenciaSuplidor;
             })
           );
         }
@@ -103,12 +121,12 @@ const sincronizarProductos = async () => {
         batchActions.push(
           col.prepareCreate((record) => {
             // El ID interno de WatermelonDB
-            record._raw.id                = String(prod.referencia);
-            record.f_referencia           = prod.referencia;
-            record.f_descripcion          = prod.descripcion;
-            record.f_referencia_suplidor  = prod.referenciaSuplidor;
-            record.f_precio5              = prod.precio5;
-            record.f_existencia           = prod.existencia;
+            record._raw.id = String(prod.referencia);
+            record.f_referencia = prod.referencia;
+            record.f_descripcion = prod.descripcion;
+            record.f_referencia_suplidor = prod.referenciaSuplidor;
+            record.f_precio5 = prod.precio5;
+            record.f_existencia = prod.existencia;
           })
         );
       }
@@ -126,7 +144,7 @@ const sincronizarProductos = async () => {
 
     // 5) Registrar historial y finalizar
     await syncHistory(tableName);
-    console.log('Sincronización de productos completada.');
+    console.log('Sincronización de productos completada.2');
   } catch (error) {
     console.error('Error en la sincronización de productos:', error);
   } finally {
