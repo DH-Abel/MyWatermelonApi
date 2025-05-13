@@ -34,7 +34,7 @@ export const realizarPedidoLocal = async ({
   }));
 
   // Calcula totales
-  const computedDescuentoAplicado = (descuentoGlobal / 100) * totalBruto;
+  const computedDescuentoAplicado = Number((descuentoGlobal / 100) * totalBruto);
   const computedItbis = Number(totalBruto - computedDescuentoAplicado) * 0.18;
   const computedTotalNeto = Number(totalBruto) + Number(computedItbis) - Number(computedDescuentoAplicado);
 
@@ -78,11 +78,11 @@ export const realizarPedidoLocal = async ({
           record.f_fecha = (fechaActual);
           record.f_hora_vendedor = horaActual;
           record.f_itbis = computedItbis;
-          record.f_descuento = computedDescuentoAplicado;
+          record.f_descuento = Number(computedDescuentoAplicado);
           record.f_porc_descuento = descuentoGlobal;
-          record.f_monto = computedTotalNeto;
+          record.f_monto = Number(computedTotalNeto);
           record.f_condicion = condicionSeleccionada ? condicionSeleccionada.id : null;
-          record.f_monto_bruto = totalBruto;
+          record.f_monto_bruto = Number(totalBruto);
           record.f_observacion = nota;
           record.f_estado_pedido = 1;
           record.f_vendedor = 83;
@@ -94,7 +94,7 @@ export const realizarPedidoLocal = async ({
             record.f_documento = documento;
             record.f_referencia = item.f_referencia;
             record.f_cantidad = item.cantidad;
-            record.f_precio = item.f_precio;
+            record.f_precio = Number(item.f_precio);
           });
         }
         

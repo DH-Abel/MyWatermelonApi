@@ -153,27 +153,36 @@ export default function Pedido({
     }
   };
 
-  const limpiarPedido = async () => {
-    Alert.alert(
-      'Borrar pedido',
-      '¿Desea borrar el pedido?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aceptar',
-          onPress: async () => {
-            setPedido({});
-            try {
-              await AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
-              console.log('Pedido y AsyncStorage limpios.');
-            } catch (error) {
-              console.error('Error al limpiar AsyncStorage:', error);
-            }
-          },
-        },
-      ]
-    );
-  };
+  const limpiarPedido = () => {
+  Alert.alert(
+    'Borrar pedido',
+    '¿Desea borrar todas las cantidades del pedido?',
+    [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Aceptar',
+        onPress: () => {
+          // 1) Limpiamos el estado de cantidades
+          setPedido({});
+
+          // 2) Volvemos a clonar el DataProvider con los mismos productos
+          //    pero con cantidad = '' para que el input se vea vacío
+          const filasLimpias = productosFiltrados.map(prod => ({
+            ...prod._raw,
+            cantidad: ''
+          }));
+          setDataProvider(dp => dp.cloneWithRows(filasLimpias));
+
+          // 3) (Opcional) también borramos del storage si lo guardabas
+          AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO)
+            .then(() => console.log('Pedido guardado eliminado'))
+            .catch(err => console.error('Error limpiando AsyncStorage:', err));
+        }
+      }
+    ]
+  );
+};
+
 
   const cargarProductosLocales = async () => {
     try {
@@ -203,15 +212,15 @@ export default function Pedido({
 
   // ─── RecyclerListView setup ─────────────────────────────────────────────
   // Lazy init para que sólo se ejecute en el primer render
-const [dataProvider, setDataProvider] = useState(() =>
-  new DataProvider((r1, r2) => r1 !== r2)
-    .cloneWithRows(
-      productosFiltrados.map(prod => ({
-        ...prod._raw,
-        cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
-      }))
-    )
-);
+  const [dataProvider, setDataProvider] = useState(() =>
+    new DataProvider((r1, r2) => r1 !== r2)
+      .cloneWithRows(
+        productosFiltrados.map(prod => ({
+          ...prod._raw,
+          cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
+        }))
+      )
+  );
 
   const layoutProvider = useMemo(() => new LayoutProvider(
     // un solo tipo de fila
@@ -219,7 +228,7 @@ const [dataProvider, setDataProvider] = useState(() =>
     // dimensiones de cada fila
     (type, dim) => {
       dim.width = SCREEN_WIDTH;
-      dim.height = 120;    // ajusta esta altura a tu diseño
+      dim.height = 100;    // ajusta esta altura a tu diseño
     }
   ), []);
 
@@ -230,46 +239,46 @@ const [dataProvider, setDataProvider] = useState(() =>
       cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
     }));
 
-     setDataProvider(prev => prev.cloneWithRows(filas));
-}, [productosFiltrados]);
+    setDataProvider(prev => prev.cloneWithRows(filas));
+  }, [productosFiltrados]);
 
- const actualizarCantidad = (f_referencia, cantidad, producto) => {
-  setPedido(prev => {
-    // 1) Construimos el nuevo estado 'next'
-    const next = cantidad === ''
-      ? (() => {
+  const actualizarCantidad = (f_referencia, cantidad, producto) => {
+    setPedido(prev => {
+      // 1) Construimos el nuevo estado 'next'
+      const next = cantidad === ''
+        ? (() => {
           const o = { ...prev };
           delete o[f_referencia];
           return o;
         })()
-      : {
+        : {
           ...prev,
           [f_referencia]: prev[f_referencia]
-            ? { 
-                ...prev[f_referencia], 
-                cantidad: parseInt(cantidad, 10) || 0 
-              }
+            ? {
+              ...prev[f_referencia],
+              cantidad: parseInt(cantidad, 10) || 0
+            }
             : {
-                f_referencia: producto.f_referencia,
-                f_precio5: producto.f_precio5,
-                cantidad: parseInt(cantidad, 10) || 0,
-                f_referencia_suplidor: producto.f_referencia_suplidor,
-                f_descripcion: producto.f_descripcion,
-                f_existencia: producto.f_existencia,
-              }
+              f_referencia: producto.f_referencia,
+              f_precio5: producto.f_precio5,
+              cantidad: parseInt(cantidad, 10) || 0,
+              f_referencia_suplidor: producto.f_referencia_suplidor,
+              f_descripcion: producto.f_descripcion,
+              f_existencia: producto.f_existencia,
+            }
         };
 
-    // 2) Actualizamos el RecyclerListView DataProvider en el mismo batch
-    const filas = productosFiltrados.map(prod => ({
-      ...prod._raw,
-      cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
-    }));
-    setDataProvider(dp => dp.cloneWithRows(filas));
+      // 2) Actualizamos el RecyclerListView DataProvider en el mismo batch
+      const filas = productosFiltrados.map(prod => ({
+        ...prod._raw,
+        cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
+      }));
+      setDataProvider(dp => dp.cloneWithRows(filas));
 
-    // 3) Devolvemos el nuevo estado de 'pedido'
-    return next;
-  });
-};
+      // 3) Devolvemos el nuevo estado de 'pedido'
+      return next;
+    });
+  };
 
 
   const eliminarDelPedido = (f_referencia) => {
