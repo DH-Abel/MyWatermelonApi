@@ -24,8 +24,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function MenuPrincipal({ navigation }) {
   const menuItems = [
-    { name: 'Pedidos', icon: 'cart-outline', target: 'SelectClientScreen' },
-    { name: 'Cobranza', icon: 'credit-card-outline', target: 'SelectClientesCobranza' },
+    { name: 'Pedidos', icon: 'cart-outline', target: 'ConsultaPedidos' },
+    { name: 'Cobranza', icon: 'credit-card-outline', target: 'ConsultaRecibos' },
     { name: 'Devoluciones', icon: 'swap-horizontal', target: 'Devoluciones' },
     { name: 'Dejado de facturas', icon: 'file-document-outline', target: 'Facturas' },
     { name: 'Reportes', icon: 'chart-bar', target: 'Reportes' },

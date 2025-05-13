@@ -339,7 +339,7 @@ export default function Pedidos({ navigation }) {
     }
     
     // Genera el reporte utilizando la función rPedido
-    const reporte = rPedido(pedidoPlana, detalles, productosMap);
+    const reporte = rPedido(pedidoPlana, detalles, productosMap,clientesMap);
     console.log("Reporte generado:", reporte);
     
     // Envía el reporte a la impresora

@@ -97,8 +97,6 @@ export const enviarPedido = async ({
                 index: 0,
                 routes: [{ name: 'ConsultaPedidos' }],
             });
-
-            
         }
 
     } catch (error) {
@@ -109,8 +107,14 @@ export const enviarPedido = async ({
             Alert.alert("Error", "El pedido se guardó localmente, pero no se pudo enviar a la API. Reintenta el envío más tarde.");
         }
         if (currentRouteName !== 'ConsultaPedidos') {
+            // Reiniciar estados y navegar a ConsultaPedidos
+            setPedido({});
             await AsyncStorage.removeItem('pedido_guardado');
             setModalVisible(false);
+            setClienteSeleccionado(null);
+            setBalanceCliente(0);
+            setDescuentoCredito(0);
+            
             navigation.reset({
                 index: 0,
                 routes: [{ name: 'ConsultaPedidos' }],

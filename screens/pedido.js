@@ -61,9 +61,9 @@ export default function Pedido({
     (total, item) => total + item.f_precio5 * item.cantidad,
     0
   );
-  const descuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
-  const itbis = Number(totalBruto - descuentoAplicado) * 0.18;
-  const totalNeto = Number(totalBruto) + Number(itbis) - Number(descuentoAplicado);
+  const descuentoAplicado = (descuentoGlobal / 100) * totalBruto.toFixed(2);
+  const itbis = (totalBruto - descuentoAplicado).toFixed(2) * 0.18;
+  const totalNeto = Number(totalBruto.toFixed(2)) + Number(itbis.toFixed(2)) - Number(descuentoAplicado.toFixed(2));
 
   const realizarPedidoLocalWrapper = async () => {
     if (isEditing) {
@@ -73,7 +73,7 @@ export default function Pedido({
           const orderRecord = await database.collections.get('t_factura_pedido').find(orderToEdit.id);
           await orderRecord.update(record => {
             record.f_monto = totalNeto; // Actualiza los campos correspondientes
-            record.f_descuento = descuentoAplicado;
+            record.f_descuento = descuentoAplicado.toFixed(2);
             record.f_observacion = nota;
 
             AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO);
@@ -390,6 +390,7 @@ export default function Pedido({
           <TextInput
             style={pedidoStyles.discountInput}
             placeholder="Desc.%"
+            keyboardType="numeric"
             value={descuentoCredito}
             onChangeText={setDescuentoCredito}
           />
@@ -424,7 +425,7 @@ export default function Pedido({
       {/* Listado de productos */}
       <View style={pedidoStyles.productListContainer}>
         <FlashList
-          estimatedItemSize={85}
+          estimatedItemSize={64}
           data={productosFiltrados}
           keyExtractor={(item) => item.f_referencia.toString()}
           extraScrollHeight={20}
@@ -510,7 +511,7 @@ export default function Pedido({
                     <View style={pedidoStyles.modalCard}>
                       <Text>Total bruto: {formatear(totalBruto)}</Text>
                       <Text>Descuento: {formatear(descuentoAplicado)}</Text>
-                      <Text>ITBIS: {formatear(itbis)}</Text>
+                      <Text>ITBIS: {formatear(itbis.toFixed(2))}</Text>
                       <Text style={pedidoStyles.modalTotal}>Total: {formatear(totalNeto)}</Text>
                     </View>
                     <TextInput
@@ -655,7 +656,7 @@ const pedidoStyles = StyleSheet.create({
   },
   productListContainer: {
     flex: 1,
-    marginBottom: 16,
+    marginBottom: 0,
   },
   productCard: {
     backgroundColor: '#fff',

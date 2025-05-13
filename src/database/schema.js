@@ -181,6 +181,48 @@ export const mySchema = appSchema({
         { name: 'f_documento_principal', type: 'string' }
       ]
     }),
+    tableSchema({
+      name: 't_factura_dev_pda',
+      columns: [
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_tipo', type: 'string' },
+        { name: 'f_nodoc', type: 'number' },
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_itbis', type: 'number' },
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_hora', type: 'string' },
+        { name: 'f_hechopor', type: 'number' }, //Es un campo reutilizado por ARPA, realmente es el id del estado de la devolucion
+        { name: 'f_vendedor', type: 'number' },
+        { name: 'f_pedido', type: 'string' }, //Factura a la que se le hace la devolucion
+        { name: 'f_cliente', type: 'number' },
+        { name: 'f_monto_excento', type: 'number' },
+        { name: 'f_base_imponible', type: 'number' },
+        { name: 'f_monto_bruto', type: 'number' },
+        { name: 'f_observacion', type: 'string' }, //Este es el documento de las devoluciones, en el sistema ARPA se usa con este nombre
+        { name: 'f_concepto', type: 'number' }, //id del concepto
+        { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no   
+      ]
+    }),
+    tableSchema({
+      name: 't_detalle_factura_dev_pda',
+      columns: [
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_tipo', type: 'string' },
+        { name: 'f_nodoc', type: 'number' },
+        { name: 'f_referencia', type: 'number' },
+        { name: 'f_precio', type: 'number' },
+        { name: 'f_cantidad', type: 'number' },
+        { name: 'f_itbis', type: 'number' }
+      ]
+    }),
+    tableSchema({
+      name: 't_estado_dev',
+      columns: [
+        { name: 'f_id', type: 'number' },
+        { name: 'f_descripcion', type: 'string' }
+      ]
+    }),
+
 
   ]
 

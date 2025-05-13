@@ -34,7 +34,7 @@ export const realizarPedidoLocal = async ({
   }));
 
   // Calcula totales
-  const computedDescuentoAplicado = (descuentoGlobal / 1000) * totalBruto;
+  const computedDescuentoAplicado = (descuentoGlobal / 100) * totalBruto;
   const computedItbis = Number(totalBruto - computedDescuentoAplicado) * 0.18;
   const computedTotalNeto = Number(totalBruto) + Number(computedItbis) - Number(computedDescuentoAplicado);
 
@@ -57,7 +57,7 @@ export const realizarPedidoLocal = async ({
   
 
   // Genera identificador y fecha
-  const documento = `PED-${Date.now()}`;
+  const documento = `PEDO-${Date.now()}`;
   const fechaActual = formatDate(new Date());
   const horaActual = new Date().toLocaleTimeString('en-GB');
 
@@ -73,7 +73,7 @@ export const realizarPedidoLocal = async ({
         await facturaCollection.create(record => {
           record.f_cliente = clienteSeleccionado.f_id;
           record.f_documento = documento;
-          record.f_tipodoc = 'PED';
+          record.f_tipodoc = 'PEDO';
           record.f_nodoc = parseInt(fechaActual);
           record.f_fecha = (fechaActual);
           record.f_hora_vendedor = horaActual;

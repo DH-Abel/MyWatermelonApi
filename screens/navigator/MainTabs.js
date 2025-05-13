@@ -83,6 +83,16 @@ const MainTabs = () => {
     }
   }, [clienteSeleccionado]);
 
+  //f_descuento1 es transparentado
+  useEffect(() => {
+    if (clienteSeleccionado && (condicionSeleccionada.id === 0 || condicionSeleccionada.id === 2)) 
+      {
+        setDescuentoCredito(clienteSeleccionado.f_descuento_maximo ? clienteSeleccionado.f_descuento_maximo.toString() : 0);
+      } else if (clienteSeleccionado && clienteSeleccionado.f_descuento1>0) {
+        setDescuentoCredito(clienteSeleccionado.f_descuento1 ? clienteSeleccionado.f_descuento1.toString() : 0 );
+      }
+  }, [condicionSeleccionada,clienteSeleccionado]);
+
 
   
 useEffect(() => {
@@ -112,7 +122,7 @@ useEffect(() => {
         'CANCELAR PEDIDO',
         '¿Estás seguro que deseas cancelar el pedido?',
         [
-          { text: 'No', style: 'cancel', onPress: () => { } },
+          { text: 'No, continuar', style: 'cancel', onPress: () => {  navigation.dispatch(e.data.action)} },
           {
             text: 'Si, eliminar pedido',
             style: 'destructive',
