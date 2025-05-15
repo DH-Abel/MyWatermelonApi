@@ -4,6 +4,8 @@ import SelectedCliente from '../components/selectedCliente';
 import Pedido from '../pedido';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Alert } from 'react-native';
+import { DatabaseProvider } from '@nozbe/watermelondb/DatabaseProvider';
+import { database } from '../../src/database/database';    // ajusta la ruta si es necesario
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
@@ -141,6 +143,7 @@ useEffect(() => {
 
 
   return (
+    <DatabaseProvider database={database}>
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarHideOnKeyboard: true }}>
       <Tab.Screen
         name="Cliente"
@@ -187,6 +190,7 @@ useEffect(() => {
         options={{ title: 'Productos' }}
       />
     </Tab.Navigator>
+    </DatabaseProvider>
   );
 };
 

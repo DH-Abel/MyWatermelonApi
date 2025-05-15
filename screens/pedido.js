@@ -21,6 +21,7 @@ import { useRoute } from '@react-navigation/native';
 import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
 import MyCheckbox from './utilities/checkbox.js';
 import { Q } from '@nozbe/watermelondb';
+import { useDatabase } from '@nozbe/watermelondb/hooks';
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
@@ -51,6 +52,9 @@ export default function Pedido({
   const [checkBoxChecked, setCheckBoxChecked] = useState(false);
   const pedidoRef = React.useRef(pedido);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
+
+  const database = useDatabase();
+  const [ofertas, setOfertas] = useState([]);
 
   const navigation = useNavigation();
   const parentNavigation = navigation.getParent();
@@ -273,6 +277,40 @@ export default function Pedido({
         ...prod._raw,
         cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
       }));
+
+      // 4️⃣ — Lógica de oferta automática —
+      // 4️⃣ — Lógica de ofertas corregida —
+      const oferta = ofertas.find(o => o.f_referencia === f_referencia);
+      if (oferta) {
+        const qtyNum = parseInt(cantidad, 10) || 0;
+        const freeQty = Math.floor(qtyNum / oferta.f_cantidad_req) * oferta.f_cantidad;
+        const giftRef = oferta.f_referencia_oferta;
+
+        if (giftRef === f_referencia) {
+          // — Self-offer: nunca borres la entrada pagada, solo guarda freeQty aparte
+          next[f_referencia] = {
+            ...next[f_referencia],
+            cantidad: qtyNum,
+            freeCantidad: freeQty,
+          };
+        } else {
+          // — Cross-SKU offer: quita la anterior y agrega (o elimina) la de regalo
+          delete next[giftRef];
+          if (freeQty > 0) {
+            const giftProd = productos.find(p => p.f_referencia === giftRef);
+            next[giftRef] = {
+              f_referencia: giftProd.f_referencia,
+              f_precio5: 0,
+              cantidad: freeQty,
+              f_referencia_suplidor: giftProd.f_referencia_suplidor,
+              f_descripcion: giftProd.f_descripcion,
+              f_existencia: giftProd.f_existencia,
+              isGift: true,
+            };
+          }
+        }
+      }
+
       setDataProvider(dp => dp.cloneWithRows(filas));
 
       // 3) Devolvemos el nuevo estado de 'pedido'
@@ -435,6 +473,19 @@ export default function Pedido({
     setHasPedido(Object.keys(pedido).length > 0)
   }, [pedido])
 
+
+  // 3️⃣ Al cargar el componente, trae todas las ofertas
+  useEffect(() => {
+    const fetchOfertas = async () => {
+      const ofertasCollection = database.collections.get('t_productos_ofertas');
+      const ofertasRaw = await ofertasCollection.query().fetch();
+      // _raw trae f_referencia, f_referencia_oferta, f_cantidad_req, f_cantidad
+      setOfertas(ofertasRaw.map(o => o._raw));
+    };
+    fetchOfertas();
+    console.log('Ofertas cargadas:', ofertas);
+  }, [database]);
+
   // if (loading) {
   //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
   // }
@@ -445,6 +496,13 @@ export default function Pedido({
     const precioTransp =
       (item.f_precio5 - item.f_precio5 * (Number(descuentoCredito) / 100))
       * (checkBoxChecked ? 1.18 : 1);
+
+    // 5️⃣ Calcula freebies para mostrar “+N”
+    const pedidoItem = pedido[item.f_referencia] || {};
+    const myOferta = ofertas.find(o => o.f_referencia === item.f_referencia);
+    const freeUnits = myOferta
+      ? Math.floor((pedidoItem.cantidad || 0) / myOferta.f_cantidad_req) * myOferta.f_cantidad
+      : 0;
 
     return (
       <View style={pedidoStyles.productCard}>
@@ -472,6 +530,9 @@ export default function Pedido({
             actualizarCantidad(item.f_referencia, cantidad, item)
           }
         />
+        {freeUnits > 0 && (
+          <Text style={pedidoStyles.freeText}>{`+${freeUnits}`}</Text>
+        )}
         <Pressable
           style={pedidoStyles.plusButton}
           onPress={() => {
@@ -479,6 +540,7 @@ export default function Pedido({
             actualizarCantidad(item.f_referencia, (current + 1).toString(), item);
           }}
         >
+
           <Ionicons name="add-circle-outline" size={32} color="#007AFF" />
         </Pressable>
       </View>
@@ -599,10 +661,23 @@ export default function Pedido({
                       ({data.f_referencia}) - {data.f_referencia_suplidor}
                     </Text>
                     <Text style={pedidoStyles.modalItemDescription}>{data.f_descripcion}</Text>
-                    <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
-                    <Text style={pedidoStyles.modalItemInfo}>
-                      Precio: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
-                    </Text>
+                          {/*  Paid units */}
+       <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
+      <Text style={pedidoStyles.modalItemInfo}>
+        Precio unit.: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
+      </Text>
+      {/*  Free units (self-offer) */}
+      {data.freeCantidad > 0 && (
+        <>
+          <Text style={[pedidoStyles.modalItemInfo, { color: 'green' }]}>
+            Gratis: {data.freeCantidad}
+          </Text>
+          <Text style={[pedidoStyles.modalItemInfo, { color: 'green' }]}>
+            Precio unit.: {formatear(0)} | Total: 0
+          </Text>
+        </>
+       )}
+
                   </View>
                   <View style={pedidoStyles.modalItemActions}>
                     <TouchableOpacity onPress={() => cambiarCantidad(f_referencia)} style={pedidoStyles.editButton}>
@@ -870,6 +945,11 @@ const pedidoStyles = StyleSheet.create({
   footerButtonText: {
     color: '#fff',
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  freeText: {
+    marginLeft: 8,
+    color: 'green',
     fontWeight: 'bold',
   },
 });
