@@ -3,33 +3,44 @@ import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
 import { syncHistory } from './syncHistory';
 
+
 let syncInProgress = false;
 
+// Reemplaza tu función getLastSync por esta versión que maneja timestamps numéricos e ISO:
 const getLastSync = async (tableName) => {
   try {
     const syncCollection = database.collections.get('t_sync');
     const registros = await syncCollection
       .query(Q.where('f_tabla', tableName))
       .fetch();
-    if (registros.length > 0) {
-      const timestamp = parseInt(registros[0].f_fecha, 10);
-      console.log(
-        'Fecha de la última sincronización:',
-        new Date(timestamp).toLocaleString()
-      );
-      return timestamp;
+    if (registros.length === 0) return 0;
+
+    const raw = registros[0].f_fecha;
+    let timestamp;
+
+    // Si es un string sólo de dígitos, parsearlo directamente
+    if (/^\d+$/.test(raw)) {
+      timestamp = parseInt(raw, 10);
+    } else {
+      // Si es ISO (p.ej. "2025-05-15T14:30:00.000Z"), convertirlo a ms
+      const ms = new Date(raw).getTime();
+      timestamp = isNaN(ms) ? 0 : ms;
     }
+
     console.log(
-      `No se encontraron registros de sincronización para la tabla ${tableName}`
+      'Fecha de la última sincronización PRODUCTOS:',
+      new Date(timestamp).toLocaleString()
     );
+    return timestamp;
   } catch (error) {
     console.error(
       `Error al obtener el historial de sincronización para ${tableName}:`,
       error
     );
+    return 0;
   }
-  return 0;
 };
+
 
 const trimString = (v) => (v == null ? '' : String(v).trim());
 const toFloat = (v) => {
@@ -40,7 +51,7 @@ const toFloat = (v) => {
 const sincronizarProductos = async () => {
   if (syncInProgress) return;
 
-  const INTERVALO = 0 * 0 * 1000; // 1 hora
+   const INTERVALO = 1 * 60 * 60 * 1000; // 1 hora
   const tableName = 't_productos_sucursal';
 
 

@@ -154,34 +154,34 @@ export default function Pedido({
   };
 
   const limpiarPedido = () => {
-  Alert.alert(
-    'Borrar pedido',
-    '¿Desea borrar todas las cantidades del pedido?',
-    [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Aceptar',
-        onPress: () => {
-          // 1) Limpiamos el estado de cantidades
-          setPedido({});
+    Alert.alert(
+      'Borrar pedido',
+      '¿Desea borrar todas las cantidades del pedido?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Aceptar',
+          onPress: () => {
+            // 1) Limpiamos el estado de cantidades
+            setPedido({});
 
-          // 2) Volvemos a clonar el DataProvider con los mismos productos
-          //    pero con cantidad = '' para que el input se vea vacío
-          const filasLimpias = productosFiltrados.map(prod => ({
-            ...prod._raw,
-            cantidad: ''
-          }));
-          setDataProvider(dp => dp.cloneWithRows(filasLimpias));
+            // 2) Volvemos a clonar el DataProvider con los mismos productos
+            //    pero con cantidad = '' para que el input se vea vacío
+            const filasLimpias = productosFiltrados.map(prod => ({
+              ...prod._raw,
+              cantidad: ''
+            }));
+            setDataProvider(dp => dp.cloneWithRows(filasLimpias));
 
-          // 3) (Opcional) también borramos del storage si lo guardabas
-          AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO)
-            .then(() => console.log('Pedido guardado eliminado'))
-            .catch(err => console.error('Error limpiando AsyncStorage:', err));
+            // 3) (Opcional) también borramos del storage si lo guardabas
+            AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO)
+              .then(() => console.log('Pedido guardado eliminado'))
+              .catch(err => console.error('Error limpiando AsyncStorage:', err));
+          }
         }
-      }
-    ]
-  );
-};
+      ]
+    );
+  };
 
 
   const cargarProductosLocales = async () => {

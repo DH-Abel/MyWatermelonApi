@@ -54,7 +54,7 @@ const sincronizarBancos = async () => {
       lastSync = !isNaN(date.getTime()) ? date.toISOString() : new Date(0).toISOString();
     } else {
       lastSync = new Date(0).toISOString();
-    } 
+    }
 
     console.log('Sincronizando bancos…');
 
@@ -62,8 +62,8 @@ const sincronizarBancos = async () => {
     const { data: raw } = await api.get(`/bancos/${encodeURIComponent(lastSync)}`);
     if (!Array.isArray(raw)) return;
     const remoteItems = raw.map(item => ({
-      idBanco:     toInt(item.f_idbanco),
-      nombre:      trimString(item.f_nombre),
+      idBanco: toInt(item.f_idbanco),
+      nombre: trimString(item.f_nombre),
       cooperativa: trimString(item.f_cooperativa),
     }));
     console.log(`Fetched ${remoteItems.length} bancos remotos.`);
@@ -79,12 +79,12 @@ const sincronizarBancos = async () => {
       const local = localMap.get(b.idBanco);
       if (local) {
         const changed =
-          local.f_nombre      !== b.nombre ||
+          local.f_nombre !== b.nombre ||
           local.f_cooperativa !== b.cooperativa;
         if (changed) {
           batchActions.push(
             local.prepareUpdate(record => {
-              record.f_nombre      = b.nombre;
+              record.f_nombre = b.nombre;
               record.f_cooperativa = b.cooperativa;
             })
           );
@@ -93,9 +93,9 @@ const sincronizarBancos = async () => {
         batchActions.push(
           col.prepareCreate(record => {
             // ID interno de WatermelonDB
-            record._raw.id       = String(b.idBanco);
-            record.f_idbanco     = b.idBanco;
-            record.f_nombre      = b.nombre;
+            record._raw.id = String(b.idBanco);
+            record.f_idbanco = b.idBanco;
+            record.f_nombre = b.nombre;
             record.f_cooperativa = b.cooperativa;
           })
         );
