@@ -1,9 +1,9 @@
-import React, { useState, useEffect,memo,useContext  } from 'react';
+import React, { useState, useEffect,memo,useContext,useCallback } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import { FlashList } from '@shopify/flash-list';
 import { styles } from '../../assets/styles';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
@@ -18,7 +18,7 @@ const SelectClientScreen = () => {
   const [loading, setLoading] = useState(false);
 
   // --- NUEVO: obtenemos el mapa 'clientes' precargado
-  const { clientes: clientesMap } = useContext(MapsContext);
+  const { clientes: clientesMap, syncClients } = useContext(MapsContext);
 
   // --- reemplazamos la lista local por la que viene del contexto
   //    convirtiendo el mapa en array
@@ -58,10 +58,31 @@ const SelectClientScreen = () => {
     setLoading(false);
   };
 
-  // ya no dispararemos esta carga al montar: se usa el contexto
-  // useEffect(() => {
-  //   cargarClientes();
-  // }, []);
+  // Cada vez que este screen gane foco, sincroniza y recarga los clientes
+useFocusEffect(
+  useCallback(() => {
+    let isActive = true;
+
+    const fetchAndReload = async () => {
+      setLoading(true);
+      try {
+        console.log('[Select] syncClients ▶️ start');
+        await syncClients();
+      } catch (e) {
+        console.error('[Select] Error sincronizando clientes:', e);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+
+    fetchAndReload();
+
+    return () => {
+      isActive = false;
+    };
+  }, [syncClients])
+);
+
 
   const handleSelect = cliente => {
     navigation.replace('MainTabs', { clienteSeleccionado: cliente });

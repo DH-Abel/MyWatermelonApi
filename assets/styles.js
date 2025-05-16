@@ -65,8 +65,8 @@ export const styles = StyleSheet.create({
         flex: 1,
         paddingTop: 10,
         padding: 5,
-        borderWidth: 1,
-        borderColor: 'red',
+       // borderWidth: 1,
+       // borderColor: 'red',
         backgroundColor: '#f4f4f4',
       },
       modalContainer: {

@@ -4,6 +4,7 @@ import { Q } from '@nozbe/watermelondb';
 import sincronizarDescuentos from './descuentos';
 import sincronizarBancos from './bancos';
 import sincronizarProductosOfertas from './ofertasProductos';
+import { syncHistory } from './syncHistory';
 
 let syncInProgress = false;
 
@@ -14,16 +15,20 @@ const getLastSync = async (tableName) => {
       Q.where('f_tabla', tableName)
     ).fetch();
     if (registros.length > 0) {
-      const timestamp = parseInt(registros[0].f_fecha, 10);
+      const raw = registros[0].f_fecha;
+      // Si es string numérico, parsear; si no, convertir ISO a ms
+      const ms = /^\d+$/.test(raw)
+        ? parseInt(raw, 10)
+        : (new Date(raw).getTime() || 0);
       console.log(
-        'Fecha de la última sincronización cLIENTES:',
-        new Date(timestamp).toLocaleString()
+        `Fecha de la última sincronización ${tableName}:`,
+        new Date(ms).toLocaleString()
       );
-      return timestamp;
+      return ms;
     }
-    console.log(`No se encontraron registros de sincronización para ${tableName}`);
+    console.log(`No hay historial de sincronización para ${tableName}`);
   } catch (error) {
-    console.error('Error al obtener el historial de sincronización:', error);
+    console.error(`Error al obtener sincronización para ${tableName}:`, error);
   }
   return 0;
 };
@@ -63,15 +68,14 @@ const needsUpdate = (local, remote) => {
 const sincronizarClientes = async () => {
   if (syncInProgress) return;
 
-  const INTERVALO = 0 * 20 * 1000; // 1 hora
-
   const tableName = 't_clientes';
+  const lastSyncTimestamp = await getLastSync(tableName);
+  const INTERVALO = 12 * 60 * 60 * 1000;
 
-  const lastSync = await getLastSync(tableName);
-  if (Date.now() - lastSync < INTERVALO) {
+  if (Date.now() - lastSyncTimestamp < INTERVALO) {
     console.log(
       `Sincronización de descuentos omitida, faltan ${Math.round(
-        (INTERVALO - (Date.now() - lastSync)) / 1000 / 60
+        (INTERVALO - (Date.now() - lastSyncTimestamp)) / 1000 / 60
       )} minutos`
     );
     return;
@@ -201,6 +205,7 @@ const sincronizarClientes = async () => {
     await sincronizarDescuentos();
     await sincronizarBancos();
     await sincronizarProductosOfertas();
+    await syncHistory(tableName);
 
     console.log('Sincronización de clientes completada.');
   } catch (error) {
