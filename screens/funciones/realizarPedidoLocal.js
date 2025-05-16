@@ -18,8 +18,12 @@ export const realizarPedidoLocal = async ({
   setBalanceCliente,
   setDescuentoCredito,
   navigation,
-  creditoDisponible
+  creditoDisponible,
 }) => {
+
+  
+
+
   // Primero verificamos que haya pedido seleccionado
   if (!pedido || Object.keys(pedido).length === 0) {
     Alert.alert("Error", "No has seleccionado ningún producto");
@@ -27,14 +31,43 @@ export const realizarPedidoLocal = async ({
   }
 
   // Convertir el objeto 'pedido' en un array de detalles
-  const productosPedido = Object.entries(pedido).map(([f_referencia, data]) => ({
-    f_referencia: parseInt(f_referencia, 10),
-    cantidad: data.cantidad,
-    f_precio: data.f_precio5,
-  }));
+  // ① Generamos un array que incluye tanto ítems pagados como regalos
+  const productosPedido = Object.entries(pedido).flatMap(([f_referencia, data]) => {
+    const refNum = parseInt(f_referencia, 10);
+    const lineas = [];
+
+    // — Línea pagada (solo si no es ítem de regalo de cross-SKU)
+    if (!data.isGift) {
+      lineas.push({
+        f_referencia: refNum,
+        cantidad: data.cantidad,
+        f_precio: data.f_precio5,
+      });
+    }
+
+    // — Si es self-offer, añadimos la cantidad gratis en precio 0
+    if (data.freeCantidad > 0) {
+      lineas.push({
+        f_referencia: refNum,
+        cantidad: data.freeCantidad,
+        f_precio: 0,
+      });
+    }
+
+    // — Si es cross-SKU gift (isGift), añadimos esa línea gratis
+    if (data.isGift) {
+      lineas.push({
+        f_referencia: refNum,
+        cantidad: data.cantidad,
+        f_precio: 0,
+      });
+    }
+
+    return lineas;
+  });
 
   // Calcula totales
-  const computedDescuentoAplicado = Number((descuentoGlobal / 100) * totalBruto);
+  const computedDescuentoAplicado = Number((descuentoGlobal / 100) * Number(totalBruto.toFixed(2)));
   const computedItbis = Number(totalBruto - computedDescuentoAplicado) * 0.18;
   const computedTotalNeto = Number(totalBruto) + Number(computedItbis) - Number(computedDescuentoAplicado);
 
@@ -43,18 +76,18 @@ export const realizarPedidoLocal = async ({
     const d = new Date(date);
     // Restamos 4 horas en milisegundos (4 * 60 * 60 * 1000)
     const adjusted = new Date(d.getTime() - (4 * 60 * 60 * 1000));
-    
+
     // Usamos los métodos getUTC... para obtener la fecha ajustada sin interferencia de la zona local
     let day = adjusted.getUTCDate();
     let month = adjusted.getUTCMonth() + 1;
     const year = adjusted.getUTCFullYear();
-  
+
     if (day < 10) day = '0' + day;
     if (month < 10) month = '0' + month;
-  
+
     return `${day}/${month}/${year}`;
   }
-  
+
 
   // Genera identificador y fecha
   const documento = `PEDO-${Date.now()}`;
@@ -77,12 +110,12 @@ export const realizarPedidoLocal = async ({
           record.f_nodoc = parseInt(fechaActual);
           record.f_fecha = (fechaActual);
           record.f_hora_vendedor = horaActual;
-          record.f_itbis = computedItbis;
-          record.f_descuento = Number(computedDescuentoAplicado);
+          record.f_itbis = Number(computedItbis.toFixed(2));
+          record.f_descuento = Number(computedDescuentoAplicado.toFixed(2));
           record.f_porc_descuento = descuentoGlobal;
-          record.f_monto = Number(computedTotalNeto);
+          record.f_monto = Number(computedTotalNeto.toFixed(2));
           record.f_condicion = condicionSeleccionada ? condicionSeleccionada.id : null;
-          record.f_monto_bruto = Number(totalBruto);
+          record.f_monto_bruto = Number(totalBruto.toFixed(2));
           record.f_observacion = nota;
           record.f_estado_pedido = 1;
           record.f_vendedor = 83;
@@ -97,8 +130,8 @@ export const realizarPedidoLocal = async ({
             record.f_precio = Number(item.f_precio);
           });
         }
-        
-      await AsyncStorage.removeItem('pedido_guardado');
+
+        await AsyncStorage.removeItem('pedido_guardado');
       });
       console.log("Pedido guardado localmente con éxito");
 
@@ -116,8 +149,11 @@ export const realizarPedidoLocal = async ({
               setBalanceCliente(0);
               setDescuentoCredito(0);
               navigation.reset({
-                index: 0,
-                routes: [{ name: 'ConsultaPedidos' }]
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                  { name: 'MenuPrincipal' },        // primera en el historial
+                  { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                ]
               });
             },
             style: "cancel"

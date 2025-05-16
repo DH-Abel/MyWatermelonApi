@@ -40,11 +40,11 @@ export const enviarPedido = async ({
             f_nodoc: parseInt(fechaActual, 10),
             f_fecha: fechaActual,
             f_hora_vendedor: horaActual,
-            f_itbis: computedItbis,
-            f_descuento: computedDescuentoAplicado,
+            f_itbis: computedItbis.toFixed(2),
+            f_decuento: computedDescuentoAplicado.toFixed(2), //descuento sin la S en la API
             f_porc_descuento: descuentoGlobal,
-            f_monto: computedTotalNeto,
-            f_monto_bruto: totalBruto,
+            f_monto: computedTotalNeto.toFixed(2),
+            f_monto_bruto: totalBruto.toFixed(2),
             f_condicion: condicionSeleccionada ? condicionSeleccionada.id : null,
             f_estado_pedido: 1,
             f_vendedor: 83,
@@ -60,8 +60,8 @@ export const enviarPedido = async ({
                 f_cantidad: item.cantidad,
                 f_precio: item.f_precio,
             });
-           // console.log("Detalle enviado a la API:", responseDetalle.data);
-        } 
+            // console.log("Detalle enviado a la API:", responseDetalle.data);
+        }
 
         try {
             const facturaCollection = database.collections.get('t_factura_pedido');
@@ -73,7 +73,7 @@ export const enviarPedido = async ({
                         record.f_enviado = true;
                     });
                 });
-                
+
                 console.log(`Pedido(s) con documento ${documento} marcados como enviados en la base local.`);
             } else {
                 console.log(`No se encontró ningún pedido local con f_documento ${documento}`);
@@ -81,7 +81,7 @@ export const enviarPedido = async ({
         } catch (updateError) {
             console.log("Error al actualizar el pedido local:", updateError);
         }
-        
+
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
         if (currentRouteName !== 'ConsultaPedidos') {
@@ -92,10 +92,13 @@ export const enviarPedido = async ({
             setClienteSeleccionado(null);
             setBalanceCliente(0);
             setDescuentoCredito(0);
-            
+
             navigation.reset({
-                index: 0,
-                routes: [{ name: 'ConsultaPedidos' }],
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                    { name: 'MenuPrincipal' },        // primera en el historial
+                    { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                ]
             });
         }
 
@@ -114,10 +117,13 @@ export const enviarPedido = async ({
             setClienteSeleccionado(null);
             setBalanceCliente(0);
             setDescuentoCredito(0);
-            
+
             navigation.reset({
-                index: 0,
-                routes: [{ name: 'ConsultaPedidos' }],
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                    { name: 'MenuPrincipal' },        // primera en el historial
+                    { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                ]
             });
         }
     } finally {

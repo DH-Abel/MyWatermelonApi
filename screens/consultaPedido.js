@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, SafeAreaView,
-  Pressable, Modal, Alert, PermissionsAndroid,
+  Pressable, Modal, Alert, PermissionsAndroid,InteractionManager
 } from 'react-native';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
@@ -94,11 +94,13 @@ export default function Pedidos({ navigation }) {
 
   const cargarProductosMap = async () => {
     try {
+      console.log("Cargando productos...");
       const productosCollection = database.collections.get('t_productos_sucursal');
       const allproductos = await productosCollection.query().fetch();
       const mapping = {};
       allproductos.forEach(producto => { mapping[producto.f_referencia] = producto._raw });
       setProductosMap(mapping);
+      console.log("Productos cargados");
     } catch (error) {
       console.error("Error al obtener los productos:", error);
     }
@@ -106,11 +108,13 @@ export default function Pedidos({ navigation }) {
 
   const cargarClientesMap = async () => {
     try {
+      console.log("Cargando clientes...");
       const clientesCollection = database.collections.get('t_clientes');
       const allClientes = await clientesCollection.query().fetch();
       const mappingClientes = {};
       allClientes.forEach(cliente => { mappingClientes[cliente.f_id] = cliente._raw });
       setClientesMap(mappingClientes);
+      console.log("Clientes cargados");
     } catch (error) {
       console.error("Error al obtener los clientes:", error);
     }
@@ -264,15 +268,23 @@ export default function Pedidos({ navigation }) {
 
 
   useEffect(() => {
-    const facturaCollection = database.collections.get('t_factura_pedido');
-    const subscription = facturaCollection.query().observe().subscribe((allPedidos) => {
+  const facturaCollection = database.collections.get('t_factura_pedido');
+  const subscription = facturaCollection
+    .query()
+    .observe()
+    .subscribe((allPedidos) => {
       setFullPedidos(allPedidos);
       setLoading(false);
+
+      // ⇨ cargar mapas solo después de que la UI haya respondido
+      InteractionManager.runAfterInteractions(() => {
+        cargarProductosMap();
+        cargarClientesMap();
+      });
     });
-    cargarProductosMap();
-    cargarClientesMap();
-    return () => subscription.unsubscribe();
-  }, []);
+
+  return () => subscription.unsubscribe();
+}, []);
 
 
   useEffect(() => {

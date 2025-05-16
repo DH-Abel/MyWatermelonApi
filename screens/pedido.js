@@ -71,6 +71,7 @@ export default function Pedido({
   const itbis = (totalBruto - descuentoAplicado).toFixed(2) * 0.18;
   const totalNeto = Number(totalBruto.toFixed(2)) + Number(itbis.toFixed(2)) - Number(descuentoAplicado.toFixed(2));
 
+
   const realizarPedidoLocalWrapper = async () => {
     if (isEditing) {
       try {
@@ -113,8 +114,11 @@ export default function Pedido({
         });
         Alert.alert("Pedido actualizado con éxito");
         navigation.reset({
-          index: 0,
-          routes: [{ name: 'ConsultaPedidos' }]
+          index: 1,
+          routes: [
+            { name: 'MenuPrincipal' },
+            { name: 'ConsultaPedidos' }
+          ]
         });
       } catch (error) {
         console.error("Error al actualizar el pedido:", error);
@@ -661,22 +665,22 @@ export default function Pedido({
                       ({data.f_referencia}) - {data.f_referencia_suplidor}
                     </Text>
                     <Text style={pedidoStyles.modalItemDescription}>{data.f_descripcion}</Text>
-                          {/*  Paid units */}
-       <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
-      <Text style={pedidoStyles.modalItemInfo}>
-        Precio unit.: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
-      </Text>
-      {/*  Free units (self-offer) */}
-      {data.freeCantidad > 0 && (
-        <>
-          <Text style={[pedidoStyles.modalItemInfo, { color: 'green' }]}>
-            Gratis: {data.freeCantidad}
-          </Text>
-          <Text style={[pedidoStyles.modalItemInfo, { color: 'green' }]}>
-            Precio unit.: {formatear(0)} | Total: 0
-          </Text>
-        </>
-       )}
+                    {/*  Paid units */}
+                    <Text style={pedidoStyles.modalItemInfo}>Cantidad: {data.cantidad}</Text>
+                    <Text style={pedidoStyles.modalItemInfo}>
+                      Precio unit.: {formatear(data.f_precio5)} | Total: {formatear(data.f_precio5 * data.cantidad)}
+                    </Text>
+                    {/*  Free units (self-offer) */}
+                    {data.freeCantidad > 0 && (
+                      <>
+                        <Text style={[pedidoStyles.modalItemInfo, { color: 'green' }]}>
+                          Gratis: {data.freeCantidad}
+                        </Text>
+                        <Text style={[pedidoStyles.modalItemInfo, { color: 'green' }]}>
+                          Precio unit.: {formatear(0)} | Total: 0
+                        </Text>
+                      </>
+                    )}
 
                   </View>
                   <View style={pedidoStyles.modalItemActions}>
