@@ -1,4 +1,4 @@
-import React, { useState, useEffect,memo  } from 'react';
+import React, { useState, useEffect,memo,useContext  } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import { FlashList } from '@shopify/flash-list';
@@ -8,6 +8,8 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
 import  sincronizarClientes  from '../../src/sincronizaciones/clientesLocal.js';
+import { MapsContext } from './mapsContext.js';
+
 
 const SelectClientScreen = () => {
   const navigation = useNavigation();
@@ -15,56 +17,74 @@ const SelectClientScreen = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // --- NUEVO: obtenemos el mapa 'clientes' precargado
+  const { clientes: clientesMap } = useContext(MapsContext);
+
+  // --- reemplazamos la lista local por la que viene del contexto
+  //    convirtiendo el mapa en array
+  const clientesArray = Object.values(clientesMap);
+
+  // filtro en memoria según el texto de búsqueda
+  const clientesFiltrados = clientesArray.filter(c =>
+    c.f_nombre.toLowerCase().includes(searchTextClientes.toLowerCase()) ||
+    (c.f_id?.toString().toLowerCase() || '').includes(searchTextClientes.toLowerCase())
+  );
+
+  // --- mantenemos las funciones originales en caso de necesitar sincronizar manualmente ---
   const cargarClientesLocales = async () => {
     try {
-      const clientesLocales = await database.collections.get('t_clientes').query().fetch();
+      const clientesLocales = await database
+        .collections.get('t_clientes')
+        .query()
+        .fetch();
       setClientes(clientesLocales);
     } catch (error) {
       console.error('Error al cargar clientes locales:', error);
     }
   };
 
-  // Función para sincronizar y luego cargar clientes locales
   const cargarClientes = async () => {
-    // Primero carga la data local
+    setLoading(true);
     await cargarClientesLocales();
-
-    // Luego, si hay conexión, sincroniza y recarga la data local
     const netState = await NetInfo.fetch();
     if (netState.isConnected) {
       try {
         await sincronizarClientes();
         await cargarClientesLocales();
       } catch (error) {
-        console.error("Error al sincronizar, se mantienen los clientes locales:", error);
+        console.error('Error al sincronizar, se mantienen los clientes locales:', error);
       }
     }
+    setLoading(false);
   };
 
-  useEffect(() => {
-    // Elimina el fetch directo de la API si quieres que la fuente principal sea la base de datos local
-    cargarClientes();
-  }, []);
+  // ya no dispararemos esta carga al montar: se usa el contexto
+  // useEffect(() => {
+  //   cargarClientes();
+  // }, []);
 
-  const clientesFiltrados = clientes.filter(cliente =>
-    cliente.f_nombre.toLowerCase().includes(searchTextClientes.toLowerCase()) ||
-    (cliente.f_id ? cliente.f_id.toString().toLowerCase() : '').includes(searchTextClientes.toLowerCase())
-  );
-
-  const handleSelect = (cliente) => {
+  const handleSelect = cliente => {
     navigation.replace('MainTabs', { clienteSeleccionado: cliente });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Selecciona un Cliente</Text>
-      <Pressable title="Cargar Clientes" onPress={cargarClientes} />
+
       <TextInput
         style={styles.input}
         placeholder="Buscar cliente..."
         value={searchTextClientes}
         onChangeText={setSearchTextClientes}
       />
+
+      {/* Si quieres un botón manual para recarga, puedes descomentarlo */}
+      {/* <Pressable onPress={cargarClientes} style={styles.button}>
+        <Text style={styles.buttonText}>
+          {loading ? 'Cargando...' : 'Recargar Clientes'}
+        </Text>
+      </Pressable> */}
+
       <View style={styles.listContainer2}>
         <FlashList
           data={clientesFiltrados}
@@ -79,11 +99,17 @@ const SelectClientScreen = () => {
                 <Text style={styles.itemText}>
                   ({item.f_id}) {item.f_nombre}
                 </Text>
-                <Text style={styles.itemText}>Municipio: {item.f_d_municipio}</Text>
+                <Text style={styles.itemText}>
+                  Municipio: {item.f_d_municipio}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
-          ListEmptyComponent={<Text>No se encontraron clientes</Text>}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {loading ? 'Cargando clientes...' : 'No se encontraron clientes'}
+            </Text>
+          }
         />
       </View>
     </View>

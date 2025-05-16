@@ -18,6 +18,7 @@ import SelectedClienteCobranza from '../components/selectedClienteCobranza';
 import ConfirmarCobranza from '../confirmarCobranza';
 import ConsultaRecibos from "../consultaRecibos";
 import MenuPrincipal from "../menu";
+import { MapsContext, MapsProvider } from "../components/mapsContext";
 
 
 enableScreens();
@@ -26,6 +27,7 @@ const Stack = createNativeStackNavigator();
 
 export default function MyStack() {
     return (
+      <MapsProvider>
         <NavigationContainer>
         <Stack.Navigator initialRouteName="MenuPrincipal" screenOptions={{ headerShown: false }}>
           {/* Menu Principal */}
@@ -44,5 +46,6 @@ export default function MyStack() {
           <Stack.Screen name="PrinterExample" component={PrinterExample} />
         </Stack.Navigator>
       </NavigationContainer>
+      </MapsProvider>
     );
 }

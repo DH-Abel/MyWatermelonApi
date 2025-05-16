@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, SafeAreaView,
   Pressable, Modal, Alert, PermissionsAndroid,InteractionManager
@@ -15,9 +15,7 @@ import sincronizarEstado from '../src/sincronizaciones/estadoPedido';
 import { PrinterExample } from './funciones/print'
 import { printTest } from './funciones/print';
 import { rPedido } from './reportes/rPedido';
-
-
-
+import { MapsContext } from './components/mapsContext';
 
 
 export default function Pedidos({ navigation }) {
@@ -37,8 +35,11 @@ export default function Pedidos({ navigation }) {
   const [detallePedido, setDetallePedido] = useState([]);
   const [detalleLoading, setDetalleLoading] = useState(false);
 
-  const [productosMap, setProductosMap] = useState({});
-  const [clientesMap, setClientesMap] = useState({});
+  //const [productosMap, setProductosMap] = useState({});
+  //const [clientesMap, setClientesMap] = useState({});
+
+
+ const { productos: productosMap, clientes: clientesMap } = useContext(MapsContext);
 
 
   const parseDateFromDDMMYYYY = (dateStr) => {
@@ -267,24 +268,31 @@ export default function Pedidos({ navigation }) {
 
 
 
-  useEffect(() => {
+  // 1) Solo suscripción a pedidos:
+useEffect(() => {
   const facturaCollection = database.collections.get('t_factura_pedido');
   const subscription = facturaCollection
     .query()
     .observe()
-    .subscribe((allPedidos) => {
+    .subscribe(allPedidos => {
       setFullPedidos(allPedidos);
       setLoading(false);
-
-      // ⇨ cargar mapas solo después de que la UI haya respondido
-      InteractionManager.runAfterInteractions(() => {
-        cargarProductosMap();
-        cargarClientesMap();
-      });
     });
-
   return () => subscription.unsubscribe();
 }, []);
+
+// 2) Carga de mapas *una sola vez* al montar el componente
+// useEffect(() => {
+//   let isActive = true;
+//   InteractionManager.runAfterInteractions(async () => {
+//     if (!isActive) {
+//       return;
+//     }
+//     await cargarProductosMap();
+//     await cargarClientesMap();
+//   });
+//   return () => { isActive = false; };
+// }, []);
 
 
   useEffect(() => {
