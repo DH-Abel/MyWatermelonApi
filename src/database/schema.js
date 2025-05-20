@@ -188,6 +188,8 @@ export const mySchema = appSchema({
         { name: 'f_tipo', type: 'string' },
         { name: 'f_nodoc', type: 'number' },
         { name: 'f_monto', type: 'number' },
+        { name: 'f_descuento_transp', type: 'number' }, //monto del descuento si es transparentado en la factura
+        { name: 'f_descuento_nc', type: 'number' }, //monto del descuento devuelto si es por nota de credito
         { name: 'f_itbis', type: 'number' },
         { name: 'f_fecha', type: 'string' },
         { name: 'f_hora', type: 'string' },
@@ -212,7 +214,8 @@ export const mySchema = appSchema({
         { name: 'f_referencia', type: 'number' },
         { name: 'f_precio', type: 'number' },
         { name: 'f_cantidad', type: 'number' },
-        { name: 'f_itbis', type: 'number' }
+        { name: 'f_itbis', type: 'number' },
+        { name: 'f_descuento', type: 'number' }, //monto del descuento general por producto
       ]
     }),
     tableSchema({
@@ -222,8 +225,39 @@ export const mySchema = appSchema({
         { name: 'f_descripcion', type: 'string' }
       ]
     }),
+    tableSchema({
+      name: 't_concepto_devolucion',
+      columns: [
+        { name: 'f_id', type: 'number' },
+        { name: 'f_concepto', type: 'string' }
+      ]
+    }),
+    tableSchema({
+      name: 't_detalle_factura',
+      columns: [
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_cliente', type: 'number' },
+        { name: 'f_referencia', type: 'number' },
+        { name: 'f_cantidad', type: 'number' },
+        { name: 'f_precio', type: 'number' },
+        { name: 'f_itbs', type: 'number' },
+        { name: 'f_qty_devuelta', type: 'number' },
+      ]
+    }),
+       tableSchema({
+      name: 't_factura',
+      columns: [
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_cliente', type: 'number' },
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_itbis', type: 'number' },
+        { name: 'f_descuento', type: 'number' },
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_descuento_transp', type: 'number' },
+        { name: 'f_descuento_nc', type: 'number' },
 
-
+      ]
+    }),
   ]
 
 });

@@ -54,6 +54,7 @@ export const consultaStyles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+    marginBottom: 2,
   },
   dateButton: {
     padding: 10,
@@ -213,6 +214,15 @@ export const consultaStyles = StyleSheet.create({
     marginLeft: 8,
     padding: 4,
   },
+  searchInput:{
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+   
+  }
 
 
 });

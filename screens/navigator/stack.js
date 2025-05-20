@@ -18,7 +18,15 @@ import SelectedClienteCobranza from '../components/selectedClienteCobranza';
 import ConfirmarCobranza from '../confirmarCobranza';
 import ConsultaRecibos from "../consultaRecibos";
 import MenuPrincipal from "../menu";
+import ConsultaDevoluciones from "../consultaDevoluciones";
+import SelectClientesDev from "../components/selectclienteDev";
+import SelectedClienteDev from "../components/selectclienteDev";
+import Devoluciones from "../devoluciones";
+import MainTabsDevoluciones from "../navigator/mainTabsDevoluciones";
+
 import { MapsContext, MapsProvider } from "../components/mapsContext";
+
+
 
 
 enableScreens();
@@ -44,6 +52,13 @@ export default function MyStack() {
           <Stack.Screen name="Pedido" component={Pedido} />
           <Stack.Screen name="DetallesPedido" component={DetallesPedido} />
           <Stack.Screen name="PrinterExample" component={PrinterExample} />
+          {/* Flujo de devoluciones */}
+          <Stack.Screen name="ConsultaDevoluciones" component={ConsultaDevoluciones} />
+          <Stack.Screen name="SelectClientesDev" component={SelectClientesDev} />
+          <Stack.Screen name="MainTabsDevoluciones" component={MainTabsDevoluciones} />
+          <Stack.Screen name="SelectedClienteDev" component={SelectedClienteDev} />
+          <Stack.Screen name="Devoluciones" component={Devoluciones} />
+
         </Stack.Navigator>
       </NavigationContainer>
       </MapsProvider>

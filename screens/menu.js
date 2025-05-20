@@ -26,7 +26,7 @@ export default function MenuPrincipal({ navigation }) {
   const menuItems = [
     { name: 'Pedidos', icon: 'cart-outline', target: 'ConsultaPedidos' },
     { name: 'Cobranza', icon: 'credit-card-outline', target: 'ConsultaRecibos' },
-    { name: 'Devoluciones', icon: 'swap-horizontal', target: 'Devoluciones' },
+    { name: 'Devoluciones', icon: 'swap-horizontal', target: 'ConsultaDevoluciones' },
     { name: 'Dejado de facturas', icon: 'file-document-outline', target: 'Facturas' },
     { name: 'Reportes', icon: 'chart-bar', target: 'Reportes' },
   ];

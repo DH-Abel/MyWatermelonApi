@@ -160,6 +160,8 @@ export class Devolucion extends Model {
   @text('f_tipo') f_tipo
   @field('f_nodoc') f_nodoc
   @field('f_monto') f_monto
+  @field('f_descuento_transp') f_descuento_transp
+  @field('f_descuento_nc') f_descuento_nc
   @field('f_itbis') f_itbis
   @text('f_fecha') f_fecha
   @text('f_hora') f_hora
@@ -184,14 +186,42 @@ export class DetalleDevolucion extends Model {
   @field('f_precio') f_precio
   @field('f_cantidad') f_cantidad
   @field('f_itbis') f_itbis
+  @field('f_descuento') f_descuento
 }
 
-export class EstadoDev extends Model{
+export class EstadoDev extends Model {
   static table = 't_estado_dev';
   @field('f_id') f_id
   @text('f_descripcion') f_descripcion
 }
 
+export class ConceptoDevolucion extends Model {
+  static table = 't_concepto_devolucion';
+  @field('f_id') f_id
+  @text('f_concepto') f_descripcion
+}
+
+export class DetalleFactura extends Model {
+  static table = 't_detalle_factura'
+  @text('f_documento') f_documento
+  @field('f_cliente') f_cliente
+  @field('f_referencia') f_referencia
+  @field('f_cantidad') f_cantidad
+  @field('f_precio') f_precio
+  @field('f_itbs') f_itbs
+  @field('f_qty_devuelta') f_qty_devuelta
+}
+export class Factura extends Model {
+ static table = 't_factura'
+ @text('f_documento') f_documento
+ @field('f_cliente') f_cliente
+ @field('f_monto') f_monto
+ @field('f_itbis') f_itbis
+ @field('f_descuento') f_descuento
+ @text('f_fecha') f_fecha
+ @field('f_descuento_transp') f_descuento_transp
+ @field('f_descuento_nc') f_descuento_nc
+}
 
 
 

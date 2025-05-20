@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Cambia esta URL por la IP de tu servidor
-const API_URL = 'http://10.0.0.38:3000';
+const API_URL = 'http://10.0.0.86:3000';
 
 const api = axios.create({
   baseURL: API_URL,
