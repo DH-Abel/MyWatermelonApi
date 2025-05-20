@@ -214,6 +214,8 @@ export class DetalleFactura extends Model {
 export class Factura extends Model {
  static table = 't_factura'
  @text('f_documento') f_documento
+ @field('f_nodoc') f_nodoc
+ @field('f_vendedor') f_vendedor
  @field('f_cliente') f_cliente
  @field('f_monto') f_monto
  @field('f_itbis') f_itbis

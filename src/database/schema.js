@@ -248,6 +248,8 @@ export const mySchema = appSchema({
       name: 't_factura',
       columns: [
         { name: 'f_documento', type: 'string' },
+        { name: 'f_nodoc', type: 'number' },
+        { name: 'f_vendedor', type: 'number' },
         { name: 'f_cliente', type: 'number' },
         { name: 'f_monto', type: 'number' },
         { name: 'f_itbis', type: 'number' },

@@ -95,8 +95,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
   // Filter invoices by date and search
   useEffect(() => {
-    const s = new Date(startDate); s.setHours(0,0,0,0);
-    const e = new Date(endDate); e.setHours(23,59,59,999);
+    const s = new Date(startDate); s.setHours(0, 0, 0, 0);
+    const e = new Date(endDate); e.setHours(23, 59, 59, 999);
     const filtered = invoices.filter(inv => {
       const d = new Date(inv.f_fecha);
       return d >= s && d <= e && inv.f_documento.includes(searchInvoice);
@@ -112,67 +112,67 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
   // Preload details only for given documentos
   // Preload details only for given documentos
-// Preload details only for given documentos
-const preloadDetails = async (docIDs) => {
-  setLoadingDetails(true);
-  try {
-    if (!docIDs.length) {
-      setDetailsMap({});
-      return;
+  // Preload details only for given documentos
+  const preloadDetails = async (docIDs) => {
+    setLoadingDetails(true);
+    try {
+      if (!docIDs.length) {
+        setDetailsMap({});
+        return;
+      }
+      // Traer filas de detalle y devoluciones locales
+      const detRows = await database.collections
+        .get('t_detalle_factura')
+        .query(Q.where('f_documento', Q.oneOf(docIDs)))
+        .fetch();
+      const devRows = await database.collections
+        .get('t_detalle_factura_dev_pda')
+        .query(Q.where('f_documento', Q.oneOf(docIDs)))
+        .fetch();
+      const prodRows = await database.collections
+        .get('t_productos_sucursal')
+        .query()
+        .fetch();
+
+      // Mapas auxiliares
+      const prodMap = new Map(
+        prodRows.map(p => [p._raw.f_referencia, p._raw.f_descripcion])
+      );
+      const retMap = {};
+      devRows.forEach(d => {
+        const key = `${d._raw.f_documento}_${d._raw.f_referencia}`;
+        retMap[key] = (retMap[key] || 0) + d._raw.f_qty_devuelta;
+      });
+
+      // Agrupar por documento y referencia, eliminando duplicados
+      const groupMap = {};
+      detRows.forEach(d => {
+        const raw = d._raw;
+        const doc = raw.f_documento;
+        const ref = raw.f_referencia;
+        const key = `${doc}_${ref}`;
+        const enriched = {
+          ...raw,
+          descripcion: prodMap.get(ref) || '',
+          qty_dev: retMap[key] || 0
+        };
+        if (!groupMap[doc]) groupMap[doc] = new Map();
+        groupMap[doc].set(ref, enriched);
+      });
+
+      // Convertir cada Map a array
+      const group = {};
+      Object.entries(groupMap).forEach(([doc, map]) => {
+        group[doc] = Array.from(map.values());
+      });
+
+      setDetailsMap(group);
+    } catch (err) {
+      console.error('Error preloading details:', err);
+    } finally {
+      setLoadingDetails(false);
     }
-    // Traer filas de detalle y devoluciones locales
-    const detRows = await database.collections
-      .get('t_detalle_factura')
-      .query(Q.where('f_documento', Q.oneOf(docIDs)))
-      .fetch();
-    const devRows = await database.collections
-      .get('t_detalle_factura_dev_pda')
-      .query(Q.where('f_documento', Q.oneOf(docIDs)))
-      .fetch();
-    const prodRows = await database.collections
-      .get('t_productos_sucursal')
-      .query()
-      .fetch();
-
-    // Mapas auxiliares
-    const prodMap = new Map(
-      prodRows.map(p => [p._raw.f_referencia, p._raw.f_descripcion])
-    );
-    const retMap = {};
-    devRows.forEach(d => {
-      const key = `${d._raw.f_documento}_${d._raw.f_referencia}`;
-      retMap[key] = (retMap[key] || 0) + d._raw.f_qty_devuelta;
-    });
-
-    // Agrupar por documento y referencia, eliminando duplicados
-    const groupMap = {};
-    detRows.forEach(d => {
-      const raw = d._raw;
-      const doc = raw.f_documento;
-      const ref = raw.f_referencia;
-      const key = `${doc}_${ref}`;
-      const enriched = {
-        ...raw,
-        descripcion: prodMap.get(ref) || '',
-        qty_dev: retMap[key] || 0
-      };
-      if (!groupMap[doc]) groupMap[doc] = new Map();
-      groupMap[doc].set(ref, enriched);
-    });
-
-    // Convertir cada Map a array
-    const group = {};
-    Object.entries(groupMap).forEach(([doc, map]) => {
-      group[doc] = Array.from(map.values());
-    });
-
-    setDetailsMap(group);
-  } catch (err) {
-    console.error('Error preloading details:', err);
-  } finally {
-    setLoadingDetails(false);
-  }
-};
+  };
 
 
   // Select invoice quickly
@@ -183,13 +183,13 @@ const preloadDetails = async (docIDs) => {
   };
 
   const onChangeReturn = (item, val) => {
-  const key = `${item.f_documento}_${item.f_referencia}`;
-  let qty = parseInt(val, 10) || 0;
-  const max = item.f_cantidad - item.qty_dev;
-  if (qty < 0) qty = 0;
-  if (qty > max) qty = max;
-  setToReturn(prev => ({ ...prev, [key]: qty }));
-};
+    const key = `${item.f_documento}_${item.f_referencia}`;
+    let qty = parseInt(val, 10) || 0;
+    const max = item.f_cantidad - item.qty_dev;
+    if (qty < 0) qty = 0;
+    if (qty > max) qty = max;
+    setToReturn(prev => ({ ...prev, [key]: qty }));
+  };
 
   // Confirm return
   const confirmReturn = async () => {
@@ -207,7 +207,7 @@ const preloadDetails = async (docIDs) => {
           items.forEach(item => {
             const key = `${item.f_documento}_${item.f_referencia}`;
             const qty = toReturn[key] || 0;
-            const dias = Math.floor((Date.now() - new Date(item.f_fecha)) / (1000*60*60*24));
+            const dias = Math.floor((Date.now() - new Date(item.f_fecha)) / (1000 * 60 * 60 * 24));
             const itbs = dias <= 30 ? item.f_itbs : 0;
             total += qty * (item.f_precio + itbs);
           });
@@ -237,7 +237,7 @@ const preloadDetails = async (docIDs) => {
     navigation.navigate('ConsultaDevoluciones');
   };
 
-  if (loadingInvoices) return <ActivityIndicator style={{flex:1}} size="large" />;
+  if (loadingInvoices) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -260,24 +260,24 @@ const preloadDetails = async (docIDs) => {
         <DateTimePickerModal
           isVisible={showStartPicker}
           mode="date"
-          onConfirm={d=>{setStartDate(d);setShowStartPicker(false);}}
-          onCancel={()=>setShowStartPicker(false)}
+          onConfirm={d => { setStartDate(d); setShowStartPicker(false); }}
+          onCancel={() => setShowStartPicker(false)}
         />
         <DateTimePickerModal
           isVisible={showEndPicker}
           mode="date"
-          onConfirm={d=>{setEndDate(d);setShowEndPicker(false);}}
-          onCancel={()=>setShowEndPicker(false)}
+          onConfirm={d => { setEndDate(d); setShowEndPicker(false); }}
+          onCancel={() => setShowEndPicker(false)}
         />
         <FlatList
           data={filteredInvoices}
-          keyExtractor={i=>i.f_documento}
-          renderItem={({item})=>(
+          keyExtractor={i => i.f_documento}
+          renderItem={({ item }) => (
             <Pressable
-              style={[styles.item, item.f_documento===selectedInvoice?.f_documento && styles.itemSelected]}
-              onPress={()=>onSelectInvoice(item)}
+              style={[styles.item, item.f_documento === selectedInvoice?.f_documento && styles.itemSelected]}
+              onPress={() => onSelectInvoice(item)}
             >
-              <Text style={styles.itemText}>{item.f_documento}</Text>
+              <Text style={styles.itemText}>{item.f_documento} - Monto: {formatear(item.f_monto)}</Text>
               <Text style={styles.itemSub}>{formatDMY(new Date(item.f_fecha))}</Text>
             </Pressable>
           )}
@@ -289,18 +289,28 @@ const preloadDetails = async (docIDs) => {
         {!loadingDetails && (selectedInvoice ? (
           <FlatList
             data={detailsMap[selectedInvoice.f_documento] || []}
-            keyExtractor={d=>`${d.f_documento}_${d.f_referencia}`}
-            renderItem={({item})=>(
-              <View style={styles.detailRow}>
-                <Text style={styles.detailText}>{item.descripcion}</Text>
-                <Text style={styles.detailSub}>Cant: {item.f_cantidad-item.qty_dev}</Text>
-              </View>
+            keyExtractor={d => `${d.f_documento}_${d.f_referencia}`}
+            renderItem={({ item }) => (
+              <SafeAreaView>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailText}>{item.descripcion}</Text>
+                <Text style={styles.detailSub}>({item.f_referencia}) {item.f_referencia_suplidor}</Text>
+                  <Text style={styles.detailSub}>Cant: {item.f_cantidad - item.qty_dev}</Text>
+
+                </View>
+              </SafeAreaView>
             )}
+          // ListFooterComponent={() => (
+          //   <View style={styles.detailRow}>
+          //     <Text style={styles.detailText}>Total:</Text>
+          //     <Text style={styles.detailSub}>{selectedInvoice.f_monto}</Text>
+          //   </View>
+          // )}
           />
         ) : (
           <Text style={styles.emptyText}>Seleccione una factura</Text>
         ))}
-        <Pressable onPress={()=>setShowModal(true)} style={styles.selectButton} disabled={!selectedInvoice}>
+        <Pressable onPress={() => setShowModal(true)} style={styles.selectButton} disabled={!selectedInvoice}>
           <Text style={styles.selectButtonText}>Seleccionar Productos a Devolver</Text>
         </Pressable>
       </View>
@@ -309,25 +319,25 @@ const preloadDetails = async (docIDs) => {
           <Text style={styles.modalTitle}>Detalle de Devolución</Text>
           <FlatList
             data={detailsMap[selectedInvoice?.f_documento] || []}
-            keyExtractor={d=>`${d.f_documento}_${d.f_referencia}`}
-            renderItem={({item})=>{
-              const key=`${item.f_documento}_${item.f_referencia}`;
+            keyExtractor={d => `${d.f_documento}_${d.f_referencia}`}
+            renderItem={({ item }) => {
+              const key = `${item.f_documento}_${item.f_referencia}`;
               return <View style={styles.detailRow}>
                 <Text style={styles.detailText}>{item.descripcion}</Text>
                 <TextInput
                   style={styles.input}
-                  value={(toReturn[key]||'').toString()}
-                  onChangeText={val=>onChangeReturn(item,val)}
+                  value={(toReturn[key] || '').toString()}
+                  onChangeText={val => onChangeReturn(item, val)}
                   keyboardType="numeric"
                 />
               </View>;
             }}
           />
           <Picker selectedValue={selectedMotivo} onValueChange={setSelectedMotivo} style={styles.picker}>
-            {motives.map(m=><Picker.Item key={m.f_id} label={m.f_concepto} value={m.f_id}/>)}
+            {motives.map(m => <Picker.Item key={m.f_id} label={m.f_concepto} value={m.f_id} />)}
           </Picker>
           <Pressable onPress={confirmReturn} style={styles.footerButton}><Text style={styles.footerText}>Registrar Devolución</Text></Pressable>
-          <Pressable onPress={()=>setShowModal(false)} style={styles.cancelButton}><Text>Cancelar</Text></Pressable>
+          <Pressable onPress={() => setShowModal(false)} style={styles.cancelButton}><Text>Cancelar</Text></Pressable>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -335,28 +345,28 @@ const preloadDetails = async (docIDs) => {
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1},
-  halfContainer:{flex:1,borderBottomWidth:1,borderColor:'#ccc'},
-  sectionTitle:{fontSize:16,fontWeight:'bold',padding:8,backgroundColor:'#f0f0f0'},
-  filterRow:{flexDirection:'row',padding:8},
-  searchInput:{flex:1,borderWidth:1,borderColor:'#ccc',borderRadius:4,padding:4,marginRight:8},
-  dateButton:{padding:6,borderWidth:1,borderColor:'#ccc',borderRadius:4,marginLeft:4},
-  item:{padding:8,borderBottomWidth:1,borderColor:'#eee'},
-  itemSelected:{backgroundColor:'#d0e8ff'},
-  itemText:{fontSize:14,fontWeight:'600'},
-  itemSub:{fontSize:12,color:'#555'},
-  detailRow:{flexDirection:'row',alignItems:'center',padding:8,borderBottomWidth:1,borderColor:'#eee'},
-  detailText:{flex:1,fontSize:14},
-  detailSub:{fontSize:12,color:'#555',marginLeft:8},
-  loadingText:{textAlign:'center',padding:8},
-  selectButton:{padding:12,backgroundColor:'#4682B4',alignItems:'center',margin:8,borderRadius:4},
-  selectButtonText:{color:'#fff',fontSize:16},
-  emptyText:{padding:16,textAlign:'center',color:'#666'},
-  modalContainer:{flex:1,padding:16},
-  modalTitle:{fontSize:18,fontWeight:'bold',marginBottom:12},
-  input:{width:60,borderWidth:1,borderColor:'#ccc',borderRadius:4,padding:4},
-  picker:{marginVertical:8},
-  footerButton:{padding:12,backgroundColor:'#4682B4',alignItems:'center',borderRadius:4,marginVertical:8},
-  footerText:{color:'#fff',fontSize:16},
-  cancelButton:{padding:12,alignItems:'center'}
+  container: { flex: 1 },
+  halfContainer: { flex: 1, borderBottomWidth: 1, borderColor: '#ccc' },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', padding: 8, backgroundColor: '#f0f0f0' },
+  filterRow: { flexDirection: 'row', padding: 8 },
+  searchInput: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 4, marginRight: 8 },
+  dateButton: { padding: 6, borderWidth: 1, borderColor: '#ccc', borderRadius: 4, marginLeft: 4 },
+  item: { padding: 8, borderBottomWidth: 1, borderColor: '#eee' },
+  itemSelected: { backgroundColor: '#d0e8ff' },
+  itemText: { fontSize: 14, fontWeight: '600' },
+  itemSub: { fontSize: 12, color: '#555' },
+  detailRow: { flexDirection: 'row', alignItems: 'center', padding: 8, borderBottomWidth: 1, borderColor: '#eee' },
+  detailText: { flex: 1, fontSize: 14 },
+  detailSub: { fontSize: 12, color: '#555', marginLeft: 8 },
+  loadingText: { textAlign: 'center', padding: 8 },
+  selectButton: { padding: 12, backgroundColor: '#4682B4', alignItems: 'center', margin: 8, borderRadius: 4 },
+  selectButtonText: { color: '#fff', fontSize: 16 },
+  emptyText: { padding: 16, textAlign: 'center', color: '#666' },
+  modalContainer: { flex: 1, padding: 16 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  input: { width: 60, borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 4 },
+  picker: { marginVertical: 8 },
+  footerButton: { padding: 12, backgroundColor: '#4682B4', alignItems: 'center', borderRadius: 4, marginVertical: 8 },
+  footerText: { color: '#fff', fontSize: 16 },
+  cancelButton: { padding: 12, alignItems: 'center' }
 });

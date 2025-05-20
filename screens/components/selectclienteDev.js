@@ -111,6 +111,9 @@ export default function SelectClientesDev({ navigation, route }) {
                 data={filtered}
                 keyExtractor={item => item.f_id.toString()}
                 estimatedItemSize={100}
+                initialNumToRender={8}
+                windowSize={3}
+                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                     <Pressable
                         style={styles.item}

@@ -50,6 +50,8 @@ const cargarDevoluciones = async clienteId => {
       const doc = h.f_documento;
       const local = localHdrMap.get(doc);
       // Normalizar campos
+      const nodoc = parseInt(h.f_nodoc, 10);
+      const f_vendedor = parseInt(h.f_vendedor, 10);
       const cliente = parseInt(h.f_cliente, 10);
       const monto = parseFloat(h.f_monto);
       const itbis = parseFloat(h.f_itbis);
@@ -62,6 +64,8 @@ const cargarDevoluciones = async clienteId => {
         // Actualizar si cambió algo
         const changed =
           local.f_cliente !== cliente ||
+          local.f_nodoc !== nodoc ||
+          local.f_vendedor !== f_vendedor ||
           local.f_monto !== monto ||
           local.f_itbis !== itbis ||
           local.f_descuento !== desc ||
@@ -71,6 +75,8 @@ const cargarDevoluciones = async clienteId => {
         if (changed) {
           actions.push(
             local.prepareUpdate(rec => {
+              rec._raw.f_nodoc = nodoc;
+              rec._raw.f_vendedor = f_vendedor;
               rec._raw.f_cliente = cliente;
               rec._raw.f_monto = monto;
               rec._raw.f_itbis = itbis;
@@ -86,6 +92,8 @@ const cargarDevoluciones = async clienteId => {
         actions.push(
           colHdr.prepareCreate(rec => {
             rec._raw.f_documento = doc;
+            rec._raw.f_nodoc = nodoc;
+            rec._raw.f_vendedor = f_vendedor;
             rec._raw.f_cliente = cliente;
             rec._raw.f_monto = monto;
             rec._raw.f_itbis = itbis;
