@@ -36,7 +36,7 @@ export default function MainTabsDevoluciones() {
         },
       })}
     >
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Cliente"
         children={() => (
           <SelectedClienteDev
@@ -45,7 +45,7 @@ export default function MainTabsDevoluciones() {
           />
         )}
         options={{ title: 'Cliente' }}
-      />
+      /> */}
       <Tab.Screen
         name="Devoluciones"
         children={() => (

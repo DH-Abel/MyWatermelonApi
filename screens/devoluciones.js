@@ -39,12 +39,15 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
   // Current selection
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [clienteName, setClienteName] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [toReturn, setToReturn] = useState({});
 
   // Loading flags
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const [observacion, setObservacion] = useState('');
 
 
 
@@ -59,7 +62,6 @@ export default function Devoluciones({ clienteSeleccionado }) {
         .fetch();
       const list = rows.map(r => r._raw);
       setMotives(list);
-      if (list.length) setSelectedMotivo(list[0].f_id);
     })();
   }, []);
 
@@ -123,6 +125,19 @@ export default function Devoluciones({ clienteSeleccionado }) {
   );
   useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
+  // 2) Carga el nombre del cliente desde la tabla t_clientes cuando cambie clienteSeleccionado:
+  useEffect(() => {
+    (async () => {
+      if (clienteSeleccionado?.f_id) {
+        const rows = await database.collections
+          .get('t_clientes')
+          .query(Q.where('f_id', clienteSeleccionado.f_id))
+          .fetch();
+        if (rows.length) setClienteName(rows[0]._raw.f_nombre);
+      }
+    })();
+  }, [clienteSeleccionado]);
+
 
   // Preload details only for given documentos
   const preloadDetails = async (docIDs) => {
@@ -157,30 +172,27 @@ export default function Devoluciones({ clienteSeleccionado }) {
       });
 
       // Agrupar por documento y referencia, eliminando duplicados
+      // Agrupar y deduplicar por documento+referencia+cantidad
       const groupMap = {};
       detRows.forEach(d => {
         const raw = d._raw;
         const doc = raw.f_documento;
-        const ref = raw.f_referencia;
-        const key = `${doc}_${ref}`;
+        const compKey = `${raw.f_documento}_${raw.f_referencia}_${raw.f_cantidad}`;
         const enriched = {
           ...raw,
-          descripcion: prodMap.get(ref)?.f_descripcion || '',
-          referencia_suplidor: prodMap.get(ref)?.f_referencia_suplidor || '',
-          qty_dev: retMap[key] || 0
+          descripcion: prodMap.get(raw.f_referencia)?.f_descripcion || '',
+          referencia_suplidor: prodMap.get(raw.f_referencia)?.f_referencia_suplidor || '',
+          qty_dev: retMap[`${raw.f_documento}_${raw.f_referencia}`] || 0
         };
         if (!groupMap[doc]) groupMap[doc] = new Map();
-        groupMap[doc].set(ref, enriched);
+        groupMap[doc].set(compKey, enriched);
       });
-
-      // Convertir cada Map a array
+      // Convertir cada Map a array único
       const group = {};
-      Object.entries(groupMap).forEach(([doc, map]) => {
-        group[doc] = Array.from(map.values());
+      Object.entries(groupMap).forEach(([doc, m]) => {
+        group[doc] = Array.from(m.values());
       });
-
       setDetailsMap(group);
-      console.log('Detalles precargados:', group);
     } catch (err) {
       console.error('Error preloading details:', err);
     } finally {
@@ -197,7 +209,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
   };
 
   const onChangeReturn = (item, val) => {
-    const key = `${item.f_documento}_${item.f_referencia}`;
+    const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
     let qty = parseInt(val, 10) || 0;
     const max = item.f_cantidad - item.qty_dev;
     if (qty < 0) qty = 0;
@@ -207,6 +219,10 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
   // Confirm return
   const confirmReturn = async () => {
+    if (!selectedMotivo) {
+      Alert.alert('Atención', 'Debe seleccionar un motivo antes de registrar.');
+      return;
+    }
     setShowModal(false);
     const items = detailsMap[selectedInvoice.f_documento] || [];
     await database.write(async () => {
@@ -219,7 +235,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
           r.f_fecha = formatDMY(new Date());
           let total = 0;
           items.forEach(item => {
-            const key = `${item.f_documento}_${item.f_referencia}`;
+            const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
             const qty = toReturn[key] || 0;
             const dias = Math.floor((Date.now() - new Date(item.f_fecha)) / (1000 * 60 * 60 * 24));
             const itbs = dias <= 30 ? item.f_itbs : 0;
@@ -230,7 +246,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
           r.f_concepto = selectedMotivo;
         });
       items.forEach(item => {
-        const key = `${item.f_documento}_${item.f_referencia}`;
+        const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
         const qty = toReturn[key] || 0;
         if (qty > 0) {
           database.collections
@@ -256,7 +272,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.halfContainer}>
-        <Text style={styles.sectionTitle}>Facturas</Text>
+        <Text style={styles.sectionTitle}>{clienteName}</Text>
         <View style={styles.filterRow}>
           <TextInput
             style={styles.searchInput}
@@ -309,7 +325,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
         {!loadingDetails && (selectedInvoice ? (
           <FlatList
             data={detailsMap[selectedInvoice.f_documento] || []}
-            keyExtractor={d => `${d.f_documento}_${d.f_referencia}`}
+            keyExtractor={(d, index) => `${d.f_documento}_${d.f_referencia}_${d.f_cantidad}_${index}`}
             renderItem={({ item }) => (
               <SafeAreaView>
                 <View style={styles.detailRow}>
@@ -338,25 +354,48 @@ export default function Devoluciones({ clienteSeleccionado }) {
           <Text style={styles.modalTitle}>Detalle de Devolución</Text>
           <FlatList
             data={detailsMap[selectedInvoice?.f_documento] || []}
-            keyExtractor={d => `${d.f_documento}_${d.f_referencia}`}
+            keyExtractor={(d, index) => `${d.f_documento}_${d.f_referencia}_${d.f_cantidad}_${index}`}
             renderItem={({ item }) => {
-              const key = `${item.f_documento}_${item.f_referencia}`;
+              const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
               return <View style={styles.detailRow}>
                 <Text style={styles.detailText}>({item.f_referencia}){item.descripcion} ({item.referencia_suplidor})</Text>
-                <Text style={styles.detailSub}>Cant: {item.f_cantidad - item.qty_dev} </Text>
+                <View>
+                  <Text style={styles.detailSub}>Cant: {item.f_cantidad - item.qty_dev} </Text>
+                  <Text style={styles.detailSub}>Precio: {item.f_precio} </Text>
+                  <Text style={styles.detailSub}>Itbis: {item.f_itbis}</Text>
+                </View>
+                
                 <TextInput
                   style={styles.input}
                   value={(toReturn[key] || '').toString()}
                   onChangeText={val => onChangeReturn(item, val)}
                   keyboardType="numeric"
                 />
-              </View>;
+              </View>
             }}
           />
-          <Picker selectedValue={selectedMotivo} onValueChange={setSelectedMotivo} style={styles.picker}>
-            {motives.map(m => <Picker.Item key={m.f_id} label={m.f_concepto} value={m.f_id} />)}
+          <Picker
+            selectedValue={selectedMotivo}
+            onValueChange={setSelectedMotivo}
+            mode="dropdown"
+            style={{ height: 50, width: '100%', marginVertical: 8 }}
+          >
+            <Picker.Item
+              label="— Seleccione un motivo —"
+              value={null}
+              key="placeholder"
+              enabled={false}
+            />
+            {motives.map(m => (
+              <Picker.Item key={m.f_id} label={m.f_concepto} value={m.f_id} />
+            ))}
           </Picker>
-          <Pressable onPress={confirmReturn} style={styles.footerButton}><Text style={styles.footerText}>Registrar Devolución</Text></Pressable>
+          <TextInput placeholder="Observaciones" value={observacion} onChangeText={setObservacion}>
+
+          </TextInput>
+
+          <Pressable onPress={confirmReturn} style={[styles.footerButton, !selectedMotivo && { opacity: 0.5 }]}
+            disabled={!selectedMotivo}><Text style={styles.footerText}>Registrar Devolución</Text></Pressable>
           <Pressable onPress={() => setShowModal(false)} style={styles.cancelButton}><Text>Cancelar</Text></Pressable>
         </SafeAreaView>
       </Modal>

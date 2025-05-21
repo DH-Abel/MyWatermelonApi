@@ -198,7 +198,7 @@ export class EstadoDev extends Model {
 export class ConceptoDevolucion extends Model {
   static table = 't_concepto_devolucion';
   @field('f_id') f_id
-  @text('f_concepto') f_descripcion
+  @text('f_concepto') f_concepto
 }
 
 export class DetalleFactura extends Model {

@@ -15,6 +15,7 @@ import { consultaStyles } from '../../assets/consultaStyles';
 import { styles } from '../../assets/styles';
 import NetInfo from '@react-native-community/netinfo';
 import sincronizarClientes from '../../src/sincronizaciones/clientesLocal';
+import sincronizarConceptosDev from '../../src/sincronizaciones/conceptoDev';
 import { FlashList } from '@shopify/flash-list';
 
 export default function SelectClientesDev({ navigation, route }) {
@@ -44,6 +45,7 @@ export default function SelectClientesDev({ navigation, route }) {
             try {
                 await sincronizarClientes();
                 await cargarClientesLocales();
+                await sincronizarConceptosDev();
             } catch (err) {
                 console.error('Error al sincronizar clientes:', err);
             }

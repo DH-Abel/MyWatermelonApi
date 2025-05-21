@@ -5,7 +5,6 @@ import { syncHistory } from './syncHistory';
 
 let syncInProgress = false;
 
-
 const getLastSync = async (tableName) => {
   try {
     const syncCollection = database.collections.get('t_sync');
@@ -27,15 +26,15 @@ const toInt = (v) => {
   return isNaN(n) ? 0 : n;
 };
 
-const sincronizarBancos = async () => {
+const sincronizarConceptosDev = async () => {
   if (syncInProgress) return;
-  const nombreTabla = 't_bancos';
-  const INTERVALO = 150 * 0 * 0 * 1000; // 48 horas
+  const nombreTabla = 't_concepto_devolucion';
+  const INTERVALO = 500 * 10 * 10 * 1000; 
   const lastSync = await getLastSync(nombreTabla);
 
   if (Date.now() - lastSync < INTERVALO) {
     console.log(
-      `Sincronización de bancos omitida, faltan ${Math.round(
+      `Sincronización de conceptos dev omitida, faltan ${Math.round(
         (INTERVALO - (Date.now() - lastSync)) / 1000 / 60
       )} minutos`
     );
@@ -57,36 +56,33 @@ const sincronizarBancos = async () => {
       lastSync = new Date(0).toISOString();
     }
 
-    console.log('Sincronizando bancos…');
+    console.log('Sincronizando conceptos dev');
 
     // 1) Traer y normalizar remotos
-    const { data: raw } = await api.get(`/bancos/${encodeURIComponent(lastSync)}`);
+    const { data: raw } = await api.get(`/devoluciones/conceptos`);
     if (!Array.isArray(raw)) return;
     const remoteItems = raw.map(item => ({
-      idBanco: toInt(item.f_idbanco),
-      nombre: trimString(item.f_nombre),
-      cooperativa: trimString(item.f_cooperativa),
+      id: toInt(item.f_id),
+      concepto: trimString(item.f_concepto),
     }));
-    console.log(`Fetched ${remoteItems.length} bancos remotos.`);
+    console.log(`Fetched ${remoteItems.length} conceptos dev remotos.`);
 
     // 2) Leer locales
     const col = database.collections.get(nombreTabla);
     const locales = await col.query().fetch();
-    const localMap = new Map(locales.map(r => [r.f_idbanco, r]));
+    const localMap = new Map(locales.map(r => [r.f_id, r]));
 
     // 3) Preparar batch
     const batchActions = [];
     for (const b of remoteItems) {
-      const local = localMap.get(b.idBanco);
+      const local = localMap.get(b.id);
       if (local) {
         const changed =
-          local.f_nombre !== b.nombre ||
-          local.f_cooperativa !== b.cooperativa;
+          local.f_concepto !== b.concepto
         if (changed) {
           batchActions.push(
             local.prepareUpdate(record => {
-              record.f_nombre = b.nombre;
-              record.f_cooperativa = b.cooperativa;
+              record.f_concepto = b.concepto;
             })
           );
         }
@@ -94,10 +90,9 @@ const sincronizarBancos = async () => {
         batchActions.push(
           col.prepareCreate(record => {
             // ID interno de WatermelonDB
-            record._raw.id = String(b.idBanco);
-            record.f_idbanco = b.idBanco;
-            record.f_nombre = b.nombre;
-            record.f_cooperativa = b.cooperativa;
+            record._raw.id = String(b.id);
+            record.f_id = b.id;
+            record.f_concepto = b.concepto;
           })
         );
       }
@@ -107,20 +102,20 @@ const sincronizarBancos = async () => {
     await database.write(async () => {
       if (batchActions.length > 0) {
         await database.batch(batchActions);
-        console.log(`Batch ejecutado: ${batchActions.length} acciones.`);
+        console.log(`Batch concepto dev ejecutado: ${batchActions.length} acciones.`);
       } else {
-        console.log('No hay cambios de bancos que aplicar.');
+        console.log('No hay cambios de concepto dev que aplicar.');
       }
     });
 
     // 5) Registrar historial y finalizar
     await syncHistory(nombreTabla);
-    console.log('Sincronización de bancos completada.');
+    console.log('Sincronización de concepto dev completada.');
   } catch (error) {
-    console.error('Error sincronizando bancos:', error);
+    console.error('Error sincronizando concepto dev:', error);
   } finally {
     syncInProgress = false;
   }
 };
 
-export default sincronizarBancos;
+export default sincronizarConceptosDev;
