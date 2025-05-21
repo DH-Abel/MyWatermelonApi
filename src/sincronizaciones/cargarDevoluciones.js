@@ -158,6 +158,7 @@ if (actions.length) {
   });
 }
     console.log(`Sincronización completada: ${actions.length} acciones.`);
+  
     // 8) Registrar historial de sync
     await syncHistory('t_factura');
     await syncHistory('t_detalle_factura');

@@ -67,6 +67,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
   useEffect(() => {
     if (clienteSeleccionado?.f_id) loadInvoices();
     else {
+      setSearchText('');
+      setSearchInvoice('');
       setInvoices([]);
       setFilteredInvoices([]);
       setDetailsMap({});
@@ -178,6 +180,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
       });
 
       setDetailsMap(group);
+      console.log('Detalles precargados:', group);
     } catch (err) {
       console.error('Error preloading details:', err);
     } finally {
@@ -339,7 +342,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
             renderItem={({ item }) => {
               const key = `${item.f_documento}_${item.f_referencia}`;
               return <View style={styles.detailRow}>
-                <Text style={styles.detailText}>{item.descripcion}</Text>
+                <Text style={styles.detailText}>({item.f_referencia}){item.descripcion} ({item.referencia_suplidor})</Text>
+                <Text style={styles.detailSub}>Cant: {item.f_cantidad - item.qty_dev} </Text>
                 <TextInput
                   style={styles.input}
                   value={(toReturn[key] || '').toString()}
