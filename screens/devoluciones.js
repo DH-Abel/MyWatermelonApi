@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { Q } from '@nozbe/watermelondb';
 import cargarDevoluciones from '../src/sincronizaciones/cargarDevoluciones';
 import { formatear } from '../assets/formatear';
 import { useNavigation } from '@react-navigation/native';
+import debounce from 'lodash.debounce';
 
 export default function Devoluciones({ clienteSeleccionado }) {
   const navigation = useNavigation();
@@ -24,7 +25,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
   // Invoice states
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
-  const [searchInvoice, setSearchInvoice] = useState('');
+  const [searchInvoice, setSearchInvoice] = useState(null);
+  const [searchText, setSearchText] = useState('');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -43,6 +45,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
   // Loading flags
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+
 
   const formatDMY = date => date.toLocaleDateString('es-ES');
 
@@ -99,7 +103,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
     const e = new Date(endDate); e.setHours(23, 59, 59, 999);
     const filtered = invoices.filter(inv => {
       const d = new Date(inv.f_fecha);
-      return d >= s && d <= e && inv.f_documento.includes(searchInvoice);
+      return (d >= s && d <= e) || inv.f_nodoc.toString().includes(searchInvoice);
     });
     setFilteredInvoices(filtered);
     // preload details for filtered
@@ -110,8 +114,14 @@ export default function Devoluciones({ clienteSeleccionado }) {
     }
   }, [invoices, startDate, endDate, searchInvoice]);
 
-  // Preload details only for given documentos
-  // Preload details only for given documentos
+  // Debounce para la búsqueda
+  const debouncedSearch = useMemo(
+    () => debounce(val => setSearchInvoice(val), 700),
+    []
+  );
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+
+
   // Preload details only for given documentos
   const preloadDetails = async (docIDs) => {
     setLoadingDetails(true);
@@ -136,7 +146,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
       // Mapas auxiliares
       const prodMap = new Map(
-        prodRows.map(p => [p._raw.f_referencia, p._raw.f_descripcion])
+        prodRows.map(p => [p._raw.f_referencia, p._raw])
       );
       const retMap = {};
       devRows.forEach(d => {
@@ -153,7 +163,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
         const key = `${doc}_${ref}`;
         const enriched = {
           ...raw,
-          descripcion: prodMap.get(ref) || '',
+          descripcion: prodMap.get(ref)?.f_descripcion || '',
+          referencia_suplidor: prodMap.get(ref)?.f_referencia_suplidor || '',
           qty_dev: retMap[key] || 0
         };
         if (!groupMap[doc]) groupMap[doc] = new Map();
@@ -247,8 +258,14 @@ export default function Devoluciones({ clienteSeleccionado }) {
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar factura..."
-            value={searchInvoice}
-            onChangeText={setSearchInvoice}
+            keyboardType="numeric"
+            value={searchText}
+            onChangeText={text => {
+              // Actualiza el texto en pantalla al instante
+              setSearchText(text);
+              // Lanza la búsqueda real con debounce
+              debouncedSearch(text);
+            }}
           />
           <Pressable onPress={() => setShowStartPicker(true)} style={styles.dateButton}>
             <Text>Desde: {formatDMY(startDate)}</Text>
@@ -277,7 +294,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
               style={[styles.item, item.f_documento === selectedInvoice?.f_documento && styles.itemSelected]}
               onPress={() => onSelectInvoice(item)}
             >
-              <Text style={styles.itemText}>{item.f_documento} - Monto: {formatear(item.f_monto)}</Text>
+              <Text style={styles.itemText}>({item.f_nodoc}){item.f_documento} - Monto: {formatear(item.f_monto)}</Text>
               <Text style={styles.itemSub}>{formatDMY(new Date(item.f_fecha))}</Text>
             </Pressable>
           )}
@@ -293,8 +310,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
             renderItem={({ item }) => (
               <SafeAreaView>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailText}>{item.descripcion}</Text>
-                <Text style={styles.detailSub}>({item.f_referencia}) {item.f_referencia_suplidor}</Text>
+                  <Text style={styles.detailText}>({item.f_referencia}) {item.descripcion}  ({item.referencia_suplidor})</Text>
                   <Text style={styles.detailSub}>Cant: {item.f_cantidad - item.qty_dev}</Text>
 
                 </View>
