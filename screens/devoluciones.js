@@ -53,24 +53,30 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
   const [observacion, setObservacion] = useState('');
 
-  // Totales de devolución: itbis, bruto y descuento
-  const summary = useMemo(() => {
-    const items = detailsMap[selectedInvoice?.f_documento] || [];
-    let totalItbis = 0;
-    let totalBruto = 0;
-    items.forEach(item => {
-      const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
-      const qty = toReturn[key] || 0;
-      totalBruto += qty * item.f_precio;
-      totalItbis += qty * item.f_itbis;
-    });
-    const descTransp = selectedInvoice?.f_descuento_transp || 0;
-    const descNc = selectedInvoice?.f_descuento_nc || 0;
-    // Descuento = % transporte + % NC aplicado al bruto
-    const totalDescuento = totalBruto * ((descTransp + descNc) / 100);
-    return { totalItbis, totalBruto, totalDescuento };
-  }, [toReturn, detailsMap, selectedInvoice]);
-
+ // Totales de devolución: calcula días y aplica ITBIS solo si ≤30 días
+ const summary = useMemo(() => {
+   const items = detailsMap[selectedInvoice?.f_documento] || [];
+   let totalItbis = 0;
+   let totalBruto = 0;
+   // Un solo cálculo de días desde la fecha de la factura
+   const diasFactura = selectedInvoice
+     ? Math.floor(
+         (Date.now() - new Date(selectedInvoice.f_fecha).getTime()) /
+         (1000 * 60 * 60 * 24)
+       )
+     : 0;
+   items.forEach(item => {
+     const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
+     const qty = toReturn[key] || 0;
+     totalBruto += qty * item.f_precio;
+     // Solo suma ITBIS si la factura tiene 30 días o menos
+     totalItbis += (diasFactura <= 30 ? item.f_itbis * qty : 0);
+   });
+   const descTransp = selectedInvoice?.f_descuento_transp || 0;
+   const descNc     = selectedInvoice?.f_descuento_nc   || 0;
+   const totalDescuento = totalBruto * ((descTransp + descNc) / 100);
+   return { totalItbis, totalBruto, totalDescuento };
+ }, [toReturn, detailsMap, selectedInvoice]);
 
 
   const formatDMY = date => date.toLocaleDateString('es-ES');
@@ -146,6 +152,10 @@ export default function Devoluciones({ clienteSeleccionado }) {
     []
   );
   useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+
+  useEffect(() => {
+    console.log('FACTURA SELECCIONADA:' + selectedInvoice?.f_fecha);
+  }), [summary]
 
   // 2) Carga el nombre del cliente desde la tabla t_clientes cuando cambie clienteSeleccionado:
   useEffect(() => {
@@ -268,8 +278,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
             const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
             const qty = toReturn[key] || 0;
             const dias = Math.floor((Date.now() - new Date(item.f_fecha)) / (1000 * 60 * 60 * 24));
-            const itbs = dias <= 30 ? item.f_itbs : 0;
-            total += qty * (item.f_precio + itbs);
+            const itbis = dias <= 30 ? item.f_itbis : 0;
+            total += qty * (item.f_precio + itbis);
           });
           r.f_monto = total;
           r.f_enviado = false;
@@ -286,7 +296,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
               dd.f_referencia = item.f_referencia;
               dd.f_cantidad = item.f_cantidad;
               dd.f_precio = item.f_precio;
-              dd.f_itbs = item.f_itbs;
+              dd.f_itbis = item.f_itbis;
               dd.f_qty_devuelta = qty;
               dd.f_concepto = selectedMotivo;
               dd.f_nota = '';
@@ -380,23 +390,23 @@ export default function Devoluciones({ clienteSeleccionado }) {
         </Pressable>
       </View>
 
-      
-<ModalDetalleDevolucion
-  showModal={showModal}
-  setShowModal={setShowModal}
-  selectedInvoice={selectedInvoice}
-  detailsMap={detailsMap}
-  toReturn={toReturn}
-  onChangeReturn={onChangeReturn}
-  selectedMotivo={selectedMotivo}
-  setSelectedMotivo={setSelectedMotivo}
-  motives={motives}
-  observacion={observacion}
-  setObservacion={setObservacion}
-  summary={summary}
-  formatear={formatear}
-  confirmReturn={confirmReturn}
-/>
+
+      <ModalDetalleDevolucion
+        showModal={showModal}
+        setShowModal={setShowModal}
+        selectedInvoice={selectedInvoice}
+        detailsMap={detailsMap}
+        toReturn={toReturn}
+        onChangeReturn={onChangeReturn}
+        selectedMotivo={selectedMotivo}
+        setSelectedMotivo={setSelectedMotivo}
+        motives={motives}
+        observacion={observacion}
+        setObservacion={setObservacion}
+        summary={summary}
+        formatear={formatear}
+        confirmReturn={confirmReturn}
+      />
     </SafeAreaView>
   );
 }
