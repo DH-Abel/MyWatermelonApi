@@ -8,16 +8,18 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
-  Modal
+  Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Picker } from '@react-native-picker/picker';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
-import cargarDevoluciones from '../src/sincronizaciones/cargarDevoluciones';
-import { formatear } from '../assets/formatear';
+
 import { useNavigation } from '@react-navigation/native';
 import debounce from 'lodash.debounce';
+import cargarDevoluciones from '../src/sincronizaciones/cargarDevoluciones';
+import { formatear } from '../assets/formatear';
+import ModalDetalleDevolucion from './modal/detalleDevolucion'
 
 export default function Devoluciones({ clienteSeleccionado }) {
   const navigation = useNavigation();
@@ -31,6 +33,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
   const [endDate, setEndDate] = useState(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Loaded data cache per invoice
   const [detailsMap, setDetailsMap] = useState({});
@@ -48,6 +52,24 @@ export default function Devoluciones({ clienteSeleccionado }) {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const [observacion, setObservacion] = useState('');
+
+  // Totales de devolución: itbis, bruto y descuento
+  const summary = useMemo(() => {
+    const items = detailsMap[selectedInvoice?.f_documento] || [];
+    let totalItbis = 0;
+    let totalBruto = 0;
+    items.forEach(item => {
+      const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
+      const qty = toReturn[key] || 0;
+      totalBruto += qty * item.f_precio;
+      totalItbis += qty * item.f_itbis;
+    });
+    const descTransp = selectedInvoice?.f_descuento_transp || 0;
+    const descNc = selectedInvoice?.f_descuento_nc || 0;
+    // Descuento = % transporte + % NC aplicado al bruto
+    const totalDescuento = totalBruto * ((descTransp + descNc) / 100);
+    return { totalItbis, totalBruto, totalDescuento };
+  }, [toReturn, detailsMap, selectedInvoice]);
 
 
 
@@ -138,6 +160,15 @@ export default function Devoluciones({ clienteSeleccionado }) {
     })();
   }, [clienteSeleccionado]);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
 
   // Preload details only for given documentos
   const preloadDetails = async (docIDs) => {
@@ -199,7 +230,6 @@ export default function Devoluciones({ clienteSeleccionado }) {
       setLoadingDetails(false);
     }
   };
-
 
   // Select invoice quickly
   const onSelectInvoice = invoice => {
@@ -349,56 +379,24 @@ export default function Devoluciones({ clienteSeleccionado }) {
           <Text style={styles.selectButtonText}>Seleccionar Productos a Devolver</Text>
         </Pressable>
       </View>
-      <Modal visible={showModal} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Detalle de Devolución</Text>
-          <FlatList
-            data={detailsMap[selectedInvoice?.f_documento] || []}
-            keyExtractor={(d, index) => `${d.f_documento}_${d.f_referencia}_${d.f_cantidad}_${index}`}
-            renderItem={({ item }) => {
-              const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
-              return <View style={styles.detailRow}>
-                <Text style={styles.detailText}>({item.f_referencia}){item.descripcion} ({item.referencia_suplidor})</Text>
-                <View>
-                  <Text style={styles.detailSub}>Cant: {item.f_cantidad - item.qty_dev} </Text>
-                  <Text style={styles.detailSub}>Precio: {item.f_precio} </Text>
-                  <Text style={styles.detailSub}>Itbis: {item.f_itbis}</Text>
-                </View>
-                
-                <TextInput
-                  style={styles.input}
-                  value={(toReturn[key] || '').toString()}
-                  onChangeText={val => onChangeReturn(item, val)}
-                  keyboardType="numeric"
-                />
-              </View>
-            }}
-          />
-          <Picker
-            selectedValue={selectedMotivo}
-            onValueChange={setSelectedMotivo}
-            mode="dropdown"
-            style={{ height: 50, width: '100%', marginVertical: 8 }}
-          >
-            <Picker.Item
-              label="— Seleccione un motivo —"
-              value={null}
-              key="placeholder"
-              enabled={false}
-            />
-            {motives.map(m => (
-              <Picker.Item key={m.f_id} label={m.f_concepto} value={m.f_id} />
-            ))}
-          </Picker>
-          <TextInput placeholder="Observaciones" value={observacion} onChangeText={setObservacion}>
 
-          </TextInput>
-
-          <Pressable onPress={confirmReturn} style={[styles.footerButton, !selectedMotivo && { opacity: 0.5 }]}
-            disabled={!selectedMotivo}><Text style={styles.footerText}>Registrar Devolución</Text></Pressable>
-          <Pressable onPress={() => setShowModal(false)} style={styles.cancelButton}><Text>Cancelar</Text></Pressable>
-        </SafeAreaView>
-      </Modal>
+      
+<ModalDetalleDevolucion
+  showModal={showModal}
+  setShowModal={setShowModal}
+  selectedInvoice={selectedInvoice}
+  detailsMap={detailsMap}
+  toReturn={toReturn}
+  onChangeReturn={onChangeReturn}
+  selectedMotivo={selectedMotivo}
+  setSelectedMotivo={setSelectedMotivo}
+  motives={motives}
+  observacion={observacion}
+  setObservacion={setObservacion}
+  summary={summary}
+  formatear={formatear}
+  confirmReturn={confirmReturn}
+/>
     </SafeAreaView>
   );
 }
@@ -427,5 +425,16 @@ const styles = StyleSheet.create({
   picker: { marginVertical: 8 },
   footerButton: { padding: 12, backgroundColor: '#4682B4', alignItems: 'center', borderRadius: 4, marginVertical: 8 },
   footerText: { color: '#fff', fontSize: 16 },
-  cancelButton: { padding: 12, alignItems: 'center' }
+  cancelButton: { padding: 12, alignItems: 'center' },
+  summaryContainer: {
+    padding: 8,
+    borderTopWidth: 1,
+    borderColor: '#ccc',
+    marginVertical: 8,
+  },
+  summaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginVertical: 2,
+  },
 });

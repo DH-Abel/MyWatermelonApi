@@ -112,7 +112,7 @@ const cargarDevoluciones = async clienteId => {
       const local = localDetMap.get(key);
       const cantidad = parseFloat(d.f_cantidad);
       const precio = parseFloat(d.f_precio);
-      const itbis = parseFloat(d.f_itbis);
+      const itbis = parseFloat(d.f_precio*0.18);
       const qtyDev = parseFloat(d.f_qty_devuelta);
 
       if (local) {
