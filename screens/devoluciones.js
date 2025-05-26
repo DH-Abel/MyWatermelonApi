@@ -8,18 +8,20 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
-  Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform
+  Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform, Alert
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Picker } from '@react-native-picker/picker';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
-
 import { useNavigation } from '@react-navigation/native';
 import debounce from 'lodash.debounce';
 import cargarDevoluciones from '../src/sincronizaciones/cargarDevoluciones';
 import { formatear } from '../assets/formatear';
 import ModalDetalleDevolucion from './modal/detalleDevolucion'
+import { enviarDevoluciones } from '../src/sincronizaciones/enviarDevolucion';
+import { printTest } from './funciones/print'
+import { rDevoluciones } from './reportes/rDevoluciones';
 
 export default function Devoluciones({ clienteSeleccionado }) {
   const navigation = useNavigation();
@@ -52,32 +54,32 @@ export default function Devoluciones({ clienteSeleccionado }) {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const [observacion, setObservacion] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
- // Totales de devolución: calcula días y aplica ITBIS solo si ≤30 días
- const summary = useMemo(() => {
-   const items = detailsMap[selectedInvoice?.f_documento] || [];
-   let totalItbis = 0;
-   let totalBruto = 0;
-   // Un solo cálculo de días desde la fecha de la factura
-   const diasFactura = selectedInvoice
-     ? Math.floor(
-         (Date.now() - new Date(selectedInvoice.f_fecha).getTime()) /
-         (1000 * 60 * 60 * 24)
-       )
-     : 0;
-   items.forEach(item => {
-     const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
-     const qty = toReturn[key] || 0;
-     totalBruto += qty * item.f_precio;
-     // Solo suma ITBIS si la factura tiene 30 días o menos
-     totalItbis += (diasFactura <= 30 ? item.f_itbis * qty : 0);
-   });
-   const descTransp = selectedInvoice?.f_descuento_transp || 0;
-   const descNc     = selectedInvoice?.f_descuento_nc   || 0;
-   const totalDescuento = totalBruto * ((descTransp + descNc) / 100);
-   return { totalItbis, totalBruto, totalDescuento };
- }, [toReturn, detailsMap, selectedInvoice]);
-
+  // Totales de devolución: calcula días y aplica ITBIS solo si ≤30 días
+  const summary = useMemo(() => {
+    const items = detailsMap[selectedInvoice?.f_documento] || [];
+    let totalItbis = 0;
+    let totalBruto = 0;
+    // Un solo cálculo de días desde la fecha de la factura
+    const diasFactura = selectedInvoice
+      ? Math.floor(
+        (Date.now() - new Date(selectedInvoice.f_fecha).getTime()) /
+        (1000 * 60 * 60 * 24)
+      )
+      : 0;
+    items.forEach(item => {
+      const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
+      const qty = toReturn[key] || 0;
+      totalBruto += qty * item.f_precio;
+      // Solo suma ITBIS si la factura tiene 30 días o menos
+      totalItbis += (diasFactura <= 30 ? item.f_itbis * qty : 0);
+    });
+    const descTransp = selectedInvoice?.f_descuento_transp || 0;
+    const descNc = selectedInvoice?.f_descuento_nc || 0;
+    const totalDescuento = totalBruto * ((descTransp + descNc) / 100);
+    return { totalItbis, totalBruto, totalDescuento };
+  }, [toReturn, detailsMap, selectedInvoice]);
 
   const formatDMY = date => date.toLocaleDateString('es-ES');
 
@@ -256,56 +258,132 @@ export default function Devoluciones({ clienteSeleccionado }) {
     if (qty > max) qty = max;
     setToReturn(prev => ({ ...prev, [key]: qty }));
   };
-
   // Confirm return
   const confirmReturn = async () => {
     if (!selectedMotivo) {
       Alert.alert('Atención', 'Debe seleccionar un motivo antes de registrar.');
       return;
     }
-    setShowModal(false);
-    const items = detailsMap[selectedInvoice.f_documento] || [];
+    //setShowModal(false);
+
+    let headDocument;
+    // 1) Guardar localmente
     await database.write(async () => {
+
+
+      const timestamp = Math.floor(Date.now() / 1000).toString();
       const head = await database.collections
         .get('t_factura_dev_pda')
         .create(r => {
-          r.f_documento = `DEV${Date.now()}`;
+          r.f_documento = `DVCR${timestamp}`;
+          r.f_tipodoc = 'DVCR';
+          r.f_nodoc = timestamp;
+          r.f_vendedor = clienteSeleccionado.f_vendedor
           r.f_pedido = selectedInvoice.f_documento;
           r.f_cliente = selectedInvoice.f_cliente;
           r.f_fecha = formatDMY(new Date());
-          let total = 0;
-          items.forEach(item => {
-            const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
-            const qty = toReturn[key] || 0;
-            const dias = Math.floor((Date.now() - new Date(item.f_fecha)) / (1000 * 60 * 60 * 24));
-            const itbis = dias <= 30 ? item.f_itbis : 0;
-            total += qty * (item.f_precio + itbis);
-          });
-          r.f_monto = total;
+          r.f_descuento_transp = selectedInvoice.f_descuento_transp || 0;
+          r.f_descuento_nc = selectedInvoice.f_descuento_nc || 0;
+          r.f_descuento2 = summary.totalDescuento;
+          r.f_monto_bruto = summary.totalBruto;
+          r.f_itbis = summary.totalItbis;
+          r.f_monto = summary.totalBruto + summary.totalItbis - summary.totalDescuento;
           r.f_enviado = false;
           r.f_concepto = selectedMotivo;
+          r.f_observacion = observacion;
+          // guardamos el objeto _raw para el envío
         });
-      items.forEach(item => {
+      headDocument = head._raw;
+
+      // detalle
+      for (const item of detailsMap[selectedInvoice.f_documento] || []) {
         const key = `${item.f_documento}_${item.f_referencia}_${item.f_cantidad}`;
         const qty = toReturn[key] || 0;
         if (qty > 0) {
-          database.collections
+          await database.collections
             .get('t_detalle_factura_dev_pda')
             .create(dd => {
-              dd.f_documento = head.f_documento;
+              dd.f_documento = headDocument.f_documento;
               dd.f_referencia = item.f_referencia;
               dd.f_cantidad = item.f_cantidad;
               dd.f_precio = item.f_precio;
               dd.f_itbis = item.f_itbis;
               dd.f_qty_devuelta = qty;
-              dd.f_concepto = selectedMotivo;
-              dd.f_nota = '';
             });
         }
+      }
+    });  // :contentReference[oaicite:0]{index=0}
+
+    // 2) Recuperar detalle recién guardado
+    const detallesRaw = (await database
+      .collections.get('t_detalle_factura_dev_pda')
+      .query(Q.where('f_documento', headDocument.f_documento))
+      .fetch()
+    ).map(d => d._raw);
+
+    // 4) Enviar a la API
+    try {
+      await enviarDevoluciones({
+        devolucion: headDocument,
+        detalles: detallesRaw,
+        navigation,
+        setIsSending
       });
-    });
-    navigation.navigate('ConsultaDevoluciones');
+      Alert.alert(
+        'Devolucion guardada y enviada correctamente',
+        '¿Desea imprimir el comprobante de devolución?',
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Sí',
+            // … dentro del onPress del botón “Sí” …
+
+            onPress: async () => {
+              const clientesMap = { [headDocument.f_cliente]: { f_nombre: clienteName } };
+              console.log('👀 detallesRaw que paso a rDevoluciones:', detallesRaw);
+              try {
+                const reporte = rDevoluciones(headDocument, detallesRaw, clientesMap);  // :contentReference[oaicite:0]{index=0}
+                console.log('🖨️ reporte ESC/POS generado:', reporte);
+                await printTest(reporte);
+              } catch (err) {
+                console.error('Error en rDevoluciones o printTest:', err);
+              }
+            }
+
+          }
+        ]
+      );
+    } catch (err) {
+      console.error('Error al enviar devolución:', err);
+      Alert.alert(
+        'Error al enviar devolucion',
+        '¿Desea imprimir el comprobante de devolución?',
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Sí',
+            onPress: async () => {
+              // Construir mapa de clientes (usamos el nombre ya cargado en clienteName)
+              const clientesMap = {
+                [headDocument.f_cliente]: { f_nombre: clienteName }
+              };
+              // Generar el texto ESC/POS
+              const reporte = rDevoluciones(headDocument, detallesRaw, clientesMap);
+              // Enviar a la impresora
+              await printTest(reporte);
+            }
+          }
+        ]
+      );
+    }
+
+
+    // 4) Volver al listado
+    // await navigation.navigate('ConsultaDevoluciones');
+
   };
+
+
 
   if (loadingInvoices) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
 

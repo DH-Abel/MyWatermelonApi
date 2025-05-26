@@ -255,12 +255,13 @@ export default function ConfirmarCobranza() {
           {
             text: 'OK',
             onPress: () =>
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [{ name: 'ConsultaRecibos' }],
-                })
-              ),
+              navigation.reset({
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                  { name: 'MenuPrincipal' },        // primera en el historial
+                  { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                ]
+              })
           },
         ]);
       } else {

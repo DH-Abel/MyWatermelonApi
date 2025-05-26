@@ -19,12 +19,9 @@ import { EstadoDev } from './models';
 import { Factura, DetalleFactura } from './models';
 import { ConceptoDevolucion } from './models';
 
-
 // Configurar el adaptador de SQLite con migraciones
 const adapter = new SQLiteAdapter({
   schema: mySchema,
-
-  
   migrations, // Agrega las migraciones
 });
 

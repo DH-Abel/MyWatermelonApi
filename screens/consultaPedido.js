@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, SafeAreaView,
-  Pressable, Modal, Alert, PermissionsAndroid,InteractionManager
+  Pressable, Modal, Alert, PermissionsAndroid, InteractionManager
 } from 'react-native';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
@@ -39,7 +39,7 @@ export default function Pedidos({ navigation }) {
   //const [clientesMap, setClientesMap] = useState({});
 
 
- const { productos: productosMap, clientes: clientesMap } = useContext(MapsContext);
+  const { productos: productosMap, clientes: clientesMap } = useContext(MapsContext);
 
 
   const parseDateFromDDMMYYYY = (dateStr) => {
@@ -76,11 +76,11 @@ export default function Pedidos({ navigation }) {
     if (netState.isConnected) {
       try {
         if (pedidos.length > 0) {
-        await sincronizarEstado(pedidos);
-        const facturaCollection = database.collections.get('t_factura_pedido');
-        const allPedidos = await facturaCollection.query().fetch();
-        setFullPedidos(allPedidos);
-        }else {
+          await sincronizarEstado(pedidos);
+          const facturaCollection = database.collections.get('t_factura_pedido');
+          const allPedidos = await facturaCollection.query().fetch();
+          setFullPedidos(allPedidos);
+        } else {
           console.log("No hay pedidos para sincronizar");
         }
       } catch (error) {
@@ -269,30 +269,30 @@ export default function Pedidos({ navigation }) {
 
 
   // 1) Solo suscripción a pedidos:
-useEffect(() => {
-  const facturaCollection = database.collections.get('t_factura_pedido');
-  const subscription = facturaCollection
-    .query()
-    .observe()
-    .subscribe(allPedidos => {
-      setFullPedidos(allPedidos);
-      setLoading(false);
-    });
-  return () => subscription.unsubscribe();
-}, []);
+  useEffect(() => {
+    const facturaCollection = database.collections.get('t_factura_pedido');
+    const subscription = facturaCollection
+      .query()
+      .observe()
+      .subscribe(allPedidos => {
+        setFullPedidos(allPedidos);
+        setLoading(false);
+      });
+    return () => subscription.unsubscribe();
+  }, []);
 
-// 2) Carga de mapas *una sola vez* al montar el componente
-// useEffect(() => {
-//   let isActive = true;
-//   InteractionManager.runAfterInteractions(async () => {
-//     if (!isActive) {
-//       return;
-//     }
-//     await cargarProductosMap();
-//     await cargarClientesMap();
-//   });
-//   return () => { isActive = false; };
-// }, []);
+  // 2) Carga de mapas *una sola vez* al montar el componente
+  // useEffect(() => {
+  //   let isActive = true;
+  //   InteractionManager.runAfterInteractions(async () => {
+  //     if (!isActive) {
+  //       return;
+  //     }
+  //     await cargarProductosMap();
+  //     await cargarClientesMap();
+  //   });
+  //   return () => { isActive = false; };
+  // }, []);
 
 
   useEffect(() => {
@@ -345,27 +345,27 @@ useEffect(() => {
     // Usamos (pedido._raw || pedido) para asegurarnos de obtener el objeto plano
     const pedidoPlana = pedido._raw || pedido;
     console.log("Imprimiendo pedido:", pedidoPlana);
-    
+
     const fDoc = pedidoPlana.f_documento;
     console.log("Valor de f_documento:", fDoc);
-    
+
     // Llamamos a la función que obtiene los detalles
     const detalles = await fetchDetallePedido(fDoc);
     console.log("Detalles obtenidos:", detalles);
-    
+
     if (!pedidoPlana || !detalles || detalles.length === 0) {
       Alert.alert("Error", "No hay datos del pedido para imprimir");
       return;
     }
-    
+
     // Genera el reporte utilizando la función rPedido
-    const reporte = rPedido(pedidoPlana, detalles, productosMap,clientesMap);
+    const reporte = rPedido(pedidoPlana, detalles, productosMap, clientesMap);
     console.log("Reporte generado:", reporte);
-    
+
     // Envía el reporte a la impresora
     printTest(reporte);
   };
-  
+
 
 
   if (loading) {

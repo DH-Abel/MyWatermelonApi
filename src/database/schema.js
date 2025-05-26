@@ -185,11 +185,12 @@ export const mySchema = appSchema({
       name: 't_factura_dev_pda',
       columns: [
         { name: 'f_documento', type: 'string' },
-        { name: 'f_tipo', type: 'string' },
+        { name: 'f_tipodoc', type: 'string' },
         { name: 'f_nodoc', type: 'number' },
         { name: 'f_monto', type: 'number' },
-        { name: 'f_descuento_transp', type: 'number' }, //monto del descuento si es transparentado en la factura
-        { name: 'f_descuento_nc', type: 'number' }, //monto del descuento devuelto si es por nota de credito
+        { name: 'f_descuento_transp', type: 'number' },//f_p_descuento1 //monto del descuento si es transparentado en la factura
+        { name: 'f_descuento_nc', type: 'number' },//f_p_descuento2 //monto del descuento devuelto si es por nota de credito
+        { name: 'f_descuento2', type: 'number' },//f_descuento2 //monto del descuento general 
         { name: 'f_itbis', type: 'number' },
         { name: 'f_fecha', type: 'string' },
         { name: 'f_hora', type: 'string' },
@@ -200,7 +201,7 @@ export const mySchema = appSchema({
         { name: 'f_monto_excento', type: 'number' },
         { name: 'f_base_imponible', type: 'number' },
         { name: 'f_monto_bruto', type: 'number' },
-        { name: 'f_observacion', type: 'string' }, //Este es el documento de las devoluciones, en el sistema ARPA se usa con este nombre
+        { name: 'f_observacion', type: 'string' },
         { name: 'f_concepto', type: 'number' }, //id del concepto
         { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no   
       ]
@@ -209,7 +210,7 @@ export const mySchema = appSchema({
       name: 't_detalle_factura_dev_pda',
       columns: [
         { name: 'f_documento', type: 'string' },
-        { name: 'f_tipo', type: 'string' },
+        { name: 'f_tipodoc', type: 'string' },
         { name: 'f_nodoc', type: 'number' },
         { name: 'f_referencia', type: 'number' },
         { name: 'f_precio', type: 'number' },
@@ -244,7 +245,7 @@ export const mySchema = appSchema({
         { name: 'f_qty_devuelta', type: 'number' },
       ]
     }),
-       tableSchema({
+    tableSchema({
       name: 't_factura',
       columns: [
         { name: 'f_documento', type: 'string' },

@@ -61,10 +61,7 @@ export function rPedido(pedido, detalle, productosMap, clientesMap) {
     const producto = productosMap[item.f_referencia] || {};
     // Obtén la descripción del producto y, si es necesario, acórtala para que no se desborde.
     let descripcion = producto.f_descripcion || "Sin descripción";
-    if (descripcion.length > 20) {
-      descripcion = descripcion.substring(0, 20) + "...";
-      report += separator;
-    }
+   
 
     // Calculamos el total por producto
     const totalProducto = Number(item.f_cantidad) * Number(item.f_precio);
@@ -74,7 +71,9 @@ export function rPedido(pedido, detalle, productosMap, clientesMap) {
     report += `${descripcion}\n`;
     // Línea 2: Cantidad, precio unitario y total (formato simplificado)
     report += `  QTY: ${item.f_cantidad} x $${item.f_precio} = ${totalProducto}\n`;
-    report += separator;
+    
+  report += separator;
+  
   });
 
   report += separator;

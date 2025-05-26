@@ -18,11 +18,15 @@ import { Q } from '@nozbe/watermelondb';
 import { formatear } from '../assets/formatear';
 import { consultaStyles } from '../assets/consultaStyles';
 import cargarDevoluciones from '../src/sincronizaciones/cargarDevoluciones';
+import { enviarDevoluciones } from '../src/sincronizaciones/enviarDevolucion';
+import { printTest } from './funciones/print';
+import { rDevoluciones } from './reportes/rDevoluciones';
 
 export default function ConsultaDevoluciones({ navigation }) {
   const [fullDevoluciones, setFullDevoluciones] = useState([]);
   const [devoluciones, setDevoluciones] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
   const [searchTextCliente, setSearchTextCliente] = useState('');
   const [clientsList, setClientsList] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -35,6 +39,7 @@ export default function ConsultaDevoluciones({ navigation }) {
   const [selectedDevolucion, setSelectedDevolucion] = useState(null);
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleItems, setDetalleItems] = useState([]);
+  const [concepts, setConcepts] = useState([]);
 
   // Parsear fecha dd/mm/yyyy → Date
   const parseDateFromDDMMYYYY = dateStr => {
@@ -62,6 +67,65 @@ export default function ConsultaDevoluciones({ navigation }) {
       setDetalleLoading(false);
     }
   }
+
+  // Manejar envío individual
+  const handleSend = async dev => {
+    if (dev.f_enviado) return;
+    setIsSending(true);
+    try {
+      const detalles = await database
+        .collections.get('t_detalle_factura_dev_pda')
+        .query(Q.where('f_documento', dev.f_documento))
+        .fetch();
+      const detallesRaw = detalles.map(d => d._raw);
+      await enviarDevoluciones({
+        devolucion: dev,
+        detalles: detallesRaw,
+        navigation,
+        setIsSending
+      });
+    } catch (error) {
+      console.error('Error al enviar devolución:', error);
+      Alert.alert('Error', 'No se pudo enviar la devolución');
+    }
+  };
+
+
+
+  const imprimirPedidoDesdeLista = async dev => {
+    try {
+      // Ejemplo de cómo crearlo en tu pantalla de consultaDevoluciones:
+      const allProducts = await database
+        .collections.get('t_productos_sucursal')
+        .query()
+        .fetch();
+      const productosRaw = allProducts.map(p => p._raw);
+      const productosMap = {};
+      productosRaw.forEach(p => { productosMap[p.f_referencia] = p; });
+
+      // Y luego al generar el reporte:
+
+      // 1) Traer detalle
+      const detalles = await database
+        .collections.get('t_detalle_factura_dev_pda')
+        .query(Q.where('f_documento', dev.f_documento))
+        .fetch();
+      const detallesRaw = detalles.map(d => d._raw);
+
+      // 2) Armar mapa de clientes para el encabezado
+      const clienteObj = clientsList.find(c => c.f_id === dev.f_cliente);
+      const clientesMap = {
+        [dev.f_cliente]: { f_nombre: clienteObj?.f_nombre || 'N/A' }
+      };
+
+      // 3) Generar texto ESC/POS y enviarlo
+      const reporte = rDevoluciones(dev, detallesRaw, clientesMap, productosMap);
+      await printTest(reporte);
+    } catch (error) {
+      console.error('Error al imprimir devolución:', error);
+      Alert.alert('Error', 'No se pudo imprimir la devolución');
+    }
+  };
 
   // Cargar lista de clientes
   const cargarClientes = async () => {
@@ -116,7 +180,22 @@ export default function ConsultaDevoluciones({ navigation }) {
     setDevoluciones(filtered);
   }, [fullDevoluciones, startDate, endDate, selectedClient]);
 
-  // Sincronizar con API
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await database
+          .collections
+          .get('t_concepto_devolucion')
+          .query()
+          .fetch();
+        setConcepts(rows.map(r => r._raw));
+      } catch (e) {
+        console.error('Error cargando conceptos:', e);
+      }
+    })();
+  }, []);
+
+  // Sincronizar con API completo
   const handleSync = async () => {
     if (!selectedClient) {
       Alert.alert('Seleccione un cliente');
@@ -133,7 +212,7 @@ export default function ConsultaDevoluciones({ navigation }) {
     }
   };
 
-  if (loading) {
+  if (loading || isSending) {
     return <ActivityIndicator size="large" style={{ flex: 1 }} />;
   }
 
@@ -195,17 +274,30 @@ export default function ConsultaDevoluciones({ navigation }) {
         keyExtractor={item => item.f_documento}
         renderItem={({ item }) => (
           <View style={consultaStyles.pedidoCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={consultaStyles.pedidoText}>Dev.: {item.f_documento}</Text>
-              <Text style={consultaStyles.pedidoText}>Factura: {item.f_pedido}</Text>
-              <Text style={consultaStyles.pedidoText}>Fecha: {item.f_fecha}</Text>
-              <Text style={consultaStyles.pedidoText}>Total: {formatear(item.f_monto)}</Text>
-              <Text style={consultaStyles.pedidoText}>Enviado: {item.f_enviado ? 'Sí' : 'No'}</Text>
-            </View>
-            <View style={consultaStyles.pedidoButtonColumn}>
-              <Pressable onPress={() => openDetalleModal(item)} style={consultaStyles.pedidoSmallButton}>
-                <Ionicons name="eye-outline" size={23} color="#fff" />
-              </Pressable>
+            <View style={consultaStyles.pedidoInfoSection}>
+
+              <View style={{ flex: 1 }}>
+                <Text style={consultaStyles.pedidoText}>Dev.: {item.f_documento}</Text>
+                <Text style={consultaStyles.pedidoText}>Factura: {item.f_pedido}</Text>
+                <Text style={consultaStyles.pedidoText}>Fecha: {item.f_fecha}</Text>
+                <Text style={consultaStyles.pedidoText}>Total: {formatear(item.f_monto)}</Text>
+                <Text style={consultaStyles.pedidoText}>Enviado: {item.f_enviado ? 'Sí' : 'No'}</Text>
+              </View>
+              <View style={consultaStyles.pedidoButtonColumn}>
+                <Pressable onPress={() => openDetalleModal(item)} style={consultaStyles.pedidoSmallButton}>
+                  <Ionicons name="eye-outline" size={23} color="#fff" />
+                </Pressable>
+                <Pressable onPress={() => imprimirPedidoDesdeLista(item)}
+                  style={consultaStyles.pedidoSmallButton}
+                >
+                  <Ionicons name="print-outline" size={23} color="#fff" />
+                </Pressable>
+                {!item.f_enviado && (
+                  <Pressable onPress={() => handleSend(item)} style={consultaStyles.pedidoSmallButton}>
+                    <Ionicons name="send-outline" size={23} color="#fff" />
+                  </Pressable>
+                )}
+              </View>
             </View>
           </View>
         )}
@@ -250,6 +342,9 @@ export default function ConsultaDevoluciones({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Detalle Devolución {selectedDevolucion?.f_documento}</Text>
+
+            <Text>Concepto: {concepts.find(c => c.f_id === selectedDevolucion?.f_concepto)?.f_concepto}</Text>
+            <Text style={consultaStyles.pedidoText}>Nota: {selectedDevolucion?.f_observacion}</Text>
             {detalleLoading ? (
               <ActivityIndicator size="large" />
             ) : (
@@ -260,15 +355,29 @@ export default function ConsultaDevoluciones({ navigation }) {
                   <View style={{ marginBottom: 8 }}>
                     <Text style={consultaStyles.pedidoText}>Ref: {item.f_referencia}</Text>
                     <Text style={consultaStyles.pedidoText}>Cant: {item.f_cantidad}</Text>
-                    <Text style={consultaStyles.pedidoText}>Dev: {item.f_qty_devuelta}</Text>
                     <Text style={consultaStyles.pedidoText}>Precio: {formatear(item.f_precio)}</Text>
-                    <Text style={consultaStyles.pedidoText}>Itbs: {formatear(item.f_itbs)}</Text>
-                    <Text style={consultaStyles.pedidoText}>Motivo: {item.f_concepto}</Text>
-                    <Text style={consultaStyles.pedidoText}>Nota: {item.f_nota}</Text>
+                    <Text style={consultaStyles.pedidoText}>Itbis: {formatear(item.f_itbis)}</Text>
                   </View>
                 )}
               />
             )}
+            <View style={{ justifyContent: 'space-between', borderWidth: 1, borderColor: '#ddd', padding: 8 }}>
+              <Text style={consultaStyles.pedidoText}>
+                Monto bruto: {formatear(selectedDevolucion?.f_monto_bruto)}
+              </Text>
+              <Text style={consultaStyles.pedidoText}>
+                ITBIS: {formatear(selectedDevolucion?.f_itbis)}
+              </Text>
+              <Text style={consultaStyles.pedidoText}>
+                Descuento: {formatear(selectedDevolucion?.f_descuento_transp)} desc2: {formatear(selectedDevolucion?.f_descuento_nc)}
+              </Text>
+              <Text style={consultaStyles.pedidoText}>
+                Monto Descuento: {formatear(selectedDevolucion?.f_descuento)}
+              </Text>
+              <Text style={consultaStyles.pedidoText}>
+                Total: {formatear(selectedDevolucion?.f_monto)}
+              </Text>
+            </View>
             <Pressable onPress={() => setDetalleModalVisible(false)} style={styles.closeModal}>
               <Text style={styles.buttonText}>Cerrar</Text>
             </Pressable>

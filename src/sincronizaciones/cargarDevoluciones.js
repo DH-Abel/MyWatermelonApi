@@ -12,7 +12,7 @@ let syncInProgress = false;
  * - /devoluciones/detalle/:cliente → t_detalle_factura
  */
 const cargarDevoluciones = async clienteId => {
-  
+
   if (syncInProgress) return;
   syncInProgress = true;
   console.log('Sincronizando devoluciones...');
@@ -21,6 +21,13 @@ const cargarDevoluciones = async clienteId => {
     // 1) Obtener encabezados
     const resHdr = await api.get(`/devoluciones/${encodeURIComponent(clienteId)}`);
     const headers = Array.isArray(resHdr.data) ? resHdr.data : [resHdr.data];
+
+    const headerDiscountMap = new Map(
+      headers.map(h => [
+        h.f_documento,
+        parseFloat(h.f_descuento_transp) || 0
+      ])
+    );
 
     // 2) Obtener detalles
     const resDet = await api.get(`/devoluciones/detalle/${encodeURIComponent(clienteId)}`);
@@ -112,7 +119,8 @@ const cargarDevoluciones = async clienteId => {
       const local = localDetMap.get(key);
       const cantidad = parseFloat(d.f_cantidad);
       const precio = parseFloat(d.f_precio);
-      const itbis = parseFloat(d.f_precio*0.18);
+      const descTr = headerDiscountMap.get(d.f_documento) || 0;
+      const itbis = descTr>0 ? (d.f_precio - (d.f_precio * (descTr / 100))) *0.18 : d.f_precio * 0.18
       const qtyDev = parseFloat(d.f_qty_devuelta);
 
       if (local) {
@@ -151,14 +159,14 @@ const cargarDevoluciones = async clienteId => {
     }
 
     // 7) Ejecutar batch tras interacciones
-await InteractionManager.runAfterInteractions();
-if (actions.length) {
-  await database.write(async () => {
-    await database.batch(actions);
-  });
-}
+    await InteractionManager.runAfterInteractions();
+    if (actions.length) {
+      await database.write(async () => {
+        await database.batch(actions);
+      });
+    }
     console.log(`Sincronización completada: ${actions.length} acciones.`);
-  
+
     // 8) Registrar historial de sync
     await syncHistory('t_factura');
     await syncHistory('t_detalle_factura');

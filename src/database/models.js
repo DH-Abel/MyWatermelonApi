@@ -157,11 +157,12 @@ export class NotaCredito extends Model {
 export class Devolucion extends Model {
   static table = 't_factura_dev_pda';
   @text('f_documento') f_documento
-  @text('f_tipo') f_tipo
+  @text('f_tipodoc') f_tipodoc
   @field('f_nodoc') f_nodoc
   @field('f_monto') f_monto
   @field('f_descuento_transp') f_descuento_transp
   @field('f_descuento_nc') f_descuento_nc
+  @field('f_descuento2') f_descuento
   @field('f_itbis') f_itbis
   @text('f_fecha') f_fecha
   @text('f_hora') f_hora
@@ -173,14 +174,14 @@ export class Devolucion extends Model {
   @field('f_base_imponible') f_base_imponible
   @field('f_monto_bruto') f_monto_bruto
   @text('f_observacion') f_observacion
-  @text('f_concepto') f_concepto
+  @field('f_concepto') f_concepto
   @field('f_enviado') f_enviado
 }
 
 export class DetalleDevolucion extends Model {
   static table = 't_detalle_factura_dev_pda';
   @text('f_documento') f_documento
-  @text('f_tipo') f_tipo
+  @text('f_tipodoc') f_tipo
   @field('f_nodoc') f_nodoc
   @field('f_referencia') f_referencia
   @field('f_precio') f_precio
