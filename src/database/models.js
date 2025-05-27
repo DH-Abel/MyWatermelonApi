@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, text } from '@nozbe/watermelondb/decorators';
+import { field, text,json } from '@nozbe/watermelondb/decorators';
 
 export class Producto extends Model {
   static table = 't_productos_sucursal';
@@ -108,8 +108,9 @@ export class RecibosPDA extends Model {
   @field('f_banco_transferencia') f_banco_transferencia;
   @field('f_cheque_recibido') f_cheque_recibido;
   @field('f_cheque_cobro') f_cheque_cobro;
-  @field('f_estado') f_estado;
+  @field('f_aprobado') f_aprobado;
   @field('f_enviado') f_enviado;
+  @field('f_anulado') f_anulado;
 }
 export class Aplicaciones_pda extends Model {
   static table = 't_aplicaciones_pda2';
@@ -224,6 +225,30 @@ export class Factura extends Model {
  @text('f_fecha') f_fecha
  @field('f_descuento_transp') f_descuento_transp
  @field('f_descuento_nc') f_descuento_nc
+}
+
+export class Usuarios extends Model {
+  static table = 't_usuarios'
+ @field('f_id') f_id
+ @text('f_nombre') f_nombre
+ @text('f_apellido') f_apellido
+ @text('f_usuario') f_usuario
+ @text('f_password') f_password
+ @text('f_email') f_email
+ @text('f_telefono') f_telefono
+ @text('f_fecha_creacion') f_fecha_creacion
+ @text('f_fecha_modificacion') f_fecha_modificacion
+ @field('f_activo') f_activo
+ @json('f_permisos') f_permisos
+}
+
+export class Secuencias extends Model {
+  static table = 't_secuencias'
+ @field('f_id') f_id //id de la secuencia
+ @field('f_vendedor') f_vendedor //id del vendedor
+ @text('f_tipodoc') f_tipodoc //tipo doc, viene siendo el tipo de documento, mas el vendedor, Ejemplo "REC12"
+ @field('f_nodoc') f_nodoc //numero de la ultima secuencia Ejemplo: '2035'
+ @text('f_tabla') f_tabla //nombre de la tabla que usara la secuencia, t_recibos y t_aplicaciones, usarian la misma secuencia, ya que uno es el encabezado y otro el detalle
 }
 
 

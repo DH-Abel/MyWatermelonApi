@@ -261,6 +261,32 @@ export const mySchema = appSchema({
 
       ]
     }),
+    tableSchema({
+      name: 't_usuarios',
+      columns: [
+        { name: 'f_id', type: 'number' },
+        { name: 'f_nombre', type: 'string' },
+        { name: 'f_apellido', type: 'string' },
+        { name: 'f_usuario', type: 'string' },
+        { name: 'f_password', type: 'string' },
+        { name: 'f_email', type: 'string' },
+        { name: 'f_telefono', type: 'string' },
+        { name: 'f_fecha_creacion', type: 'string' }, //Fecha de creación del usuario
+        { name: 'f_fecha_modificacion', type: 'string' }, //Fecha de modificación del usuario
+        { name: 'f_activo', type: 'boolean' },
+        { name: 'f_permisos', type: 'string' }, //JSON con los permisos del usuario
+      ]
+    }),
+    tableSchema({
+      name: 't_secuencias',
+      columns: [
+        { name: 'f_id', type: 'number' },
+        { name: 'f_tipodoc', type: 'string' },
+        { name: 'f_nodoc', type: 'string' },
+        { name: 'f_tabla', type: 'string' }
+      ]
+    }),
+    
   ]
 
 });

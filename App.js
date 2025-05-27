@@ -7,11 +7,7 @@ import MyStack from './screens/navigator/stack';
 //enableScreens(false);
 export default function App() {
   return (
-    
     <MyStack/>
-    //<MyCheckbox />
-  //<ConsultaPedidos/>
-  // <TestApi/>
   );
 }
 
