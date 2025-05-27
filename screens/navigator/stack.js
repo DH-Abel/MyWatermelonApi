@@ -23,6 +23,8 @@ import SelectClientesDev from "../components/selectclienteDev";
 import SelectedClienteDev from "../components/selectclienteDev";
 import Devoluciones from "../devoluciones";
 import MainTabsDevoluciones from "../navigator/mainTabsDevoluciones";
+import  login from "../login";
+import AdminScreen from "../adminScreen";
 
 import { MapsContext, MapsProvider } from "../components/mapsContext";
 
@@ -37,7 +39,11 @@ export default function MyStack() {
     return (
       <MapsProvider>
         <NavigationContainer>
-        <Stack.Navigator initialRouteName="MenuPrincipal" screenOptions={{ headerShown: false }}>
+        <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+          {/* Login */}
+          <Stack.Screen name="Login" component={login} />
+          {/* Admin */}
+          <Stack.Screen name="AdminScreen" component={AdminScreen} />
           {/* Menu Principal */}
           <Stack.Screen name="MenuPrincipal" component={MenuPrincipal} />
           {/* Flujo de cobranza */}

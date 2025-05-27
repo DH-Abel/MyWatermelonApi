@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, text,json } from '@nozbe/watermelondb/decorators';
+import { field, text,json,date } from '@nozbe/watermelondb/decorators';
 
 export class Producto extends Model {
   static table = 't_productos_sucursal';
@@ -236,10 +236,12 @@ export class Usuarios extends Model {
  @text('f_password') f_password
  @text('f_email') f_email
  @text('f_telefono') f_telefono
- @text('f_fecha_creacion') f_fecha_creacion
- @text('f_fecha_modificacion') f_fecha_modificacion
+ @date('f_fecha_creacion') f_fecha_creacion
+ @date('f_fecha_modificacion') f_fecha_modificacion
  @field('f_activo') f_activo
- @json('f_permisos') f_permisos
+ @field('f_vendedor') f_vendedor
+ @text('Fvendedor_multiple') Fvendedor_multiple
+ //@json('f_permisos') f_permisos
 }
 
 export class Secuencias extends Model {

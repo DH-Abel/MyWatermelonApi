@@ -34,4 +34,5 @@ export const database = new Database({
      ,DetalleFacturaPedido,Sync,RecibosPDA,Aplicaciones_pda,DescuentosxPago,OfertaProductos,
      NotaCredito,Devolucion,DetalleDevolucion,EstadoDev,Factura,ConceptoDevolucion,DetalleFactura
     ,Usuarios, Secuencias],
+      actionsEnabled: true
 });

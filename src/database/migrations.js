@@ -3,13 +3,12 @@ import { schemaMigrations, addColumns } from '@nozbe/watermelondb/Schema/migrati
 export const migrations = schemaMigrations({
   migrations: [
     {
-      toVersion: 2,
+      toVersion: 4,
       steps: [
         addColumns({
-          table: 't_productos_sucursal',
+          table: 't_usuarios',
           columns: [
-            { name: 'f_base_imponible', type: 'number' },
-            { name: 'f_impuesto', type: 'number' },
+            { name: 'Fvendedor_multiple', type: 'string' },
           ]
         })
       ],
