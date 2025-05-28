@@ -1,10 +1,13 @@
 // screens/AdminUsersScreen.js
 import React, { useEffect, useState, useContext } from 'react'
-import { View, Text, TextInput, Button, FlatList, Alert, StyleSheet,
-   Pressable,ScrollView,TouchableOpacity,SafeAreaView,Modal } from 'react-native'
+import {
+  View, Text, TextInput, Button, FlatList, Alert, StyleSheet,
+  Pressable, ScrollView, TouchableOpacity, SafeAreaView, Modal
+} from 'react-native'
 import { database } from '../src/database/database'
 import { AuthContext } from '../screens/context/AuthContext'
 import { useNavigation } from '@react-navigation/native'
+import sincronizarSecuencias from '../src/sincronizaciones/secuencias'
 
 export default function AdminUsersScreen() {
   const { user } = useContext(AuthContext)
@@ -67,8 +70,8 @@ export default function AdminUsersScreen() {
 
   async function handleSave() {
     const { usuario, password } = form
-    if (!usuario || !password) {
-      return Alert.alert('Error', 'Usuario y contraseña son obligatorios')
+    if (!usuario || !password || !form.vendedor) {
+      return Alert.alert('Error', 'Vendedor, Usuario y contraseña son obligatorios')
     }
     try {
       await database.write(async () => {
@@ -162,6 +165,17 @@ export default function AdminUsersScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{isEditing ? 'Editar Usuario' : 'Crear Usuario'}</Text>
+            {/* Sincronizar secuencia */}
+            <Pressable onPress={async () => {
+              if (!form.vendedor) {
+                return Alert.alert('Error', 'Debes indicar un vendedor');
+              }
+              await sincronizarSecuencias(parseInt(form.vendedor, 10));
+              Alert.alert('Listo', 'Secuencias sincronizadas');
+            }}>
+              <Text style={{ color: 'blue', textAlign: 'center', marginBottom: 10, borderWidth: 1, borderColor: 'blue', padding: 5 }}>Sincronizar Secuencia</Text>
+            </Pressable>
+
             {['usuario', 'password', 'nombre', 'apellido', 'email', 'telefono', 'vendedor', 'vendedor_multiple'].map((key, idx) => (
               <TextInput
                 key={idx}
@@ -170,8 +184,8 @@ export default function AdminUsersScreen() {
                 onChangeText={val => setForm(f => ({ ...f, [key]: val }))}
                 style={styles.input}
                 secureTextEntry={key === 'password'}
-                keyboardType={key === 'email' ? 'email-address' : key === 'telefono' ? 'phone-pad' 
-                  : key === 'vendedor' ? 'numeric': 'default'}
+                keyboardType={key === 'email' ? 'email-address' : key === 'telefono' ? 'phone-pad'
+                  : key === 'vendedor' ? 'numeric' : 'default'}
               />
             ))}
             <View style={styles.modalButtons}>
