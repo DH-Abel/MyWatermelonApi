@@ -22,6 +22,7 @@ import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js
 import MyCheckbox from './utilities/checkbox.js';
 import { Q } from '@nozbe/watermelondb';
 import { useDatabase } from '@nozbe/watermelondb/hooks';
+import debounce from 'lodash.debounce';
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
@@ -56,6 +57,20 @@ export default function Pedido({
 
   const database = useDatabase();
   const [ofertas, setOfertas] = useState([]);
+
+  const debouncedSetSearchTextProductos = useMemo(
+    () => debounce(setSearchTextProductos, 800),
+    [setSearchTextProductos]
+  );
+  const debouncedSetSearchCodeProductos = useMemo(
+    () => debounce(setSearchCodeProductos, 800),
+    [setSearchCodeProductos]
+  );
+
+  // términos con debounce
+  const [debouncedSearchTextProductos, setDebouncedSearchTextProductos] = useState(searchTextProductos);
+  const [debouncedSearchCodeProductos, setDebouncedSearchCodeProductos] = useState(searchCodeProductos);
+
 
   const navigation = useNavigation();
   const parentNavigation = navigation.getParent();
@@ -209,22 +224,31 @@ export default function Pedido({
     productos.filter((producto) =>
       (producto.f_referencia ? producto.f_referencia.toString() : '')
         .toLowerCase()
-        .includes(searchCodeProductos.toLowerCase())
+        .includes(debouncedSearchCodeProductos.toLowerCase())
     ),
-    [productos, searchCodeProductos]
+    [productos, debouncedSearchCodeProductos.toLowerCase()]
   );
 
-  const productosFiltrados = useMemo(() =>
-    productos.filter((producto) =>
-      (producto.f_descripcion || '')
-        .toLowerCase()
-        .includes(searchTextProductos.toLowerCase()) ||
-      (producto.f_referencia_suplidor ? producto.f_referencia_suplidor.toString() : '')
-        .toLowerCase()
-        .includes(searchTextProductos.toLowerCase())
-    ),
-    [productos, searchTextProductos]
-  );
+  const productosFiltrados = useMemo(() => {
+  const terms = debouncedSearchTextProductos
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(t => t); // descarta posibles cadenas vacías
+
+  return productos.filter(producto => {
+    const haystack = [
+      producto.f_descripcion || '',
+      producto.f_referencia_suplidor || ''
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    // verifica que cada término aparezca en el haystack
+    return terms.every(term => haystack.includes(term));
+  });
+}, [productos, debouncedSearchTextProductos]);
+
 
   const productosFiltradosFinal = useMemo(() =>
     searchCodeProductos
@@ -507,6 +531,28 @@ export default function Pedido({
     console.log('Ofertas cargadas:', ofertas);
   }, [database]);
 
+  useEffect(() => {
+    return () => {
+      debouncedSetSearchTextProductos.cancel();
+      debouncedSetSearchCodeProductos.cancel();
+    };
+  }, [debouncedSetSearchTextProductos, debouncedSetSearchCodeProductos]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTextProductos(searchTextProductos);
+    }, 600);
+    return () => clearTimeout(handler);
+  }, [searchTextProductos]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchCodeProductos(searchCodeProductos);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchCodeProductos]);
+
+
   // if (loading) {
   //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
   // }
@@ -623,7 +669,11 @@ export default function Pedido({
             style={pedidoStyles.searchInput}
             placeholder="Buscar producto"
             value={searchTextProductos}
-            onChangeText={setSearchTextProductos}
+            onChangeText={text => {
+              setSearchTextProductos(text);
+              setSearchCodeProductos('');        // ← borra el código al tipear aquí
+              setDebouncedSearchCodeProductos(''); // ← opcional: limpia también el valor debounced
+            }}
           />
         </View>
       </View>
@@ -831,7 +881,7 @@ const pedidoStyles = StyleSheet.create({
     marginBottom: 0,
   },
   productCard: {
-     height: 110, 
+    height: 110,
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 12,
