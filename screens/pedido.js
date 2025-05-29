@@ -41,6 +41,7 @@ export default function Pedido({
   // ----- Estados y lógica (se mantiene sin cambios) -----
   const [productos, setProductos] = useState([]);
   const [searchTextProductos, setSearchTextProductos] = useState('');
+  const [searchCodeProductos, setSearchCodeProductos] = useState('');
   const [pedido, setPedido] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -204,26 +205,43 @@ export default function Pedido({
     }
   };
 
-  // ─── Memoizamos el filtrado para que su referencia sólo cambie al variar productos o texto ───
+  const productosCodeFiltrados = useMemo(() =>
+    productos.filter((producto) =>
+      (producto.f_referencia ? producto.f_referencia.toString() : '')
+        .toLowerCase()
+        .includes(searchCodeProductos.toLowerCase())
+    ),
+    [productos, searchCodeProductos]
+  );
+
   const productosFiltrados = useMemo(() =>
     productos.filter((producto) =>
       (producto.f_descripcion || '')
         .toLowerCase()
         .includes(searchTextProductos.toLowerCase()) ||
-      (producto.f_referencia ? producto.f_referencia.toString() : '')
+      (producto.f_referencia_suplidor ? producto.f_referencia_suplidor.toString() : '')
         .toLowerCase()
         .includes(searchTextProductos.toLowerCase())
     ),
     [productos, searchTextProductos]
   );
-  // ────────────────────────────────────────────────────────────────────────────────────────────
+
+  const productosFiltradosFinal = useMemo(() =>
+    searchCodeProductos
+      ? productosCodeFiltrados
+      : productosFiltrados
+    , [productosFiltrados, productosCodeFiltrados, searchCodeProductos]);
+
+
+  // ─── Memoizamos el filtrado para que su referencia sólo cambie al variar productos o texto ───
+
 
   // ─── RecyclerListView setup ─────────────────────────────────────────────
   // Lazy init para que sólo se ejecute en el primer render
   const [dataProvider, setDataProvider] = useState(() =>
     new DataProvider((r1, r2) => r1 !== r2)
       .cloneWithRows(
-        productosFiltrados.map(prod => ({
+        productosFiltradosFinal.map(prod => ({
           ...prod._raw,
           cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
         }))
@@ -236,19 +254,19 @@ export default function Pedido({
     // dimensiones de cada fila
     (type, dim) => {
       dim.width = SCREEN_WIDTH;
-      dim.height = 100;    // ajusta esta altura a tu diseño
+      dim.height = 120;    // ajusta esta altura a tu diseño
     }
   ), []);
 
   useEffect(() => {
     // 1) Creamos un array de objetos planos: todos los campos _raw + la cantidad actual
-    const filas = productosFiltrados.map(prod => ({
+    const filas = productosFiltradosFinal.map(prod => ({
       ...prod._raw,
       cantidad: pedido[prod._raw.f_referencia]?.cantidad?.toString() || ''
     }));
 
     setDataProvider(prev => prev.cloneWithRows(filas));
-  }, [productosFiltrados]);
+  }, [productosFiltradosFinal]);
 
   const actualizarCantidad = (f_referencia, cantidad, producto) => {
     setPedido(prev => {
@@ -277,13 +295,12 @@ export default function Pedido({
         };
 
       // 2) Actualizamos el RecyclerListView DataProvider en el mismo batch
-      const filas = productosFiltrados.map(prod => ({
+      const filas = productosFiltradosFinal.map(prod => ({
         ...prod._raw,
         cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
       }));
 
       // 4️⃣ — Lógica de oferta automática —
-      // 4️⃣ — Lógica de ofertas corregida —
       const oferta = ofertas.find(o => o.f_referencia === f_referencia);
       if (oferta) {
         const qtyNum = parseInt(cantidad, 10) || 0;
@@ -590,13 +607,25 @@ export default function Pedido({
       </View>
 
       {/* Buscador de producto */}
+
       <View style={pedidoStyles.searchContainer}>
-        <TextInput
-          style={pedidoStyles.searchInput}
-          placeholder="Buscar producto"
-          value={searchTextProductos}
-          onChangeText={setSearchTextProductos}
-        />
+        <View style={{ flex: 1 }}>
+          <TextInput
+            style={pedidoStyles.searchInput}
+            placeholder="Cod"
+            keyboardType="numeric"
+            value={searchCodeProductos}
+            onChangeText={setSearchCodeProductos}
+          />
+        </View>
+        <View style={{ flex: 4 }}>
+          <TextInput
+            style={pedidoStyles.searchInput}
+            placeholder="Buscar producto"
+            value={searchTextProductos}
+            onChangeText={setSearchTextProductos}
+          />
+        </View>
       </View>
 
       {/* Listado de productos */}
@@ -788,6 +817,7 @@ const pedidoStyles = StyleSheet.create({
   },
   searchContainer: {
     marginBottom: 16,
+    flexDirection: 'row',
   },
   searchInput: {
     backgroundColor: '#fff',
@@ -801,6 +831,7 @@ const pedidoStyles = StyleSheet.create({
     marginBottom: 0,
   },
   productCard: {
+     height: 110, 
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 12,

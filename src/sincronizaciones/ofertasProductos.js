@@ -80,13 +80,13 @@ const sincronizarProductosOfertas = async () => {
     const col = database.collections.get(nombreTabla);
     const locales = await col.query().fetch();
     const localMap = new Map(
-      locales.map((r) => [`${r.f_referencia}_${r.f_referencia_oferta}`, r])
+      locales.map((r) => [`${r.f_referencia}_${r.f_referencia_oferta}_${r.f_cantidad_req}`, r])
     );
 
     // 4) Preparar batch
     const batchActions = [];
     for (const o of remoteItems) {
-      const key = `${o.referencia}_${o.referenciaOferta}`;
+      const key = `${o.referencia}_${o.referenciaOferta}_${o.cantidadReq}`;
       const local = localMap.get(key);
 
       if (local) {

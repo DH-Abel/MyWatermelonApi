@@ -282,7 +282,7 @@ export const mySchema = appSchema({
     tableSchema({
       name: 't_secuencias',
       columns: [
-        { name: 'f_id', type: 'number' },
+        {name: 't_usuario', type: 'string'}, //Usuario que usa la secuencia
         { name: 'f_tipodoc', type: 'string' },
         { name: 'f_nodoc', type: 'string' },
         { name: 'f_tabla', type: 'string' }

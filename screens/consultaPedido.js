@@ -433,12 +433,12 @@ export default function Pedidos({ navigation }) {
       <View style={consultaStyles.filterCard}>
         <Pressable onPress={() => setIsStartPickerVisible(true)} style={consultaStyles.dateButton}>
           <Text style={consultaStyles.dateText}>
-            {startDate ? startDate.toDateString() : 'Fecha Inicial'}
+            Desde:{startDate ? startDate.toDateString() : 'Fecha Inicial'}
           </Text>
         </Pressable>
         <Pressable onPress={() => setIsEndPickerVisible(true)} style={consultaStyles.dateButton}>
           <Text style={consultaStyles.dateText}>
-            {endDate ? endDate.toDateString() : 'Fecha Final'}
+            Hasta: {endDate ? (endDate.toDateString()) : 'Fecha Final'}
           </Text>
         </Pressable>
         {/* <Pressable onPress={filtrarPedidosPorFecha} style={consultaStyles.filterButton}>

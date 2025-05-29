@@ -70,11 +70,11 @@ const sincronizarClientes = async () => {
 
   const tableName = 't_clientes';
   const lastSyncTimestamp = await getLastSync(tableName);
-  const INTERVALO = 12 * 60 * 60 * 1000;
+  const INTERVALO = 0 * 0 * 0 * 1000;
 
   if (Date.now() - lastSyncTimestamp < INTERVALO) {
     console.log(
-      `Sincronización de descuentos omitida, faltan ${Math.round(
+      `Sincronización de clientes omitida, faltan ${Math.round(
         (INTERVALO - (Date.now() - lastSyncTimestamp)) / 1000 / 60
       )} minutos`
     );

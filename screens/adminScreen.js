@@ -170,7 +170,10 @@ export default function AdminUsersScreen() {
               if (!form.vendedor) {
                 return Alert.alert('Error', 'Debes indicar un vendedor');
               }
-              await sincronizarSecuencias(parseInt(form.vendedor, 10));
+              await sincronizarSecuencias(
+                parseInt(form.vendedor, 10),
+                form.usuario
+              );
               Alert.alert('Listo', 'Secuencias sincronizadas');
             }}>
               <Text style={{ color: 'blue', textAlign: 'center', marginBottom: 10, borderWidth: 1, borderColor: 'blue', padding: 5 }}>Sincronizar Secuencia</Text>

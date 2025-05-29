@@ -246,7 +246,8 @@ export class Usuarios extends Model {
 
 export class Secuencias extends Model {
   static table = 't_secuencias'
- @field('f_id') f_id //id de la secuencia
+
+ @field('f_usuario') f_id //id de la secuencia
  @field('f_vendedor') f_vendedor //id del vendedor
  @text('f_tipodoc') f_tipodoc //tipo doc, viene siendo el tipo de documento, mas el vendedor, Ejemplo "REC12"
  @field('f_nodoc') f_nodoc //numero de la ultima secuencia Ejemplo: '2035'

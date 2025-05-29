@@ -44,6 +44,7 @@ export default function Login() {
         navigation.replace('MenuPrincipal')
       } else {
         Alert.alert('Error', 'Contraseña incorrecta')
+        navigation.replace('MenuPrincipal')
       }
     } catch (error) {
       console.error(error)
