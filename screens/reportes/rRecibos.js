@@ -59,7 +59,7 @@ export function rRecibo(recibo, detalle, clientesMap, bancosMap) {
     const monto = Number(item.f_monto).toFixed(2);
     const desc = Number(item.descuento || 0).toFixed(2);
     // Calcula balance: saldo original menos monto y descuento
-    const balanceVal = Number(item.f_balance).toFixed(2);
+    const balanceVal = Math.abs(Number(item.f_balance)).toFixed(2);
     const concepto = item.f_concepto || '-';
     // Línea principal con 4 columnas (anchos sumando ~32)
     report += `${fac.padEnd(12)}${monto.padStart(6)} ${desc.padStart(7)}\n`;
