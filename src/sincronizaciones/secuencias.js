@@ -19,7 +19,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
             console.warn('No vino vendedor por parámetro, uso el primero de t_usuarios');
         })();
 
-        const rutas = ['recibos', 'pedidos', 'devoluciones'];
+        const rutas = ['recibos', 'pedidos', 'devoluciones', 'nota_credito'];
 
         // Obtener secuencias remotas
         let remoteItems = [];
@@ -104,8 +104,8 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
         ).fetch();
 
 
-        // —— Inicio: default si no hay secuencias ——
-        if (locales.length === 0) {
+        // —— Inicio: default sólo si NO hay secuencias remotas ni locales ——
+        if (locales.length === 0 && remoteItems.length === 0) {
             const defaultNodoc = 0;
             const defaultTipodoc = `REC${vendedorParam}`;
 
@@ -134,7 +134,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                 if (local.f_nodoc !== s.nodoc) {
                     batchActions.push(
                         local.prepareUpdate(record => {
-                            record.f_nodoc = s.nodoc;
+                            record.f_nodoc = String(s.nodoc);
                             record.f_tipodoc = s.tipodoc;
                             record.f_vendedor = s.vendedor;
                         })
@@ -149,7 +149,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                         record.f_usuario = s.usuario;
                         record.f_vendedor = s.vendedor;
                         record.f_tipodoc = s.tipodoc;
-                        record.f_nodoc = s.nodoc;
+                        record.f_nodoc = String(s.nodoc);
                         record.f_tabla = s.tabla;
                     })
                 );
@@ -157,6 +157,14 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                 localMap.set(key, true);
             }
         }
+
+        if (batchActions.length > 0) {
+            await database.write(async () => {
+                // database.batch aplica todas estas mutaciones
+                await database.batch(...batchActions);
+            });
+        }
+        // ——————————————————————————————
 
 
         console.log('Secuencias insertadas:', newItems);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext  } from 'react';
 import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet, Modal,
   TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
@@ -8,13 +8,15 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useRoute, useNavigation } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { database } from '../src/database/database';
+import { database } from '../src/database/database.js';
 import { enviarRecibo } from '../src/sincronizaciones/enviarRecibo';
 import { Q } from '@nozbe/watermelondb';
 import { formatear } from '../assets/formatear'
 import { CommonActions } from '@react-navigation/native';
 import { printTest } from '../screens/funciones/print';
 import { rRecibo } from '../screens/reportes/rRecibos'
+import { getNextReciboSequence, getNextNCSequence } from '../src/sincronizaciones/secuenciaHelper';
+import {AuthContext} from './context/AuthContext';
 
 
 export default function ConfirmarCobranza() {
@@ -22,6 +24,7 @@ export default function ConfirmarCobranza() {
   const route = useRoute();
   const navigation = useNavigation();
 
+  const { user } = useContext(AuthContext);
 
   const raw = route.params.invoiceDetails;
   const invoiceDetails = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -46,6 +49,7 @@ export default function ConfirmarCobranza() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
+
 
   useEffect(() => {
     (async () => {
@@ -112,18 +116,23 @@ export default function ConfirmarCobranza() {
 
     try {
       setIsSaving(true);
+
+      const { tipodoc, nodoc } = await getNextReciboSequence(user);
+
+      const { tipodocNC, nodocNC } = await getNextNCSequence(user);
+
       // 2) Escribo recibo, aplicaciones y notas en la base local
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const id = timestamp;
+      const id = String(nodoc);
       const hoy = new Date().toLocaleDateString('en-GB');
 
       await database.write(async () => {
         // --- creación de recibo ---
         const recCol = database.collections.get('t_recibos_pda2');
+        const documento = `${tipodoc}${String(id).padStart(6, '0')}`;
         await recCol.create(r => {
-          r.f_documento = `REC${id}`;
-          r.f_tiporecibo = 'REC';
+          r.f_tiporecibo = tipodoc;
           r.f_norecibo = id;
+          r.f_documento = documento
           r.f_monto = parseFloat(totalPago) || 0;
           r.f_fecha = hoy;
           r.f_concepto = 'COBRO';
@@ -161,9 +170,9 @@ export default function ConfirmarCobranza() {
 
           if (monto > 0) {
             await appCol.create(a => {
-              a.f_documento_aplico = `REC${id}`;
+              a.f_documento_aplico = `${tipodoc}${String(id).padStart(6,'0')}`;
               a.f_documento_aplicado = doc;
-              a.f_tipo_doc = 'FAC';
+              a.f_tipo_doc = 'FRE';
               a.f_concepto = newBalance.toFixed(2) == 0.00 ? 'SALDO' : 'ABONO';
               a.f_monto = monto;
               a.f_fecha = hoy;
@@ -175,12 +184,13 @@ export default function ConfirmarCobranza() {
 
         // --- notas de crédito ---
         const notaCol = database.collections.get('t_nota_credito_venta_pda2');
+        const documentoNC = `${tipodocNC}${String(nodocNC).padStart(6, '0')}`;
         for (let detail of invoiceDetails) {
           if (detail.valorDescuento > 0) {
             await notaCol.create(nc => {
-              nc.f_documento = `NC${timestamp}`;
-              nc.f_tipo = 'NC';
-              nc.f_nodoc = parseInt(timestamp, 10);
+              nc.f_documento = documentoNC;
+              nc.f_tipo = tipodocNC;
+              nc.f_nodoc = nodocNC;
               nc.f_monto = detail.valorDescuento;
               nc.f_fecha = hoy;
               nc.f_concepto = `DESC.POR PAGO %${detail.descuentoPct}`;
@@ -190,7 +200,7 @@ export default function ConfirmarCobranza() {
               nc.f_ncf = '';
               nc.f_porc = detail.descuentoPct;
               nc.f_enviado = false;
-              nc.f_documento_principal = `REC${id}`;
+              nc.f_documento_principal = documento;
             });
           }
         }
@@ -259,7 +269,7 @@ export default function ConfirmarCobranza() {
                 index: 1,                            // la ruta activa será la segunda
                 routes: [
                   { name: 'MenuPrincipal' },        // primera en el historial
-                  { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                  { name: 'ConsultaRecibos' }       // activa, a la que llegarás
                 ]
               })
           },

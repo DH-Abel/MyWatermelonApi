@@ -35,7 +35,7 @@ export default function Login() {
       console.log(`🔑 Contraseña esperada para ${usuario}:`, expectedPass + suffix)
 
       const valid = usuario === 'Omega'
-        ? password === expectedPass + suffix
+        ? password === expectedPass// + suffix
         : password === expectedPass
 
       if (valid) {
@@ -44,7 +44,7 @@ export default function Login() {
         navigation.replace('MenuPrincipal')
       } else {
         Alert.alert('Error', 'Contraseña incorrecta')
-        navigation.replace('MenuPrincipal')
+        //navigation.replace('MenuPrincipal')
       }
     } catch (error) {
       console.error(error)

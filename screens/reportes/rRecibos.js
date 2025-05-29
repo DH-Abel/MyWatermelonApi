@@ -33,7 +33,7 @@ export function rRecibo(recibo, detalle, clientesMap, bancosMap) {
   report += separator;
   report += center + boldOn + "RECIBO DE PAGO\n" + boldOff;
   report += left;
-  report += `No. Recibo: ${recibo.f_tiporecibo}${recibo.f_norecibo}\n`;
+  report += `No. Recibo: ${recibo.f_documento}\n`;
   report += `Fecha: ${recibo.f_fecha}\n`;
   const cliente = clientesMap[recibo.f_idcliente] || {};
   report += boldOn + `(${recibo.f_idcliente})${cliente.f_nombre || recibo.f_idcliente}\n` + boldOff;
