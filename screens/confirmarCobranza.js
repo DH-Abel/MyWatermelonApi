@@ -231,7 +231,7 @@ export default function ConfirmarCobranza() {
         m[b._raw.f_idbanco] = b._raw.f_nombre;
         return m;
       }, {});
-      
+
       const reporte = rRecibo(recRaw, detalleParaImprimir, clientesMap, bancosMap);
       await printTest(reporte);
 
@@ -268,7 +268,13 @@ export default function ConfirmarCobranza() {
         Alert.alert('Guardado', 'Recibo guardado localmente, pero no se pudo enviar', [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('ConsultaRecibos'),
+            onPress: () => navigation.reset({
+              index: 1,
+              routes: [
+                { name: 'MenuPrincipal' },
+                { name: 'ConsultaRecibos' }
+              ]
+            }),
           },
         ]);
       }
