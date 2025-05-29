@@ -276,19 +276,20 @@ export const mySchema = appSchema({
         { name: 'f_activo', type: 'boolean' },
         { name: 'f_vendedor', type: 'number' },
         { name: 'Fvendedor_multiple', type: 'string' },
-       // { name: 'f_permisos', type: 'string' }, //JSON con los permisos del usuario
+        // { name: 'f_permisos', type: 'string' }, //JSON con los permisos del usuario
       ]
     }),
     tableSchema({
       name: 't_secuencias',
       columns: [
-        {name: 't_usuario', type: 'string'}, //Usuario que usa la secuencia
+        { name: 'f_usuario', type: 'string' }, //Usuario que usa la secuencia
+        { name: 'f_vendedor', type: 'number' }, //id del vendedor
         { name: 'f_tipodoc', type: 'string' },
         { name: 'f_nodoc', type: 'string' },
         { name: 'f_tabla', type: 'string' }
       ]
     }),
-    
+
   ]
 
 });

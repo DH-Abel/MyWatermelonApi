@@ -41,6 +41,9 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                 tipodoc: trimString(item.f_tipodoc),
                 nodoc: parseInt(trimString(item.f_nodoc), 10),
                 tabla: trimString(item.f_tabla),
+                vendedor: trimString(item.f_vendedor),
+                usuario: trimString(usuarioParam || item.f_usuario)
+
             }));
             remoteItems = remoteItems.concat(items);
         }
@@ -53,7 +56,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
         // Eliminar duplicados por tipodoc|tabla
         const seen = new Set();
         remoteItems = remoteItems.filter(s => {
-            const key = `${s.tipodoc}|${s.tabla}`;
+            const key = `${s.usuario}_${s.tabla}`;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
@@ -62,22 +65,29 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
         // Leer registros locales del usuario
         const col = database.collections.get(nombreTabla);
         const locales = await col.query(
-            Q.where('t_usuario', usuarioParam)
+            Q.where('f_usuario', usuarioParam)
         ).fetch();
+
         const localMap = new Map(
-            locales.map(r => [`${r.f_tipodoc}|${r.f_tabla}`, r])
+            locales.map(r => {
+                const key = `${r.f_usuario}_${r.f_tabla}`;
+                return [key, r];
+            })
         );
+
 
         // Preparar batch
         const batchActions = [];
         for (const s of remoteItems) {
-            const key = `${s.tipodoc}|${s.tabla}`;
+           const key = `${s.usuario}_${s.tabla}`;
             const local = localMap.get(key);
             if (local) {
                 if (local.f_nodoc !== s.nodoc) {
                     batchActions.push(
                         local.prepareUpdate(record => {
                             record.f_nodoc = s.nodoc;
+                            record.f_tipodoc = s.tipodoc;
+                            record.f_vendedor = s.vendedor;
                         })
                     );
                     updatedItems.push(s);
@@ -85,8 +95,9 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
             } else {
                 batchActions.push(
                     col.prepareCreate(record => {
-                        record._raw.id = `${usuarioParam}_${s.tipodoc}_${s.tabla}`;
-                        record.t_usuario = usuarioParam;
+                        const newId = `${s.usuario}_${s.tabla}`;
+                        record._raw.id = newId;
+                        record.f_usuario = s.usuario;
                         record.f_tipodoc = s.tipodoc;
                         record.f_nodoc = s.nodoc;
                         record.f_tabla = s.tabla;
