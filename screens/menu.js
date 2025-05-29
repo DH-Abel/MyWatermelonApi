@@ -30,6 +30,7 @@ export default function MenuPrincipal({ navigation }) {
     { name: 'Dejado de facturas', icon: 'file-document-outline', target: 'Facturas' },
     { name: 'Reportes', icon: 'chart-bar', target: 'Reportes' },
     { name: 'Configuraciones', icon: 'cog-outline', target: 'AdminScreen' },
+    { name: 'Salir', icon: 'exit-to-app', target: 'Login' },
   ];
 
   return (
