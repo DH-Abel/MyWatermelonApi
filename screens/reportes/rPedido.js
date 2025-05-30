@@ -70,7 +70,7 @@ export function rPedido(pedido, detalle, productosMap, clientesMap) {
     report += `(${item.f_referencia}) ${producto.f_referencia_suplidor}\n`;
     report += `${descripcion}\n`;
     // Línea 2: Cantidad, precio unitario y total (formato simplificado)
-    report += `  QTY: ${item.f_cantidad} x $${item.f_precio} = ${totalProducto}\n`;
+    report += `  QTY: ${item.f_cantidad} x $${formatear(item.f_precio)} = ${totalProducto}\n`;
     
   report += separator;
   
@@ -86,7 +86,7 @@ export function rPedido(pedido, detalle, productosMap, clientesMap) {
   report += `Subtotal: ${formatear(subtotal)}\n`;
   report += `Descuento: ${formatear(pedido.f_descuento)}\n`;
   report += `ITBIS:    ${formatear(pedido.f_itbis)}\n`;
-  report += boldOn + `TOTAL:    ${formatear(pedido.f_monto)}\n` + boldOff;
+  report += boldOn + `TOTAL:    RD$${formatear(pedido.f_monto)}\n` + boldOff;
   report += separator;
 
   report += center + `Impresion: ${fecha} ${hora}`;

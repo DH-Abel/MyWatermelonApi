@@ -1,8 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import { database } from "../../src/database/database";
-import api from "../../api/axios";
 import { enviarPedido } from "../../src/sincronizaciones/enviarPedido";
+import { getNextPedidoSequence } from "../../src/sincronizaciones/secuenciaHelper";
+import {AuthContext} from '../context/AuthContext';
+import React, { useContext } from 'react';
+
 
 export const realizarPedidoLocal = async ({
   pedido,
@@ -19,9 +22,8 @@ export const realizarPedidoLocal = async ({
   setDescuentoCredito,
   navigation,
   creditoDisponible,
+  user
 }) => {
-
-  
 
 
   // Primero verificamos que haya pedido seleccionado
@@ -90,7 +92,6 @@ export const realizarPedidoLocal = async ({
 
 
   // Genera identificador y fecha
-  const documento = `PEDO-${Date.now()}`;
   const fechaActual = formatDate(new Date());
   const horaActual = new Date().toLocaleTimeString('en-GB');
 
@@ -98,16 +99,23 @@ export const realizarPedidoLocal = async ({
   const guardarPedidoLocal = async () => {
     setIsSaving(true);
     try {
+      
+        const { tipodoc, nodoc } = await getNextPedidoSequence(user);
+        const id = String(nodoc);
+        const documento = `${tipodoc}${String(id).padStart(6, '0')}`;
+        
       await database.write(async () => {
         const facturaCollection = database.collections.get('t_factura_pedido');
         const detalleCollection = database.collections.get('t_detalle_factura_pedido');
 
+        
+        
         // Guarda el encabezado del pedido
         await facturaCollection.create(record => {
           record.f_cliente = clienteSeleccionado.f_id;
           record.f_documento = documento;
-          record.f_tipodoc = 'PEDO';
-          record.f_nodoc = parseInt(fechaActual);
+          record.f_tipodoc = tipodoc;
+          record.f_nodoc = nodoc;
           record.f_fecha = (fechaActual);
           record.f_hora_vendedor = horaActual;
           record.f_itbis = Number(computedItbis.toFixed(2));
@@ -134,9 +142,10 @@ export const realizarPedidoLocal = async ({
         await AsyncStorage.removeItem('pedido_guardado');
       });
       console.log("Pedido guardado localmente con éxito");
-
+      setIsSaving(false);
       Alert.alert(
         "Pedido guardado existosamente",
+        
         "¿Deseas enviar el pedido?",
         [
           {

@@ -62,7 +62,7 @@ export function rRecibo(recibo, detalle, clientesMap, bancosMap) {
     const balanceVal = Math.abs(Number(item.f_balance)).toFixed(2);
     const concepto = item.f_concepto || '-';
     // Línea principal con 4 columnas (anchos sumando ~32)
-    report += `${fac.padEnd(12)}${monto.padStart(6)} ${desc.padStart(7)}\n`;
+    report += `${fac.padEnd(12)}${formatear(monto).padStart(6)} ${formatear(desc).padStart(7)}\n`;
     // Línea secundaria con el concepto
     report += `  Concepto: ${concepto}\n`;
     report += `  Balance:  ${balanceVal}\n`;
@@ -72,14 +72,14 @@ export function rRecibo(recibo, detalle, clientesMap, bancosMap) {
 
   // ===== Resumen de pagos =====
   report += left + "Resumen de Pagos\n";
-  report += recibo.f_efectivo ?`Efectivo:      ${Number(recibo.f_efectivo).toFixed(2)}\n`  : '';
-  report += recibo.f_monto_transferencia ?`Transferencia: ${Number(recibo.f_monto_transferencia).toFixed(2)}\n` : '';
-  report += recibo.f_cheque ?`Cheque:        ${Number(recibo.f_cheque).toFixed(2)}\n` : '';
+  report += recibo.f_efectivo ?`Efectivo:      ${formatear(Number(recibo.f_efectivo))}\n`  : '';
+  report += recibo.f_monto_transferencia ?`Transferencia: ${formatear(Number(recibo.f_monto_transferencia))}\n` : '';
+  report += recibo.f_cheque ?`Cheque:        ${formatear(Number(recibo.f_cheque))}\n` : '';
   report += recibo.f_cheque ? `Banco cheque:${bancosMap[recibo.f_cheque_banco]} \n` : '';
   report += recibo.f_cheque ? `Cheque No:    ${recibo.f_cheque_numero}\n` : '';
   report += recibo.f_cheque ? `Fecha de cobro:     ${recibo.f_cheque_cobro}\n` : '';
   report += recibo.f_monto_transferencia ? `Banco transferencia: ${bancosMap[recibo.f_banco_transferencia]}\n` : '';
-  report += boldOn + `\n TOTAL:         RD${formatear(recibo.f_monto)}\n\n` + boldOff;
+  report += boldOn + `\n TOTAL:         RD$${formatear(recibo.f_monto)}\n\n` + boldOff;
   report += center + `_____________________________\n`
   report += center +`Realizado por \n`;
 

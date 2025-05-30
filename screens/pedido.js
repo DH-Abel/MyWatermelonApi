@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useContext } from 'react';
 import {
   View, Text, ActivityIndicator, TextInput, TouchableOpacity, Modal, SafeAreaView, Alert, Pressable,
   StyleSheet, KeyboardAvoidingView, Platform, ScrollView
@@ -7,22 +7,21 @@ import {
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/axios.js';
-import { database } from '../src/database/database.js';
 import { formatear } from '../assets/formatear.js';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import CambiarCantidadModal from './modal/cambiarCantidad.js';
 import sincronizarProductos from '../src/sincronizaciones/cargarProductosLocales.js';
-import { FlashList } from '@shopify/flash-list';
 import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
 import { Dimensions } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useRoute } from '@react-navigation/native';
 import { realizarPedidoLocal } from '../screens/funciones/realizarPedidoLocal.js';
 import MyCheckbox from './utilities/checkbox.js';
 import { Q } from '@nozbe/watermelondb';
 import { useDatabase } from '@nozbe/watermelondb/hooks';
 import debounce from 'lodash.debounce';
+import { AuthContext } from './context/AuthContext.js';
+
 
 const CLAVE_PEDIDO_GUARDADO = 'pedido_guardado';
 
@@ -66,6 +65,9 @@ export default function Pedido({
     () => debounce(setSearchCodeProductos, 800),
     [setSearchCodeProductos]
   );
+
+  //CAPTURAR USUARIO LOGUEADO
+  const { user } = useContext(AuthContext);
 
   // términos con debounce
   const [debouncedSearchTextProductos, setDebouncedSearchTextProductos] = useState(searchTextProductos);
@@ -156,6 +158,7 @@ export default function Pedido({
         setDescuentoCredito,
         navigation,
         creditoDisponible,
+        user
       });
     }
   };

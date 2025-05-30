@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import {
   View,
   Text,
@@ -22,9 +22,13 @@ import ModalDetalleDevolucion from './modal/detalleDevolucion'
 import { enviarDevoluciones } from '../src/sincronizaciones/enviarDevolucion';
 import { printTest } from './funciones/print'
 import { rDevoluciones } from './reportes/rDevoluciones';
+import { AuthContext } from './context/AuthContext';
 
 export default function Devoluciones({ clienteSeleccionado }) {
   const navigation = useNavigation();
+
+  const { user } = useContext(AuthContext); //usuario logueado
+  
 
   // Invoice states
   const [invoices, setInvoices] = useState([]);
@@ -268,16 +272,19 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
     let headDocument;
     // 1) Guardar localmente
+    
+    const { tipodoc, nodoc } = await getNextReciboSequence(user);
+    const id = String(nodoc);
+    const documento = `${tipodoc}${(id).padStart(6, '0')}`;
+
     await database.write(async () => {
-
-
       const timestamp = Math.floor(Date.now() / 1000).toString();
       const head = await database.collections
         .get('t_factura_dev_pda')
         .create(r => {
-          r.f_documento = `DVCR${timestamp}`;
-          r.f_tipodoc = 'DVCR';
-          r.f_nodoc = timestamp;
+          r.f_documento = documento;
+          r.f_tipodoc = tipodoc;
+          r.f_nodoc = nodoc;
           r.f_vendedor = clienteSeleccionado.f_vendedor
           r.f_pedido = selectedInvoice.f_documento;
           r.f_cliente = selectedInvoice.f_cliente;

@@ -1,6 +1,6 @@
 
 export function formatear(valor){
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(valor);
+    return new Intl.NumberFormat('en-US').format(valor);
   }
 
 export function formatearFecha(date) {

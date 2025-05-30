@@ -19,6 +19,7 @@ import { getNextReciboSequence, getNextNCSequence } from '../src/sincronizacione
 import {AuthContext} from './context/AuthContext';
 
 
+
 export default function ConfirmarCobranza() {
   console.log('guardando')
   const route = useRoute();
@@ -49,6 +50,8 @@ export default function ConfirmarCobranza() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [cobrador, setCobrador] = useState('');
 
 
   useEffect(() => {
@@ -117,8 +120,9 @@ export default function ConfirmarCobranza() {
     try {
       setIsSaving(true);
 
-      const { tipodoc, nodoc } = await getNextReciboSequence(user);
-
+      const { tipodoc, nodoc, vendedor } = await getNextReciboSequence(user);
+      setCobrador(vendedor);
+      console.log('documentos', nodoc, vendedor)
       const { tipodocNC, nodocNC } = await getNextNCSequence(user);
 
       // 2) Escribo recibo, aplicaciones y notas en la base local
@@ -137,7 +141,7 @@ export default function ConfirmarCobranza() {
           r.f_fecha = hoy;
           r.f_concepto = 'COBRO';
           r.f_idcliente = clienteSeleccionado.f_id;
-          r.f_cobrador = 12;
+          r.f_cobrador =  parseInt(vendedor, 10) || 0;
           r.f_efectivo = parseFloat(efectivo) || 0;
           r.f_monto_transferencia = parseFloat(transferenciaMonto) || 0;
           r.f_cheque = parseFloat(chequeMonto) || 0;

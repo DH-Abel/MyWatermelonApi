@@ -82,6 +82,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                     record.prepareUpdate(r => {
                         r.f_nodoc = defaultNodoc;
                         r.f_tipodoc = defaultTipodoc;
+                        r.f_vendedor = vendedorParam;
                     })
                 );
             });
@@ -136,7 +137,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                         local.prepareUpdate(record => {
                             record.f_nodoc = String(s.nodoc);
                             record.f_tipodoc = s.tipodoc;
-                            record.f_vendedor = s.vendedor;
+                            record.f_vendedor = Number(s.vendedor);
                         })
                     );
                     updatedItems.push(s);
@@ -147,7 +148,7 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
                         const newId = `${s.usuario}_${s.tabla}`;
                         record._raw.id = newId;
                         record.f_usuario = s.usuario;
-                        record.f_vendedor = s.vendedor;
+                        record.f_vendedor = Number(s.vendedor);
                         record.f_tipodoc = s.tipodoc;
                         record.f_nodoc = String(s.nodoc);
                         record.f_tabla = s.tabla;
