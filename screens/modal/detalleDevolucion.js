@@ -40,8 +40,16 @@ const ModalDetalleDevolucion = ({
         : 0;
     const totalItbisDev = diasFactura <= 30 ? summary.totalItbis : 0;
 
+    const devolverTodo = () => {
+        (detailsMap[selectedInvoice?.f_documento] || []).forEach(item => {
+            const maxQty = item.f_cantidad - item.qty_dev;
+            onChangeReturn(item, maxQty.toString());
+        });
+    };
+
     const renderFooter = () => (
         <View style={{ paddingHorizontal: 16, paddingTop: 5, backgroundColor: '#f9f9f9' }}>
+
             <Picker
                 selectedValue={selectedMotivo}
                 onValueChange={setSelectedMotivo}
@@ -70,7 +78,7 @@ const ModalDetalleDevolucion = ({
                     Monto Bruto Devuelto: {formatear(summary.totalBruto)}
                 </Text>
                 {(() => {
-                   
+
                     return (
                         <Text style={styles.summaryText}>
                             Itbis Devuelto: {formatear(totalItbisDev)}
@@ -111,6 +119,12 @@ const ModalDetalleDevolucion = ({
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                         <View style={styles.headerContainer}>
                             <Text style={styles.modalTitle}>Detalle de Devolución</Text>
+                            <Pressable
+                                onPress={devolverTodo}
+                                style={[styles.footerButton, { marginBottom: 8 }]}
+                            >
+                                <Text style={styles.footerText}>Devolver todo</Text>
+                            </Pressable>
                         </View>
                     </TouchableWithoutFeedback>
 
@@ -161,7 +175,7 @@ const ModalDetalleDevolucion = ({
 
 const styles = StyleSheet.create({
     modalContainer: { flex: 1, backgroundColor: 'white' },
-    headerContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+    headerContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     modalTitle: { fontSize: 20, fontWeight: 'bold' },
     detailRow: { flexDirection: 'row', alignItems: 'center', padding: 5, borderWidth: 1, borderColor: '#ccc' },
     detailText: { flex: 1, fontSize: 14 },

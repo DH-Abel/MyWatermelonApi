@@ -289,6 +289,26 @@ export const mySchema = appSchema({
         { name: 'f_tabla', type: 'string' }
       ]
     }),
+    //     tableSchema({
+    //   name: 't_dejar_factura_pda',
+    //   columns: [
+    //     { name: 'f_id', type: 'string' }, //Usuario que usa la secuencia
+    //     { name: 'f_vendedor', type: 'number' }, //id del vendedor
+    //     { name: 'f_tipodoc', type: 'string' },
+    //     { name: 'f_nodoc', type: 'string' },
+    //     { name: 'f_tabla', type: 'string' }
+    //   ]
+    // }),
+    //     tableSchema({
+    //   name: 't_secuencias',
+    //   columns: [
+    //     { name: 'f_usuario', type: 'string' }, //Usuario que usa la secuencia
+    //     { name: 'f_vendedor', type: 'number' }, //id del vendedor
+    //     { name: 'f_tipodoc', type: 'string' },
+    //     { name: 'f_nodoc', type: 'string' },
+    //     { name: 'f_tabla', type: 'string' }
+    //   ]
+    // }),
 
   ]
 
