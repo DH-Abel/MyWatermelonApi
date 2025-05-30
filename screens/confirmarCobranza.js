@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useContext  } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, TextInput, FlatList, Pressable, Alert, SafeAreaView, StyleSheet, Modal,
   TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
@@ -16,7 +16,7 @@ import { CommonActions } from '@react-navigation/native';
 import { printTest } from '../screens/funciones/print';
 import { rRecibo } from '../screens/reportes/rRecibos'
 import { getNextReciboSequence, getNextNCSequence } from '../src/sincronizaciones/secuenciaHelper';
-import {AuthContext} from './context/AuthContext';
+import { AuthContext } from './context/AuthContext';
 
 
 
@@ -141,7 +141,7 @@ export default function ConfirmarCobranza() {
           r.f_fecha = hoy;
           r.f_concepto = 'COBRO';
           r.f_idcliente = clienteSeleccionado.f_id;
-          r.f_cobrador =  parseInt(vendedor, 10) || 0;
+          r.f_cobrador = parseInt(vendedor, 10) || 0;
           r.f_efectivo = parseFloat(efectivo) || 0;
           r.f_monto_transferencia = parseFloat(transferenciaMonto) || 0;
           r.f_cheque = parseFloat(chequeMonto) || 0;
@@ -174,7 +174,7 @@ export default function ConfirmarCobranza() {
 
           if (monto > 0) {
             await appCol.create(a => {
-              a.f_documento_aplico = `${tipodoc}${String(id).padStart(6,'0')}`;
+              a.f_documento_aplico = `${tipodoc}${String(id).padStart(6, '0')}`;
               a.f_documento_aplicado = doc;
               a.f_tipo_doc = 'FRE';
               a.f_concepto = newBalance.toFixed(2) == 0.00 ? 'SALDO' : 'ABONO';
@@ -227,13 +227,13 @@ export default function ConfirmarCobranza() {
         .fetch()).map(m => m._raw);
 
       // 4) Imprimo recibo localmente
-      const detalleParaImprimir = invoiceDetails.map(det => ({
-        f_documento_aplicado: det.documento,
-        f_monto: det.monto,
-        descuento: det.valorDescuento,
-        f_concepto: det.balanceConDescuento === det.monto + det.valorDescuento
-          ? 'SALDO' : 'ABONO',
-        f_balance: det.balance - det.monto - det.valorDescuento,
+      // Ahora: usamos appsRaw, que viene de la BD y tiene el f_concepto correcto
+      const detalleParaImprimir = appsRaw.map(app => ({
+        f_documento_aplicado: app.f_documento_aplicado,
+        f_monto: app.f_monto,
+        descuento: app.f_descuento || 0,
+        f_concepto: app.f_concepto,      // viene “SALDO” o “ABONO” según corresponda
+        f_balance: app.f_balance,
       }));
       const clientesMap = { [clienteSeleccionado.f_id]: clienteSeleccionado };
 
