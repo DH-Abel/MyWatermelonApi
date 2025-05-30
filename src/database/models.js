@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, text,json,date } from '@nozbe/watermelondb/decorators';
+import { field, text, json, date } from '@nozbe/watermelondb/decorators';
 
 export class Producto extends Model {
   static table = 't_productos_sucursal';
@@ -214,43 +214,62 @@ export class DetalleFactura extends Model {
   @field('f_qty_devuelta') f_qty_devuelta
 }
 export class Factura extends Model {
- static table = 't_factura'
- @text('f_documento') f_documento
- @field('f_nodoc') f_nodoc
- @field('f_vendedor') f_vendedor
- @field('f_cliente') f_cliente
- @field('f_monto') f_monto
- @field('f_itbis') f_itbis
- @field('f_descuento') f_descuento
- @text('f_fecha') f_fecha
- @field('f_descuento_transp') f_descuento_transp
- @field('f_descuento_nc') f_descuento_nc
+  static table = 't_factura'
+  @text('f_documento') f_documento
+  @field('f_nodoc') f_nodoc
+  @field('f_vendedor') f_vendedor
+  @field('f_cliente') f_cliente
+  @field('f_monto') f_monto
+  @field('f_itbis') f_itbis
+  @field('f_descuento') f_descuento
+  @text('f_fecha') f_fecha
+  @field('f_descuento_transp') f_descuento_transp
+  @field('f_descuento_nc') f_descuento_nc
 }
 
 export class Usuarios extends Model {
   static table = 't_usuarios'
- @field('f_id') f_id
- @text('f_nombre') f_nombre
- @text('f_apellido') f_apellido
- @text('f_usuario') f_usuario
- @text('f_password') f_password
- @text('f_email') f_email
- @text('f_telefono') f_telefono
- @date('f_fecha_creacion') f_fecha_creacion
- @date('f_fecha_modificacion') f_fecha_modificacion
- @field('f_activo') f_activo
- @field('f_vendedor') f_vendedor
- @text('Fvendedor_multiple') Fvendedor_multiple
- //@json('f_permisos') f_permisos
+  @field('f_id') f_id
+  @text('f_nombre') f_nombre
+  @text('f_apellido') f_apellido
+  @text('f_usuario') f_usuario
+  @text('f_password') f_password
+  @text('f_email') f_email
+  @text('f_telefono') f_telefono
+  @date('f_fecha_creacion') f_fecha_creacion
+  @date('f_fecha_modificacion') f_fecha_modificacion
+  @field('f_activo') f_activo
+  @field('f_vendedor') f_vendedor
+  @text('Fvendedor_multiple') Fvendedor_multiple
+  //@json('f_permisos') f_permisos
 }
 
 export class Secuencias extends Model {
   static table = 't_secuencias'
- @field('f_usuario') f_usuario 
- @field('f_vendedor') f_vendedor //id del vendedor
- @text('f_tipodoc') f_tipodoc //tipo doc, viene siendo el tipo de documento, mas el vendedor, Ejemplo "REC12"
- @field('f_nodoc') f_nodoc //numero de la ultima secuencia Ejemplo: '2035'
- @text('f_tabla') f_tabla //nombre de la tabla que usara la secuencia, t_recibos y t_aplicaciones, usarian la misma secuencia, ya que uno es el encabezado y otro el detalle
+  @field('f_usuario') f_usuario
+  @field('f_vendedor') f_vendedor //id del vendedor
+  @text('f_tipodoc') f_tipodoc //tipo doc, viene siendo el tipo de documento, mas el vendedor, Ejemplo "REC12"
+  @field('f_nodoc') f_nodoc //numero de la ultima secuencia Ejemplo: '2035'
+  @text('f_tabla') f_tabla //nombre de la tabla que usara la secuencia, t_recibos y t_aplicaciones, usarian la misma secuencia, ya que uno es el encabezado y otro el detalle
+}
+
+export class DejarFactura extends Model {
+  static table = 't_dejar_factura_pda';
+  @field('f_id') f_id
+  @field('f_cliente') f_cliente
+  @text('f_fecha') f_fecha
+  @field('f_monto') f_monto
+  @field('f_balance') f_balance
+  @text('f_documento') f_documento
+}
+
+export class DetalleDejarFactura extends Model {
+  static table = 't_det_dejar_factura_pda';
+  @text('f_documento') f_documento
+  @text('f_factura') f_factura
+  @text('f_fecha') f_fecha
+  @field('f_monto') f_monto
+  @field('f_balance') f_balance
 }
 
 

@@ -13,12 +13,11 @@ import {DescuentosxPago} from './models';
 import {OfertaProductos} from './models';
 import {Bancos} from './models';
 import { NotaCredito } from './models';
-import { Devolucion } from './models';
-import { DetalleDevolucion } from './models';
+import { Devolucion,DetalleDevolucion } from './models';
 import { EstadoDev } from './models';
 import { Factura, DetalleFactura } from './models';
 import { ConceptoDevolucion } from './models';
-import { Usuarios, Secuencias } from './models';
+import { Usuarios, Secuencias, DejarFactura,DetalleDejarFactura } from './models';
 
 
 // Configurar el adaptador de SQLite con migraciones
@@ -33,6 +32,6 @@ export const database = new Database({
   modelClasses: [Producto, Clientes, CuentaCobrar, FacturaPedido,Bancos
      ,DetalleFacturaPedido,Sync,RecibosPDA,Aplicaciones_pda,DescuentosxPago,OfertaProductos,
      NotaCredito,Devolucion,DetalleDevolucion,EstadoDev,Factura,ConceptoDevolucion,DetalleFactura
-    ,Usuarios, Secuencias],
+    ,Usuarios, Secuencias,DejarFactura,DetalleDejarFactura],
       actionsEnabled: true
 });

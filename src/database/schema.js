@@ -289,26 +289,28 @@ export const mySchema = appSchema({
         { name: 'f_tabla', type: 'string' }
       ]
     }),
-    //     tableSchema({
-    //   name: 't_dejar_factura_pda',
-    //   columns: [
-    //     { name: 'f_id', type: 'string' }, //Usuario que usa la secuencia
-    //     { name: 'f_vendedor', type: 'number' }, //id del vendedor
-    //     { name: 'f_tipodoc', type: 'string' },
-    //     { name: 'f_nodoc', type: 'string' },
-    //     { name: 'f_tabla', type: 'string' }
-    //   ]
-    // }),
-    //     tableSchema({
-    //   name: 't_secuencias',
-    //   columns: [
-    //     { name: 'f_usuario', type: 'string' }, //Usuario que usa la secuencia
-    //     { name: 'f_vendedor', type: 'number' }, //id del vendedor
-    //     { name: 'f_tipodoc', type: 'string' },
-    //     { name: 'f_nodoc', type: 'string' },
-    //     { name: 'f_tabla', type: 'string' }
-    //   ]
-    // }),
+        tableSchema({
+      name: 't_dejar_factura_pda',
+      columns: [
+        { name: 'f_id', type: 'number' }, 
+        { name: 'f_cliente', type: 'number' }, 
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_balance', type: 'number' },
+        { name: 'f_documento', type: 'string' },
+        { name: 'f_vendedor' , type: 'number' },
+      ]
+    }),
+        tableSchema({
+      name: 't_det_dejar_factura_pda',
+      columns: [
+        { name: 'f_documento', type: 'string' }, 
+        { name: 'f_factura', type: 'number' }, 
+        { name: 'f_fecha', type: 'string' },
+        { name: 'f_monto', type: 'number' },
+        { name: 'f_balance', type: 'number' }
+      ]
+    }),
 
   ]
 
