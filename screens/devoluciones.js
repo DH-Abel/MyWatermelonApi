@@ -7,11 +7,9 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  StyleSheet,
-  Modal, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform, Alert
+  StyleSheet, Keyboard, Platform, Alert
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { Picker } from '@react-native-picker/picker';
 import { database } from '../src/database/database';
 import { Q } from '@nozbe/watermelondb';
 import { useNavigation } from '@react-navigation/native';
@@ -23,12 +21,13 @@ import { enviarDevoluciones } from '../src/sincronizaciones/enviarDevolucion';
 import { printTest } from './funciones/print'
 import { rDevoluciones } from './reportes/rDevoluciones';
 import { AuthContext } from './context/AuthContext';
+import { getNextDevSequence } from '../src/sincronizaciones/secuenciaHelper';
 
 export default function Devoluciones({ clienteSeleccionado }) {
   const navigation = useNavigation();
 
   const { user } = useContext(AuthContext); //usuario logueado
-  
+
 
   // Invoice states
   const [invoices, setInvoices] = useState([]);
@@ -272,20 +271,19 @@ export default function Devoluciones({ clienteSeleccionado }) {
 
     let headDocument;
     // 1) Guardar localmente
-    
-    const { tipodoc, nodoc } = await getNextReciboSequence(user);
+
+    const { tipodoc, nodoc, vendedor } = await getNextDevSequence(user);
     const id = String(nodoc);
     const documento = `${tipodoc}${(id).padStart(6, '0')}`;
 
     await database.write(async () => {
-      const timestamp = Math.floor(Date.now() / 1000).toString();
       const head = await database.collections
         .get('t_factura_dev_pda')
         .create(r => {
           r.f_documento = documento;
           r.f_tipodoc = tipodoc;
-          r.f_nodoc = nodoc;
-          r.f_vendedor = clienteSeleccionado.f_vendedor
+          r.f_nodoc = id;
+          r.f_vendedor = parseInt(vendedor, 10) || 0;
           r.f_pedido = selectedInvoice.f_documento;
           r.f_cliente = selectedInvoice.f_cliente;
           r.f_fecha = formatDMY(new Date());
@@ -348,8 +346,16 @@ export default function Devoluciones({ clienteSeleccionado }) {
             onPress: async () => {
               const clientesMap = { [headDocument.f_cliente]: { f_nombre: clienteName } };
               console.log('👀 detallesRaw que paso a rDevoluciones:', detallesRaw);
+              const allProducts = await database
+                .collections.get('t_productos_sucursal')
+                .query()
+                .fetch();
+              const productosMap = {};
+              allProducts.forEach(p => {
+                productosMap[p._raw.f_referencia] = p._raw;
+              });
               try {
-                const reporte = rDevoluciones(headDocument, detallesRaw, clientesMap);  // :contentReference[oaicite:0]{index=0}
+                const reporte = rDevoluciones(headDocument, detallesRaw, clientesMap, productosMap );  // :contentReference[oaicite:0]{index=0}
                 console.log('🖨️ reporte ESC/POS generado:', reporte);
                 await printTest(reporte);
               } catch (err) {

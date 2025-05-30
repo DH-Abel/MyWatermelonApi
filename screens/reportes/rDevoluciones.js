@@ -20,7 +20,7 @@ export function rDevoluciones(devolucion, detalles, clientesMap, productosMap) {
   report += center + boldOn + "Importadora Fidodido SRL\n" + boldOff;
   report += center + boldOn + "DEVOLUCIÓN DE MERCANCÍA\n" + boldOff;
   report += separator;
-  report += left + `No. Devolución: ${devolucion.f_tipodoc}${devolucion.f_nodoc}\n`;
+  report += left + `No. Devolución: ${devolucion.f_documento}\n`;
   report += left + `Fecha: ${devolucion.f_fecha}   Hora: ${hora}\n`;
   const cliente = clientesMap[devolucion.f_cliente] || {};
   report += boldOn + `Cliente: (${devolucion.f_cliente}) ${cliente.f_nombre || 'N/A'}\n` + boldOff;

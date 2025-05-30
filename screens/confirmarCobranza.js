@@ -51,9 +51,6 @@ export default function ConfirmarCobranza() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [cobrador, setCobrador] = useState('');
-
-
   useEffect(() => {
     (async () => {
       try {
@@ -121,7 +118,7 @@ export default function ConfirmarCobranza() {
       setIsSaving(true);
 
       const { tipodoc, nodoc, vendedor } = await getNextReciboSequence(user);
-      setCobrador(vendedor);
+     
       console.log('documentos', nodoc, vendedor)
       const { tipodocNC, nodocNC } = await getNextNCSequence(user);
 

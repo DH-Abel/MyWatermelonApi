@@ -100,7 +100,7 @@ export const realizarPedidoLocal = async ({
     setIsSaving(true);
     try {
       
-        const { tipodoc, nodoc } = await getNextPedidoSequence(user);
+        const { tipodoc, nodoc,vendedor } = await getNextPedidoSequence(user);
         const id = String(nodoc);
         const documento = `${tipodoc}${String(id).padStart(6, '0')}`;
         
@@ -126,7 +126,7 @@ export const realizarPedidoLocal = async ({
           record.f_monto_bruto = Number(totalBruto.toFixed(2));
           record.f_observacion = nota;
           record.f_estado_pedido = 1;
-          record.f_vendedor = 83;
+          record.f_vendedor = vendedor;
         });
 
         // Guarda cada detalle del pedido
