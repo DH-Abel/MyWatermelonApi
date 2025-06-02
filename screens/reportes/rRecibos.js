@@ -1,4 +1,4 @@
-import { formatNumberToWords, wrapText, formatear } from "../../assets/formatear.js";
+import { formatNumberToWords, wrapText, formatear } from "../../assets/formatear";
 
 // Genera el ticket de recibo de pago con formato inicial ESC/POS
 export function rRecibo(recibo, detalle, clientesMap, bancosMap) {

@@ -11,4 +11,13 @@ const MyCheckbox = ({checked,setChecked}) => {
   );
 };
 
+const MyCheckboxDejado = ({checked,setChecked}) => {
+  return (
+    <Pressable onPress={() => setChecked(!checked)} style={{ flexDirection: "row", alignItems: "center" }}>
+      <Icon name={checked ? "check-box" : "check-box-outline-blank"} size={24} color="blue" />
+    </Pressable>
+  );
+};
+
 export default MyCheckbox;
+export const CheckboxDejado = MyCheckboxDejado;

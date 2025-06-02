@@ -292,23 +292,25 @@ export const mySchema = appSchema({
         tableSchema({
       name: 't_dejar_factura_pda',
       columns: [
-        { name: 'f_id', type: 'number' }, 
-        { name: 'f_cliente', type: 'number' }, 
-        { name: 'f_fecha', type: 'string' },
-        { name: 'f_monto', type: 'number' },
-        { name: 'f_balance', type: 'number' },
-        { name: 'f_documento', type: 'string' },
-        { name: 'f_vendedor' , type: 'number' },
+        { name: 'f_id', type: 'number' }, //id del dejado de factura
+        { name: 'f_cliente', type: 'number' }, //id del cliente
+        { name: 'f_fecha', type: 'string' }, //fecha del dejado de factura
+        { name: 'f_monto', type: 'number' }, //sumatoria del f_monto todas las facturas dejadas
+        { name: 'f_balance', type: 'number' }, //sumatoria del f_balance todas las facturas dejadas
+        { name: 'f_documento', type: 'string' }, //documento del dejado de factura, ejemplo 'DEJAD+"f_vendedor"+ID'
+        { name: 'f_vendedor' , type: 'number' }, //id del vendedor que dejo la factura (se busca del context)
+        { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
+        { name: 'f_observacion', type: 'string' } //observacion del dejado de factura
       ]
     }),
         tableSchema({
       name: 't_det_dejar_factura_pda',
       columns: [
-        { name: 'f_documento', type: 'string' }, 
-        { name: 'f_factura', type: 'number' }, 
-        { name: 'f_fecha', type: 'string' },
-        { name: 'f_monto', type: 'number' },
-        { name: 'f_balance', type: 'number' }
+        { name: 'f_documento', type: 'string' },  //documento del dejado de factura, ejemplo 'DEJAD+"f_vendedor"+ID'
+        { name: 'f_factura', type: 'number' }, //documento de la factura, es decir, t_cuenta_cobrar.f_documento
+        { name: 'f_fecha', type: 'string' }, //fecha de la factura dejada
+        { name: 'f_monto', type: 'number' }, //monto de la factura dejada
+        { name: 'f_balance', type: 'number' } //balance de la factura dejada
       ]
     }),
 

@@ -1,18 +1,19 @@
+// SelectClientesDejarFactura.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, TouchableOpacity, Alert,Keyboard  } from 'react-native';
+import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import { database } from '../../src/database/database';
-import  sincronizarClientes  from '../../src/sincronizaciones/clientesLocal.js';
+import sincronizarClientes from '../../src/sincronizaciones/clientesLocal.js';
 import { FlashList } from '@shopify/flash-list';
 
-const SelectClientesCobranza = () => {
+const SelectClientesDejarFactura = () => {
   const navigation = useNavigation();
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [clientes, setClientes] = useState([]);
-  const [loading, setLoading] = useState(false);
 
+  // Carga inicial de clientes locales
   const cargarClientesLocales = async () => {
     try {
       const clientesLocales = await database.collections.get('t_clientes').query().fetch();
@@ -22,47 +23,46 @@ const SelectClientesCobranza = () => {
     }
   };
 
-  // Función para sincronizar y luego cargar clientes locales
+  // Sincroniza si hay conexión y recarga locales
   const cargarClientes = async () => {
-    // Primero carga la data local
     await cargarClientesLocales();
-
-    // Luego, si hay conexión, sincroniza y recarga la data local
     const netState = await NetInfo.fetch();
     if (netState.isConnected) {
       try {
         await sincronizarClientes();
         await cargarClientesLocales();
       } catch (error) {
-        console.error("Error al sincronizar, se mantienen los clientes locales:", error);
+        console.error('Error al sincronizar, se mantienen los clientes locales:', error);
       }
     }
   };
 
   useEffect(() => {
-    // Elimina el fetch directo de la API si quieres que la fuente principal sea la base de datos local
     cargarClientes();
   }, []);
 
+  // Filtra la lista según texto de búsqueda
   const clientesFiltrados = clientes.filter(cliente =>
     cliente.f_nombre.toLowerCase().includes(searchTextClientes.toLowerCase()) ||
     (cliente.f_id ? cliente.f_id.toString().toLowerCase() : '').includes(searchTextClientes.toLowerCase())
   );
 
   const handleSelect = (cliente) => {
-    navigation.replace('MainTabsCobranza', { clienteSeleccionado: cliente });
+    // Navega a MainTabsDejarFactura pasando el cliente seleccionado
+    navigation.replace('MainTabsDejarFactura', { clienteSeleccionado: cliente });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Selecciona un Cliente</Text>
-      <Pressable title="Cargar Clientes" onPress={cargarClientes} />
+      <Pressable onPress={cargarClientes} style={{ marginBottom: 12, backgroundColor: '#007AFF', padding: 10, borderRadius: 6 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Cargar Clientes</Text>
+      </Pressable>
       <TextInput
         style={styles.input}
         placeholder="Buscar cliente..."
         value={searchTextClientes}
         onChangeText={setSearchTextClientes}
-        
       />
       <View style={styles.listContainer2}>
         <FlashList
@@ -89,4 +89,4 @@ const SelectClientesCobranza = () => {
   );
 };
 
-export default SelectClientesCobranza;
+export default SelectClientesDejarFactura;

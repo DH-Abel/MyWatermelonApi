@@ -27,7 +27,7 @@ export default function MenuPrincipal({ navigation }) {
     { name: 'Pedidos', icon: 'cart-outline', target: 'ConsultaPedidos' },
     { name: 'Cobranza', icon: 'credit-card-outline', target: 'ConsultaRecibos' },
     { name: 'Devoluciones', icon: 'swap-horizontal', target: 'ConsultaDevoluciones' },
-    { name: 'Dejado de facturas', icon: 'file-document-outline', target: 'Facturas' },
+    { name: 'Dejado de facturas', icon: 'file-document-outline', target: 'ConsultaDejadosFactura' },
     { name: 'Reportes', icon: 'chart-bar', target: 'Reportes' },
     { name: 'Configuraciones', icon: 'cog-outline', target: 'AdminScreen' },
     { name: 'Salir', icon: 'exit-to-app', target: 'Login' },

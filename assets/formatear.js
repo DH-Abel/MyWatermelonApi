@@ -1,15 +1,20 @@
 
-export function formatear(valor){
-    return new Intl.NumberFormat('en-US').format(valor);
-  }
+export function formatear(valor) {
+  return new Intl.NumberFormat('en-US').format(valor);
+}
 
 export function formatearFecha(date) {
   const d = date instanceof Date ? date : new Date(date);
-  const day   = String(d.getDate()).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year  = d.getFullYear();
+  const year = d.getFullYear();
   return `${day}/${month}/${year}`; // dd/mm/yyyy
 }
+const parsearDDMMYYYY = (str) => {
+  const [dd, mm, yyyy] = str.split('/');
+  return new Date(+yyyy, +mm - 1, +dd);
+};
+
 
 export function formatearFechaRec(fecha) {
   if (typeof fecha === 'string') {
@@ -27,10 +32,21 @@ export function formatearFechaRec(fecha) {
     throw new Error(`Fecha inválida: ${fecha}`);
   }
   const yyyy = d.getFullYear();
-  const mm   = String(d.getMonth() + 1).padStart(2, '0');
-  const dd   = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}/${mm}/${dd}`;
 
+}
+
+export function calcularDiasDesde(fechaStr) {
+  // Convertimos "dd/mm/yyyy" a Date usando parsearDDMMYYYY
+  const fechaFactura = parsearDDMMYYYY(fechaStr);
+  const hoy = new Date();
+  // Normalizamos horas para evitar fracciones de día
+  fechaFactura.setHours(0, 0, 0, 0);
+  hoy.setHours(0, 0, 0, 0);
+  const diffMs = hoy.getTime() - fechaFactura.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
 
@@ -40,10 +56,10 @@ export function formatearFechaRec(fecha) {
  */
 
 // Mapas básicos
-const UNIDADES = ['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve',
-  'diez','once','doce','trece','catorce','quince','dieciseis','diecisiete','dieciocho','diecinueve'];
-const DECENAS = ['','diez','veinte','treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
-const CENTENAS = ['','ciento','doscientos','trescientos','cuatrocientos','quinientos','seiscientos','setecientos','ochocientos','novecientos'];
+const UNIDADES = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
+  'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve'];
+const DECENAS = ['', 'diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+const CENTENAS = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
 
 /**
  * Convierte un número de 0 a 999 a texto.

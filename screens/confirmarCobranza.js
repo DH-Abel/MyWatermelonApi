@@ -118,7 +118,7 @@ export default function ConfirmarCobranza() {
       setIsSaving(true);
 
       const { tipodoc, nodoc, vendedor } = await getNextReciboSequence(user);
-     
+
       console.log('documentos', nodoc, vendedor)
       const { tipodocNC, nodocNC } = await getNextNCSequence(user);
 
@@ -223,13 +223,20 @@ export default function ConfirmarCobranza() {
         .query(Q.where('f_documento_principal', recRaw.f_documento))
         .fetch()).map(m => m._raw);
 
+      const descuentosPorFactura = {};
+      ncRaw.forEach(nc => {
+        // nc.f_factura es la factura original a la que se aplica el monto de la nota
+        descuentosPorFactura[nc.f_factura] =
+          (descuentosPorFactura[nc.f_factura] || 0) + nc.f_monto;
+      });
+
       // 4) Imprimo recibo localmente
       // Ahora: usamos appsRaw, que viene de la BD y tiene el f_concepto correcto
       const detalleParaImprimir = appsRaw.map(app => ({
         f_documento_aplicado: app.f_documento_aplicado,
         f_monto: app.f_monto,
-        descuento: app.f_descuento || 0,
-        f_concepto: app.f_concepto,      // viene “SALDO” o “ABONO” según corresponda
+        descuento: descuentosPorFactura[app.f_documento_aplicado] || 0,
+        f_concepto: app.f_concepto,
         f_balance: app.f_balance,
       }));
       const clientesMap = { [clienteSeleccionado.f_id]: clienteSeleccionado };
