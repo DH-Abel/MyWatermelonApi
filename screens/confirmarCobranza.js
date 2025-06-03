@@ -27,6 +27,8 @@ export default function ConfirmarCobranza() {
 
   const { user } = useContext(AuthContext);
 
+  
+
   const raw = route.params.invoiceDetails;
   const invoiceDetails = typeof raw === 'string' ? JSON.parse(raw) : raw;
   // console.log('Parsed invoiceDetails:', invoiceDetails);

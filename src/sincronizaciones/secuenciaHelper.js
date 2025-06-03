@@ -7,10 +7,48 @@ import { Q } from '@nozbe/watermelondb'
  * Obtiene la siguiente secuencia de recibos para el usuario dado,
  * incrementa f_nodoc en la tabla t_secuencias y devuelve { tipodoc, nodoc }.
  *
- * @param {string} usuario — valor que coincide con t_secuencias.f_usuario
+ * @param {string} user — valor que coincide con t_secuencias.f_usuario
  * @returns {Promise<{ tipodoc: string, nodoc: number }>}
  * @throws si no existe un registro en t_secuencias para ese usuario y tabla
  */
+export async function getVendedor(user) {
+  const nombreTabla = 't_usuarios'
+  let result
+  await database.write(async () => {
+    const seqCollection = database.collections.get(nombreTabla) // nombreTabla === 't_secuencias'
+    const [record] = await seqCollection
+      .query(
+        Q.where('f_usuario', user)
+      )
+      .fetch()
+
+    if (!record) {
+      throw new Error(
+        `No existe vendedor para usuario "${user}".`
+      )
+    }
+    const multipleRaw = record._raw.Fvendedor_multiple || ''
+    const vendedores = multipleRaw
+      ? multipleRaw
+          .split(',')
+          .map(item => parseInt(item, 10))
+          .filter(n => !Number.isNaN(n))
+      : []
+
+    // 3. Convierto f_vendedor a número
+    const fVendedor = parseInt(record._raw.f_vendedor, 10)
+    if (!Number.isNaN(fVendedor)) {
+      vendedores.push(fVendedor)
+    }
+
+    result = {
+      vendedor: vendedores,      
+    }
+  })
+  console.log('→ Raw vendedor leido:', result);
+  return result
+}
+
 export async function getNextReciboSequence(usuario) {
   const nombreTabla = 't_secuencias' // Asegúrate de que este es el nombre correcto de tu tabla
   let result
@@ -69,7 +107,7 @@ export async function getNextNCSequence(usuario) {
     const rawNodoc = record._raw.f_nodoc
     const current = parseInt(String(rawNodoc), 10) || 0
     const next = current + 1
-    
+
 
     await record.update(r => {
       r.f_nodoc = next.toString()
@@ -108,7 +146,7 @@ export async function getNextPedidoSequence(usuario) {
     const current = parseInt(String(rawNodoc), 10) || 0
     const next = current + 1
 
-   
+
     await record.update(r => {
       r.f_nodoc = next.toString()
     })
@@ -147,7 +185,7 @@ export async function getNextDevSequence(usuario) {
     const current = parseInt(String(rawNodoc), 10) || 0
     const next = current + 1
 
-   
+
     await record.update(r => {
       r.f_nodoc = next.toString()
     })

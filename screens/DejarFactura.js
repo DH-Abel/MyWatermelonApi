@@ -35,7 +35,8 @@ export default function DejarFactura({ clienteSeleccionado }) {
         .collections.get('t_cuenta_cobrar')
         .query(Q.where('f_idcliente', clienteSeleccionado.f_id))
         .fetch();
-
+      
+ 
       // 1b) Filtra solo las que tengan f_balance > 0
       const pendientes = results.filter(c => parseFloat(c.f_balance) > 0);
 
@@ -61,7 +62,13 @@ export default function DejarFactura({ clienteSeleccionado }) {
   useEffect(() => {
     if (!clienteSeleccionado?.f_id) return;
     setLoading(true);
+   
     loadLocal();
+    if (cuentas.length === 0){
+    cargarCuentasCobrarLocales().then(() => {
+      loadLocal();
+    })
+    }
   }, [clienteSeleccionado]);
 
   // 2) Manejo de selección / des-selección de facturas

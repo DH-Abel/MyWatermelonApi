@@ -1,4 +1,4 @@
-import React, { useState, useEffect,memo,useContext,useCallback } from 'react';
+import React, { useState, useEffect, memo, useContext, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import { FlashList } from '@shopify/flash-list';
@@ -7,8 +7,10 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
-import  sincronizarClientes  from '../../src/sincronizaciones/clientesLocal.js';
+import sincronizarClientes from '../../src/sincronizaciones/clientesLocal.js';
 import { MapsContext } from './mapsContext.js';
+import { getVendedor } from '../../src/sincronizaciones/secuenciaHelper.js'
+import { AuthContext } from '../context/AuthContext.js';
 
 
 const SelectClientScreen = () => {
@@ -17,31 +19,24 @@ const SelectClientScreen = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // --- NUEVO: obtenemos el mapa 'clientes' precargado
-  const { clientes: clientesMap, syncClients } = useContext(MapsContext);
 
-  // --- reemplazamos la lista local por la que viene del contexto
-  //    convirtiendo el mapa en array
-  const clientesArray = Object.values(clientesMap);
+  const { user } = useContext(AuthContext);
 
   // filtro en memoria según el texto de búsqueda
-  const clientesFiltrados = clientesArray.filter(c =>
+  const clientesFiltrados = clientes.filter(c =>
     c.f_nombre.toLowerCase().includes(searchTextClientes.toLowerCase()) ||
     (c.f_id?.toString().toLowerCase() || '').includes(searchTextClientes.toLowerCase())
   );
 
   // --- mantenemos las funciones originales en caso de necesitar sincronizar manualmente ---
-  const cargarClientesLocales = async () => {
-    try {
-      const clientesLocales = await database
-        .collections.get('t_clientes')
-        .query()
-        .fetch();
-      setClientes(clientesLocales);
-    } catch (error) {
-      console.error('Error al cargar clientes locales:', error);
-    }
-  };
+   const cargarClientesLocales = async () => {
+     try {
+       const clientesLocales = await database.collections.get('t_clientes').query().fetch();
+       setClientes(clientesLocales);
+     } catch (error) {
+       console.error('Error al cargar clientes locales:', error);
+     }
+   };
 
   const cargarClientes = async () => {
     setLoading(true);
@@ -49,8 +44,10 @@ const SelectClientScreen = () => {
     const netState = await NetInfo.fetch();
     if (netState.isConnected) {
       try {
-        await sincronizarClientes();
-        await cargarClientesLocales();
+        const { vendedor } = await getVendedor(user);
+        await sincronizarClientes(vendedor).then(() => {
+         cargarClientesLocales()
+         });
       } catch (error) {
         console.error('Error al sincronizar, se mantienen los clientes locales:', error);
       }
@@ -58,30 +55,10 @@ const SelectClientScreen = () => {
     setLoading(false);
   };
 
-  // Cada vez que este screen gane foco, sincroniza y recarga los clientes
-useFocusEffect(
-  useCallback(() => {
-    let isActive = true;
-
-    const fetchAndReload = async () => {
-      setLoading(true);
-      try {
-        console.log('[Select] syncClients ▶️ start');
-        await syncClients();
-      } catch (e) {
-        console.error('[Select] Error sincronizando clientes:', e);
-      } finally {
-        if (isActive) setLoading(false);
-      }
-    };
-
-    fetchAndReload();
-
-    return () => {
-      isActive = false;
-    };
-  }, [syncClients])
-);
+  useEffect(() => {
+    // Elimina el fetch directo de la API si quieres que la fuente principal sea la base de datos local
+    cargarClientes();
+  }, []);
 
 
   const handleSelect = cliente => {

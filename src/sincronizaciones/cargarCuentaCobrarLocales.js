@@ -4,6 +4,8 @@ import { Q } from '@nozbe/watermelondb';
 import { syncHistory } from './syncHistory';
 import { InteractionManager } from 'react-native';
 
+
+
 let syncInProgress = false;
 
 const trimString = (v) => (v == null ? '' : String(v).trim());
@@ -16,13 +18,14 @@ const toFloat = (v) => {
   return isNaN(n) ? 0 : n;
 };
 
-const cargarCuentasCobrarLocales = async (idCliente) => {
+const cargarCuentasCobrarLocales = async (vendedor) => {
   if (syncInProgress) return;
   syncInProgress = true;
   const tableName = 't_cuenta_cobrar';
   let batchActions = [];
 
   try {
+    console.log('vendedor ', vendedor)
    
     // 1) Obtener fecha de última sincronización
     const syncCol = database.collections.get('t_sync');
@@ -38,12 +41,13 @@ const cargarCuentasCobrarLocales = async (idCliente) => {
     } else {
       lastSync = new Date(0).toISOString();
     }
+
     const isFirstSync = !lastSyncRaw
       || lastSync === '1970-01-01T00:00:00.000Z';  // o tu placeholder inicial
-
+    
     const endPoint = isFirstSync
-      ? '/cuenta_cobrar/cxc/first_sync'
-      : `/cuenta_cobrar/cxc/${encodeURIComponent(lastSync)}`;  // <-- backticks
+      ? `/cuenta_cobrar/cxc/first_sync/${encodeURIComponent(vendedor)}`
+      : `/cuenta_cobrar/cxc/${encodeURIComponent(vendedor)}/${encodeURIComponent(lastSync)}`;  // <-- backticks
 
     console.log('[SYNC] lastSyncRaw=', lastSyncRaw,
       'formatted=', lastSync,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useContext } from 'react';
 import {
     View,
     Text,
@@ -17,12 +17,17 @@ import NetInfo from '@react-native-community/netinfo';
 import sincronizarClientes from '../../src/sincronizaciones/clientesLocal';
 import sincronizarConceptosDev from '../../src/sincronizaciones/conceptoDev';
 import { FlashList } from '@shopify/flash-list';
+import {getVendedor} from '../../src/sincronizaciones/secuenciaHelper.js'
+import { AuthContext } from '../context/AuthContext.js';
 
 export default function SelectClientesDev({ navigation, route }) {
     const [clients, setClients] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [loading, setLoading] = useState(true);
+
+    
+    const { user } = useContext(AuthContext);
 
     // Carga sólo local
     const cargarClientesLocales = async () => {
@@ -43,7 +48,9 @@ export default function SelectClientesDev({ navigation, route }) {
         const net = await NetInfo.fetch();
         if (net.isConnected) {
             try {
-                await sincronizarClientes();
+                
+            const { vendedor } = await getVendedor(user);
+                await sincronizarClientes(vendedor);
                 await cargarClientesLocales();
                 await sincronizarConceptosDev();
             } catch (err) {

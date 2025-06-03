@@ -28,16 +28,19 @@ export default function AdminUsersScreen() {
   const [modalVisible, setModalVisible] = useState(false)
 
   useEffect(() => {
-    if (user != 'Omega') {
-      Alert.alert(
-        'Acceso denegado',
-        'Solo el administrador puede ver esta pantalla',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      )
-      return
-    }
     loadUsers()
-  }, [user])
+  },[])
+  // useEffect(() => {
+  //   if (user != 'Omega') {
+  //     Alert.alert(
+  //       'Acceso denegado',
+  //       'Solo el administrador puede ver esta pantalla',
+  //       [{ text: 'OK', onPress: () => navigation.goBack() }]
+  //     )
+  //     return
+  //   }
+  //   loadUsers()
+  // }, [user])
 
   async function loadUsers() {
     const col = database.collections.get('t_usuarios')
@@ -70,7 +73,7 @@ export default function AdminUsersScreen() {
 
   async function handleSave() {
     const { usuario, password } = form
-    if (!usuario || !password || !form.vendedor) {
+    if (!usuario || !password ) {
       return Alert.alert('Error', 'Vendedor, Usuario y contraseña son obligatorios')
     }
     try {

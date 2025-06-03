@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import {
   View, Text, TextInput, Pressable, Alert, SafeAreaView, StyleSheet,
   ActivityIndicator, Modal, Keyboard, Dimensions
@@ -10,9 +10,14 @@ import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobr
 import { useNavigation } from '@react-navigation/native';
 import { formatear, formatearFecha } from '../assets/formatear';
 import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
+import {getVendedor} from '../src/sincronizaciones/secuenciaHelper'
+import { AuthContext } from './context/AuthContext';
 
 
 export default function Cobranza({ clienteSeleccionado }) {
+
+  
+  const { user } = useContext(AuthContext);
 
   const navigation = useNavigation();
 
@@ -149,12 +154,19 @@ export default function Cobranza({ clienteSeleccionado }) {
       .finally(() => setLoading(false));
 
     // 2) Sincroniza en segundo plano
-    cargarCuentasCobrarLocales(clienteSeleccionado.f_id)
-      .then(() => {
-        // Una vez remotos descargados y volcados, refresca la lista
-        loadLocal().then(loadDescuentos).catch(err => console.error('Sync fallida:', err));;
-      })
-      .catch(err => console.error('Sync fallida:', err));
+    (async () => {
+    try {
+      // Esperamos a que getVendedor devuelva { vendedor: <número> }
+      const { vendedor } = await getVendedor(user);
+      // Ahora pasamos el número puro (ej: 123) a tu función de carga remota
+      await cargarCuentasCobrarLocales(vendedor);
+      // Una vez termine la sincronización, recargamos local
+      await loadLocal();
+      await loadDescuentos();
+    } catch (err) {
+      console.error('Sync fallida:', err);
+    }
+  })();
   }, [clienteSeleccionado]);
 
 

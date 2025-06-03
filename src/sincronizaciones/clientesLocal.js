@@ -65,7 +65,7 @@ const needsUpdate = (local, remote) => {
   );
 };
 
-const sincronizarClientes = async () => {
+const sincronizarClientes = async (vendedor) => {
   if (syncInProgress) return;
 
   const tableName = 't_clientes';
@@ -97,7 +97,7 @@ const sincronizarClientes = async () => {
       lastSync = new Date(0).toISOString();
     }
     // 1) Fetch y normaliza
-    const { data: raw } = await api.get(`/clientes/${encodeURIComponent(lastSync)}`);
+    const { data: raw } = await api.get(`/clientes/${vendedor}/${encodeURIComponent(lastSync)}`);
     const clientesRemotos = raw.map((cli) => ({
       f_id: parseInt(cli.f_id, 10),
       f_nombre: normalizeText(cli.f_nombre),
