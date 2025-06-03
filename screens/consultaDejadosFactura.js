@@ -153,7 +153,7 @@ export default function ConsultaDejadosFactura({ navigation }) {
     console.log('🧾 detalleRows.length =', detalleRows.length);
 
     const detallesSimple = detalleRows.map(d => ({
-      factura: d._raw.f_factura,
+      factura: d.f_factura || d._raw?.f_factura, 
       fecha: d._raw.f_fecha,
       monto: d._raw.f_monto,
       balance: d._raw.f_balance,

@@ -17,6 +17,7 @@ import { formatearFecha, formatear,calcularDiasDesde } from '../assets/formatear
 import { useNavigation } from '@react-navigation/native';
 import { CheckboxDejado } from './utilities/checkbox';
 import { FlashList } from '@shopify/flash-list';
+import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
 
 export default function DejarFactura({ clienteSeleccionado }) {
   const navigation = useNavigation();

@@ -1,5 +1,5 @@
 // src/imprimir/rDejado.js
-import { wrapText, formatear } from "../../assets/formatear";
+import { wrapText, formatear,formatearFecha } from "../../assets/formatear";
 
 /**
  * Genera el ticket térmico ESC/POS para un “Dejado de Factura”.
@@ -65,7 +65,7 @@ export function rDejado(dejado, detalles, clientesMap) {
     const montoFmt = formatear(montoStr).padStart(8);
     const balanceFmt = formatear(balanceStr).padStart(8);
     report += separator;
-    report += `${facPadded} ${fechaPadded} ${montoFmt} ${balanceFmt}\n`;
+    report += `${facPadded} ${formatearFecha(fechaPadded)} ${montoFmt} ${balanceFmt}\n`;
   });
   report += separator;
 

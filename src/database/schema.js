@@ -307,7 +307,7 @@ export const mySchema = appSchema({
       name: 't_det_dejar_factura_pda',
       columns: [
         { name: 'f_documento', type: 'string' },  //documento del dejado de factura, ejemplo 'DEJAD+"f_vendedor"+ID'
-        { name: 'f_factura', type: 'number' }, //documento de la factura, es decir, t_cuenta_cobrar.f_documento
+        { name: 'f_factura', type: 'string' }, //documento de la factura, es decir, t_cuenta_cobrar.f_documento
         { name: 'f_fecha', type: 'string' }, //fecha de la factura dejada
         { name: 'f_monto', type: 'number' }, //monto de la factura dejada
         { name: 'f_balance', type: 'number' } //balance de la factura dejada
