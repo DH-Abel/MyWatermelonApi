@@ -66,7 +66,7 @@ export function rDejado(dejado, detalles, clientesMap) {
     const balanceFmt = formatear(balanceStr).padStart(8);
     report += separator;
     report += `Factura: `+ boldOn + `${facPadded}` + boldOff + ` Fecha: ${formatearFecha(fechaPadded)}\n`;
-    recort += `Monto: ${montoFmt} Balance: ${balanceFmt}\n`;
+    report += `Monto: ${montoFmt} Balance: ${balanceFmt}\n`;
   });
   report += separator;
 
