@@ -18,11 +18,17 @@
  * Interacción: efecto de elevación y cambio de color en presionar
  */
 
-import React from 'react';
+import React, { useContext } from 'react';
 import { ScrollView, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AuthContext } from './context/AuthContext.js';
+
 
 export default function MenuPrincipal({ navigation }) {
+  
+  const { user } = useContext(AuthContext) || 'No hay usuario';
+  
+
   const menuItems = [
     { name: 'Pedidos', icon: 'cart-outline', target: 'ConsultaPedidos' },
     { name: 'Cobranza', icon: 'credit-card-outline', target: 'ConsultaRecibos' },
@@ -35,6 +41,8 @@ export default function MenuPrincipal({ navigation }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      
+    <Text style={styles.label2}>Usuario: {user}</Text>
       {menuItems.map(item => (
         <TouchableOpacity
           key={item.name}
@@ -77,5 +85,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#222222',
     fontWeight: '500',
+  },
+    label2: {
+    fontSize: 16,
+    color: '#222222',
+    fontWeight: '500',
+    marginBottom: 8,
+    alignContent: ''
+
+
   },
 });

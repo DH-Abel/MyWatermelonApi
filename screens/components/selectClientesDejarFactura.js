@@ -1,5 +1,5 @@
 // SelectClientesDejarFactura.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
 import { View, Text, TextInput, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { styles } from '../../assets/styles';
 import { useNavigation } from '@react-navigation/native';
@@ -7,11 +7,16 @@ import NetInfo from '@react-native-community/netinfo';
 import { database } from '../../src/database/database';
 import sincronizarClientes from '../../src/sincronizaciones/clientesLocal.js';
 import { FlashList } from '@shopify/flash-list';
+import { AuthContext } from '../context/AuthContext.js';
+import { getVendedor } from '../../src/sincronizaciones/secuenciaHelper.js'
+
 
 const SelectClientesDejarFactura = () => {
   const navigation = useNavigation();
   const [searchTextClientes, setSearchTextClientes] = useState('');
   const [clientes, setClientes] = useState([]);
+
+  const { user } = useContext(AuthContext);
 
   // Carga inicial de clientes locales
   const cargarClientesLocales = async () => {
@@ -29,7 +34,8 @@ const SelectClientesDejarFactura = () => {
     const netState = await NetInfo.fetch();
     if (netState.isConnected) {
       try {
-        await sincronizarClientes();
+        const { vendedor } = await getVendedor(user);
+        await sincronizarClientes(vendedor);
         await cargarClientesLocales();
       } catch (error) {
         console.error('Error al sincronizar, se mantienen los clientes locales:', error);

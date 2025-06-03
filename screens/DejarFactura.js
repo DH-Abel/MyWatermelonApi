@@ -1,5 +1,5 @@
 // DejarFactura.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import { CheckboxDejado } from './utilities/checkbox';
 import { FlashList } from '@shopify/flash-list';
 import cargarCuentasCobrarLocales from '../src/sincronizaciones/cargarCuentaCobrarLocales';
+import {getVendedor} from '../src/sincronizaciones/secuenciaHelper'
+import { AuthContext } from './context/AuthContext';
 
 export default function DejarFactura({ clienteSeleccionado }) {
   const navigation = useNavigation();
@@ -25,7 +27,9 @@ export default function DejarFactura({ clienteSeleccionado }) {
   const [cuentas, setCuentas] = useState([]); // Array de registros Watermelon de t_cuenta_cobrar con f_balance > 0
   const [loading, setLoading] = useState(true);
   const [facturasSeleccionadas, setFacturasSeleccionadas] = useState([]); 
-  // Contendrá objetos { documento, fecha, monto, balance } para cada factura marcada
+
+  
+  const { user } = useContext(AuthContext);
 
   // 1) loadLocal: carga todas las facturas pendientes de t_cuenta_cobrar para el cliente ordenadas por fecha ascendente y, a igualdad de fecha, por documento
   const loadLocal = async () => {
@@ -59,16 +63,26 @@ export default function DejarFactura({ clienteSeleccionado }) {
   };
 
   // Cada vez que cambia clienteSeleccionado, recarga las facturas
-  useEffect(() => {
+   useEffect(() => {
     if (!clienteSeleccionado?.f_id) return;
+
+    // 1) Carga local inmediata
     setLoading(true);
-   
-    loadLocal();
-    if (cuentas.length === 0){
-    cargarCuentasCobrarLocales().then(() => {
-      loadLocal();
-    })
+    loadLocal().then(() => setLoading(false));
+
+    // 2) Sincroniza en segundo plano
+    (async () => {
+    try {
+      // Esperamos a que getVendedor devuelva { vendedor: <número> }
+      const { vendedor } = await getVendedor(user);
+      // Ahora pasamos el número puro (ej: 123) a tu función de carga remota
+      await cargarCuentasCobrarLocales(vendedor);
+      // Una vez termine la sincronización, recargamos local
+      await loadLocal();
+    } catch (err) {
+      console.error('Sync fallida:', err);
     }
+  })();
   }, [clienteSeleccionado]);
 
   // 2) Manejo de selección / des-selección de facturas

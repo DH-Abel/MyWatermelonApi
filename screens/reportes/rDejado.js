@@ -49,7 +49,7 @@ export function rDejado(dejado, detalles, clientesMap) {
   report += separator;
 
   // ====== Detalle de facturas ======
-  report += boldOn + "Factura  Fecha     Monto     Balance\n" + boldOff;
+  report += boldOn + `Factura: ` + boldOff + ``
   detalles.forEach(item => {
     // Aseguramos que monto y balance sean strings con dos decimales
     const montoStr = Number(item.monto).toFixed(2);
@@ -65,7 +65,8 @@ export function rDejado(dejado, detalles, clientesMap) {
     const montoFmt = formatear(montoStr).padStart(8);
     const balanceFmt = formatear(balanceStr).padStart(8);
     report += separator;
-    report += `${facPadded} ${formatearFecha(fechaPadded)} ${montoFmt} ${balanceFmt}\n`;
+    report += `Factura: `+ boldOn + `${facPadded}` + boldOff + ` Fecha: ${formatearFecha(fechaPadded)}\n`;
+    recort += `Monto: ${montoFmt} Balance: ${balanceFmt}\n`;
   });
   report += separator;
 

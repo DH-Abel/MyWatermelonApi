@@ -202,7 +202,7 @@ const sincronizarClientes = async (vendedor) => {
     });
 
     // 5) Continuar con las demás sincronizaciones
-    await sincronizarDescuentos();
+    await sincronizarDescuentos(vendedor);
     await sincronizarBancos();
     await sincronizarProductosOfertas();
     await syncHistory(tableName);

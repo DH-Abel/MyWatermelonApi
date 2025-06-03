@@ -32,7 +32,7 @@ const normalizeNumber = (v) => {
   return isNaN(n) ? 0 : Math.round(n * 100) / 100;
 };
 
-const sincronizarDescuentos = async () => {
+const sincronizarDescuentos = async (vendedor) => {
   const nombreTabla = 't_desc_x_pago_cliente';
   const INTERVALO = 24 * 60 * 60 * 1000; // 48 h – evita ejecutar con demasiada frecuencia
 
@@ -70,7 +70,7 @@ const sincronizarDescuentos = async () => {
     console.log('Sincronizando descuentos…');
 
     // 1) Traer datos remotos
-    const { data: raw } = await api.get(`/descuentos/${encodeURIComponent(lastSync)}`);
+    const { data: raw } = await api.get(`/descuentos/${vendedor}/${encodeURIComponent(lastSync)}`);
     if (!Array.isArray(raw)) {
       console.warn('/descuentos no devolvió un array');
       return;
