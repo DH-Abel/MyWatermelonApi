@@ -1,6 +1,7 @@
 import api from '../../api/axios';
 import { database } from '../database/database';
 import { Q } from '@nozbe/watermelondb';
+import { Alert } from 'react-native';
 
 const nombreTabla = 't_secuencias';
 let syncInProgress = false;
@@ -171,12 +172,17 @@ const sincronizarSecuencias = async (vendedorParam, usuarioParam) => {
         console.log('Secuencias insertadas:', newItems);
         console.log('Secuencias actualizadas:', updatedItems);
         console.log('Sincronización de secuencias completada.');
+        
+        return { newItems, updatedItems };
 
     } catch (error) {
         console.error('Error sincronizando secuencias:', error);
+        return { newItems, updatedItems };
     } finally {
         syncInProgress = false;
+
     }
+
 };
 
 export default sincronizarSecuencias;

@@ -84,6 +84,12 @@ export default function Devoluciones({ clienteSeleccionado }) {
     return { totalItbis, totalBruto, totalDescuento };
   }, [toReturn, detailsMap, selectedInvoice]);
 
+  const limpiar = () => {
+    setToReturn({});
+    setSelectedMotivo(null);
+    setObservacion('');
+  }
+
   const formatDMY = date => date.toLocaleDateString('es-ES');
 
   // Load motives once
@@ -276,6 +282,8 @@ export default function Devoluciones({ clienteSeleccionado }) {
     const id = String(nodoc);
     const documento = `${tipodoc}${(id).padStart(6, '0')}`;
 
+
+
     await database.write(async () => {
       const head = await database.collections
         .get('t_factura_dev_pda')
@@ -317,7 +325,9 @@ export default function Devoluciones({ clienteSeleccionado }) {
             });
         }
       }
-    });  // :contentReference[oaicite:0]{index=0}
+    });
+
+    limpiar()
 
     // 2) Recuperar detalle recién guardado
     const detallesRaw = (await database
@@ -355,7 +365,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
                 productosMap[p._raw.f_referencia] = p._raw;
               });
               try {
-                const reporte = rDevoluciones(headDocument, detallesRaw, clientesMap, productosMap );  // :contentReference[oaicite:0]{index=0}
+                const reporte = rDevoluciones(headDocument, detallesRaw, clientesMap, productosMap);  // :contentReference[oaicite:0]{index=0}
                 console.log('🖨️ reporte ESC/POS generado:', reporte);
                 await printTest(reporte);
               } catch (err) {
@@ -497,6 +507,7 @@ export default function Devoluciones({ clienteSeleccionado }) {
         summary={summary}
         formatear={formatear}
         confirmReturn={confirmReturn}
+        limpiar={limpiar}
       />
     </SafeAreaView>
   );

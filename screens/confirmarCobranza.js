@@ -27,7 +27,7 @@ export default function ConfirmarCobranza() {
 
   const { user } = useContext(AuthContext);
 
-  
+
 
   const raw = route.params.invoiceDetails;
   const invoiceDetails = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -253,7 +253,13 @@ export default function ConfirmarCobranza() {
       }, {});
 
       const reporte = rRecibo(recRaw, detalleParaImprimir, clientesMap, bancosMap);
-      await printTest(reporte);
+      // Imprimir 2 copias con un pequeño delay entre cada una:
+      for (let i=0; i<2; i++){
+        await printTest(reporte);
+
+        // Si la impresora falla al reconectar, descomenta el delay y ajusta los ms según tu impresora.
+        await new Promise(resolve => setTimeout(resolve, 3200));
+      }
 
 
       // 4) Intento de envío (hasta 2 veces)
@@ -361,20 +367,23 @@ export default function ConfirmarCobranza() {
                 value={transferenciaMonto}
                 onChangeText={setTransferenciaMonto}
               />
-              <Pressable
-                onPress={() => openBankModal('transfer')}
-                style={styles.bankButton}
-              >
-                <Text style={styles.buttonText}>
-                  {transferenciaBanco?.f_nombre || 'Banco'}
-                </Text>
-              </Pressable>
+
               <Pressable
                 style={styles.completeButton}
                 onPress={() => { setTransferenciaMonto(parseFloat(totalPago.toString()).toFixed(2)), setChequeMonto(null), setChequeBanco(null), setEfectivo(null), setChequeNumero(null), setChequeCobroDate(null) }}
               >
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
+            </View>
+               <View style={styles.row}>
+            <Pressable
+              onPress={() => openBankModal('transfer')}
+              style={styles.bankButton}
+            >
+              <Text style={styles.buttonText}>
+                {transferenciaBanco?.f_nombre || 'Banco'}
+              </Text>
+            </Pressable>
             </View>
           </View>
 
@@ -391,7 +400,7 @@ export default function ConfirmarCobranza() {
 
               <TextInput
                 style={[styles.input, { flex: 1 }]}
-                placeholder="Núm. Cheque"
+                placeholder="No. Ck"
                 keyboardType="numeric"
                 value={chequeNumero}
                 onChangeText={setChequeNumero}

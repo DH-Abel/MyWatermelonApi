@@ -14,6 +14,7 @@ import {
     Pressable
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { Ionicons } from '@expo/vector-icons';
 
 const ModalDetalleDevolucion = ({
     showModal,
@@ -29,7 +30,7 @@ const ModalDetalleDevolucion = ({
     setObservacion,
     summary,
     formatear,
-    confirmReturn
+    confirmReturn,limpiar
 }) => {
 
     const diasFactura = selectedInvoice
@@ -123,7 +124,10 @@ const ModalDetalleDevolucion = ({
                                 onPress={devolverTodo}
                                 style={[styles.footerButton, { marginBottom: 8 }]}
                             >
-                                <Text style={styles.footerText}>Devolver todo</Text>
+                                <Text style={styles.footerText}>Dev. todo</Text>
+                            </Pressable>
+                            <Pressable onPress={()=>{limpiar()}}>
+                                <Ionicons name="trash" size={24} color="black" />
                             </Pressable>
                         </View>
                     </TouchableWithoutFeedback>

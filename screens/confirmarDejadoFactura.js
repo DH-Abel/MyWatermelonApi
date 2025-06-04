@@ -142,8 +142,7 @@ export default function ConfirmarDejadoFactura() {
 
       setIsSaving(false);
       // Generar e imprimir el ticket usando el mismo print.js
-      const ticket = rDejado(nuevoDejado, detallesAGuardar, clientesMap);
-      await printTest(ticket);
+      
 
 
       Alert.alert('Éxito', '“Dejado de Factura” guardado correctamente.', [
@@ -151,13 +150,16 @@ export default function ConfirmarDejadoFactura() {
           text: 'OK',
           onPress: () => {
             // Regresamos a la primera pestaña del flow y reseteamos el stack
-            navigation.reset({
+            const ticket = rDejado(nuevoDejado, detallesAGuardar, clientesMap);
+            printTest(ticket).catch(err => console.error('Error al imprimir ticket:', err)).
+            then(() => navigation.reset({
               index: 1,
              routes: [
                   { name: 'MenuPrincipal' },        // primera en el historial
                   { name: 'ConsultaDejadosFactura' }       // activa, a la que llegarás
               ],
-            });
+            }));
+            
           },
         },
       ]);
