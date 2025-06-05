@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const mySchema = appSchema({
-  version: 4, // Cambiar la versión de la base de datos, por si agrego campos o tablas
+  version: 5, // Cambiar la versión de la base de datos, por si agrego campos o tablas
   tables: [
     tableSchema({
       name: 't_productos_sucursal',
@@ -122,6 +122,7 @@ export const mySchema = appSchema({
         { name: 'f_aprobado', type: 'boolean' }, //Si esta aprobado o no
         { name: 'f_anulado', type: 'boolean' }, //Si esta anulado
         { name: 'f_enviado', type: 'boolean' }, //si fue enviado o no
+        { name: 'f_impresiones', type: 'number' }, //cantidad de impresiones
       ]
     }),
     tableSchema({

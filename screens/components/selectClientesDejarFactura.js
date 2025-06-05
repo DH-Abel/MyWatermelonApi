@@ -61,9 +61,7 @@ const SelectClientesDejarFactura = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Selecciona un Cliente</Text>
-      <Pressable onPress={cargarClientes} style={{ marginBottom: 12, backgroundColor: '#007AFF', padding: 10, borderRadius: 6 }}>
-        <Text style={{ color: '#fff', textAlign: 'center' }}>Cargar Clientes</Text>
-      </Pressable>
+      
       <TextInput
         style={styles.input}
         placeholder="Buscar cliente..."

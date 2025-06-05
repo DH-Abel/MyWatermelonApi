@@ -48,6 +48,29 @@ export async function getVendedor(user) {
   console.log('→ Raw vendedor leido:', result);
   return result
 }
+export async function getVendedor1(user) {
+  const nombreTabla = 't_usuarios'
+  let result
+  await database.write(async () => {
+    const seqCollection = database.collections.get(nombreTabla) // nombreTabla === 't_secuencias'
+    const [record] = await seqCollection
+      .query(
+        Q.where('f_usuario', user)
+      )
+      .fetch()
+
+    if (!record) {
+      throw new Error(
+        `No existe vendedor para usuario "${user}".`
+      )
+    }
+    result = {
+      vendedor:record._raw.f_vendedor,      
+    }
+  })
+  console.log('→ Raw vendedor leido:', result);
+  return result
+}
 
 export async function getNextReciboSequence(usuario) {
   const nombreTabla = 't_secuencias' // Asegúrate de que este es el nombre correcto de tu tabla

@@ -279,6 +279,13 @@ export default function ConsultaRecibos({ navigation }) {
 
   // Imprimir recibo
   const imprimirRecibo = async reciboRecord => {
+
+    //saber cuantas impresiones de los recibos van
+    const impresionesActuales = reciboRecord._raw.f_impresiones || 0;
+    if (impresionesActuales >= 2) {
+      Alert.alert('Aviso', 'Este recibo ya alcanzó el máximo de 2 impresiones.');
+      return;
+    }
     // 1) Obtén el objeto plano
     const recibo = reciboRecord._raw || reciboRecord;
     // 2) Espera a tener el detalle unificado
@@ -292,10 +299,25 @@ export default function ConsultaRecibos({ navigation }) {
       m[b._raw.f_idbanco] = b._raw.f_nombre;
       return m;
     }, {});
-
     // 3) Genera el string ESC/POS e imprime
     const reporte = rRecibo(recibo, detalle, clientesMap, bancosMap);
-    printTest(reporte);
+    
+    // 4) Llamamos a printTest y comprobamos su resultado
+    const ok = await printTest(reporte);
+    if (!ok) {
+      // printTest ya mostró el alert. No actualizamos contador ni seguimos.
+      return;
+    }
+
+    // 5) Solo si devuelve true, incrementamos f_impresiones en +1
+    await database.write(async () => {
+      const recModel = await database
+        .collections.get('t_recibos_pda2')
+        .find(reciboRecord.id);
+      await recModel.update(r => {
+        r.f_impresiones = (r.f_impresiones || 0) + 1;
+      });
+    });
   };
 
 
@@ -331,7 +353,24 @@ export default function ConsultaRecibos({ navigation }) {
 
   return (
     <SafeAreaView style={consultaStyles.container}>
-      <Pressable onPress={limpiarBase} style={{ marginBottom: 12, backgroundColor: '#FF3B30', padding: 10, borderRadius: 8, alignItems: 'center' }}>
+      <Pressable
+        onPress={() => {
+          Alert.alert(
+            'Aviso',
+            'Esto borrara todos los recibos y aplicaciones de la base de datos. ¿Desea continuar?',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              {
+                text: 'Aceptar',
+                onPress: () => {
+                  limpiarBase();
+                },
+              },
+            ]
+          );
+        }}
+        style={{ marginBottom: 12, backgroundColor: '#FF3B30', padding: 10, borderRadius: 8, alignItems: 'center' }}
+      >
         <Text style={consultaStyles.title}>LIMPIAR BASE DE DATOS</Text>
       </Pressable>
       {/* Header con Sync, cliente, y + */}

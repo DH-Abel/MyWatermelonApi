@@ -5,10 +5,8 @@ import { FlashList } from '@shopify/flash-list';
 import { styles } from '../../assets/styles';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
-import api from '../../api/axios'; // Asegúrate de que la ruta sea correcta
 import { database } from '../../src/database/database';
 import sincronizarClientes from '../../src/sincronizaciones/clientesLocal.js';
-import { MapsContext } from './mapsContext.js';
 import { getVendedor } from '../../src/sincronizaciones/secuenciaHelper.js'
 import { AuthContext } from '../context/AuthContext.js';
 

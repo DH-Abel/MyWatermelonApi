@@ -24,7 +24,7 @@ const MainTabsDejarFactura = () => {
       }}
     >
       {/* Pestaña “Cliente” */}
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Cliente"
         children={() => (
           <SelectedClienteDejarFactura
@@ -33,7 +33,7 @@ const MainTabsDejarFactura = () => {
           />
         )}
         options={{ title: 'Cliente' }}
-      />
+      /> */}
 
       {/* Pestaña “DejarFactura” */}
       <Tab.Screen

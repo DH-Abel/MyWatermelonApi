@@ -111,6 +111,7 @@ export class RecibosPDA extends Model {
   @field('f_aprobado') f_aprobado;
   @field('f_enviado') f_enviado;
   @field('f_anulado') f_anulado;
+  @field('f_impresiones') f_impresiones;
 }
 export class Aplicaciones_pda extends Model {
   static table = 't_aplicaciones_pda2';

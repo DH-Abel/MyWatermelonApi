@@ -1,5 +1,5 @@
 // ConsultaDejadosFactura.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useContext } from 'react';
 import {
   View,
   Text,
@@ -162,8 +162,9 @@ export default function ConsultaDejadosFactura({ navigation }) {
     // ————— Aquí envolvemos rDejado en try/catch —————
     let ticket;
     try {
-      console.log('🧩 clientesMap:', clientesMap);
-      console.log('🧩 detallesSimple:', detallesSimple);
+      
+  console.log('🔍> Entrando a imprimirDejado, record:', record);
+  console.log('🔍> record.f_vendedor:', record.f_vendedor);
       ticket = rDejado(record, detallesSimple, clientesMap);
       console.log('📄 Ticket generado:\n', ticket);
     } catch (error) {

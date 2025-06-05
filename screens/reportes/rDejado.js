@@ -45,11 +45,10 @@ export function rDejado(dejado, detalles, clientesMap) {
   const cliente = clientesMap[dejado.f_cliente] || {};
   report += boldOn + `Cliente: (${dejado.f_cliente}) ${cliente.f_nombre || ""}\n` + boldOff;
   report += `RNC: ${cliente.f_cedula || "-"}\n`;
-  report += `Dirección: ${cliente.f_direccion || "-"}\n`;
-  report += separator;
+  report += `Direccion: ${cliente.f_direccion || "-"}\n`;
+ 
 
   // ====== Detalle de facturas ======
-  report += boldOn + `Factura: ` + boldOff + ``
   detalles.forEach(item => {
     // Aseguramos que monto y balance sean strings con dos decimales
     const montoStr = Number(item.monto).toFixed(2);
@@ -65,8 +64,8 @@ export function rDejado(dejado, detalles, clientesMap) {
     const montoFmt = formatear(montoStr).padStart(8);
     const balanceFmt = formatear(balanceStr).padStart(8);
     report += separator;
-    report += `Factura: `+ boldOn + `${facPadded}` + boldOff + ` Fecha: ${formatearFecha(fechaPadded)}\n`;
-    report += `Monto: ${montoFmt} Balance: ${balanceFmt}\n`;
+    report += `Factura: `+ boldOn + `${facPadded}` + boldOff + ` (${formatearFecha(fechaPadded)})\n`;
+    report += `Monto: ${montoFmt} Bal.: ${balanceFmt}\n`;
   });
   report += separator;
 
@@ -87,7 +86,7 @@ export function rDejado(dejado, detalles, clientesMap) {
   }
 
   // ====== Pie de página ======
-  report += center + `Impresión: ${fechaPrint} ${horaPrint}\n`;
+  report += center + `Impresion: ${fechaPrint} ${horaPrint}\n`;
   report += "\n\n\n"; // Saltos para que la impresora haga corte
 
   return report;

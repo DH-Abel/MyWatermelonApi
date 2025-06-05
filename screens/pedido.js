@@ -296,56 +296,57 @@ export default function Pedido({
   }, [productosFiltradosFinal]);
 
   const actualizarCantidad = (f_referencia, cantidad, producto) => {
-    setPedido(prev => {
-      // 1) Construimos el nuevo estado 'next'
-      const next = cantidad === ''
-        ? (() => {
-          const o = { ...prev };
-          delete o[f_referencia];
-          return o;
-        })()
-        : {
-          ...prev,
-          [f_referencia]: prev[f_referencia]
-            ? {
-              ...prev[f_referencia],
-              cantidad: parseInt(cantidad, 10) || 0
-            }
-            : {
-              f_referencia: producto.f_referencia,
-              f_precio5: producto.f_precio5,
-              cantidad: parseInt(cantidad, 10) || 0,
-              f_referencia_suplidor: producto.f_referencia_suplidor,
-              f_descripcion: producto.f_descripcion,
-              f_existencia: producto.f_existencia,
-            }
+  setPedido(prev => {
+    // ===== R A M A   1: cantidad vacía (borrar del pedido) =====
+    if (cantidad === '') {
+      const nuevo = { ...prev };
+      delete nuevo[f_referencia];
+
+      // Actualizar la vista para que el input aparezca vacío
+      const filasSin = productosFiltradosFinal.map(prod => ({
+        ...prod._raw,
+        cantidad: nuevo[prod._raw.f_referencia]?.cantidad?.toString() || ''
+      }));
+      setDataProvider(dp => dp.cloneWithRows(filasSin));
+
+      return nuevo;
+    }
+
+    // ===== R A M A   2: cantidad NO vacía (agregar/editar) =====
+    const qtyNum = parseInt(cantidad, 10) || 0;
+    const basePrev = prev[f_referencia];
+    const nuevoProducto = basePrev
+      ? { ...basePrev, cantidad: qtyNum }
+      : {
+          f_referencia: producto.f_referencia,
+          f_precio5: producto.f_precio5,
+          cantidad: qtyNum,
+          f_referencia_suplidor: producto.f_referencia_suplidor,
+          f_descripcion: producto.f_descripcion,
+          f_existencia: producto.f_existencia,
         };
 
-      // 2) Actualizamos el RecyclerListView DataProvider en el mismo batch
-      const filas = productosFiltradosFinal.map(prod => ({
-        ...prod._raw,
-        cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
-      }));
+    const next = {
+      ...prev,
+      [f_referencia]: nuevoProducto
+    };
 
-      // 4️⃣ — Lógica de oferta automática —
-      const oferta = ofertas.find(o => o.f_referencia === f_referencia);
-      if (oferta) {
-        const qtyNum = parseInt(cantidad, 10) || 0;
-        const freeQty = Math.floor(qtyNum / oferta.f_cantidad_req) * oferta.f_cantidad;
-        const giftRef = oferta.f_referencia_oferta;
+    // ===== 3) L Ó G I C A   D E   O F E R T A S   (solo si qtyNum > 0) =====
+    const oferta = ofertas.find(o => o.f_referencia === f_referencia);
+    if (oferta && qtyNum > 0) {
+      const freeQty = Math.floor(qtyNum / oferta.f_cantidad_req) * oferta.f_cantidad;
+      const giftRef = oferta.f_referencia_oferta;
 
-        if (giftRef === f_referencia) {
-          // — Self-offer: nunca borres la entrada pagada, solo guarda freeQty aparte
-          next[f_referencia] = {
-            ...next[f_referencia],
-            cantidad: qtyNum,
-            freeCantidad: freeQty,
-          };
-        } else {
-          // — Cross-SKU offer: quita la anterior y agrega (o elimina) la de regalo
-          delete next[giftRef];
-          if (freeQty > 0) {
-            const giftProd = productos.find(p => p.f_referencia === giftRef);
+      if (giftRef === f_referencia) {
+        next[f_referencia] = {
+          ...next[f_referencia],
+          freeCantidad: freeQty
+        };
+      } else {
+        delete next[giftRef];
+        if (freeQty > 0) {
+          const giftProd = productos.find(p => p.f_referencia === giftRef);
+          if (giftProd) {
             next[giftRef] = {
               f_referencia: giftProd.f_referencia,
               f_precio5: 0,
@@ -358,13 +359,25 @@ export default function Pedido({
           }
         }
       }
+    } else {
+      if (oferta) {
+        const giftRef = oferta.f_referencia_oferta;
+        delete next[giftRef];
+      }
+    }
 
-      setDataProvider(dp => dp.cloneWithRows(filas));
+    // ===== 4) Actualizar DataProvider con la nueva “imagen” de cantidades =====
+    const filasCon = productosFiltradosFinal.map(prod => ({
+      ...prod._raw,
+      cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
+    }));
+    setDataProvider(dp => dp.cloneWithRows(filasCon));
 
-      // 3) Devolvemos el nuevo estado de 'pedido'
-      return next;
-    });
-  };
+    // ===== 5) Devolver el estado actualizado =====
+    return next;
+  });
+};
+
 
 
   const eliminarDelPedido = (f_referencia) => {
@@ -428,7 +441,7 @@ export default function Pedido({
     if (clienteSeleccionado) {
       const fetchClientesCxc = async () => {
         try {
-          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id}`);
+          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id? clienteSeleccionado.f_id : 3000}`);
           setBalanceCliente(response.data.f_balance || 0);
         } catch (error) {
           console.error('❌ Error al obtener cxc:', error);
@@ -714,7 +727,7 @@ export default function Pedido({
                   <View style={pedidoStyles.modalContent}>
                     <Text style={pedidoStyles.modalTitle}>🛒 Resumen del Pedido</Text>
                     <Text style={pedidoStyles.modalSubtitle}>
-                      Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}
+                      Cliente: ({clienteSeleccionado.f_id? clienteSeleccionado.f_id : 3000}) {clienteSeleccionado.f_nombre}
                     </Text>
                     <Text style={pedidoStyles.modalInfo}>
                       Crédito Disponible: {formatear(creditoDisponible)}

@@ -15,7 +15,7 @@ import { formatear } from '../assets/formatear'
 import { CommonActions } from '@react-navigation/native';
 import { printTest } from '../screens/funciones/print';
 import { rRecibo } from '../screens/reportes/rRecibos'
-import { getNextReciboSequence, getNextNCSequence } from '../src/sincronizaciones/secuenciaHelper';
+import { getNextReciboSequence, getNextNCSequence, getVendedor1 } from '../src/sincronizaciones/secuenciaHelper';
 import { AuthContext } from './context/AuthContext';
 
 
@@ -155,6 +155,7 @@ export default function ConfirmarCobranza() {
           r.f_anulado = false;
           r.f_enviado = false;
           r.f_nota = 'test'
+          r.f_impresiones = 0;
         });
 
         // --- aplicaciones ---
@@ -253,13 +254,31 @@ export default function ConfirmarCobranza() {
       }, {});
 
       const reporte = rRecibo(recRaw, detalleParaImprimir, clientesMap, bancosMap);
-      // Imprimir 2 copias con un pequeño delay entre cada una:
-      for (let i=0; i<2; i++){
-        await printTest(reporte);
 
-        // Si la impresora falla al reconectar, descomenta el delay y ajusta los ms según tu impresora.
+      // ───> INTENTO DE IMPRESIÓN (si falla, igualmente continúa guardando) ───
+      // 1) Primera copia
+      const ok1 = await printTest(reporte);
+      let printedBoth = false;
+      if (ok1) {
+        // Pequeño delay para evitar “entrecruzamiento” en Bluetooth:
         await new Promise(resolve => setTimeout(resolve, 3200));
+
+        // 2) Segunda copia
+        const ok2 = await printTest(reporte);
+        if (ok2) {
+          // Si ambas copias fueron exitosas:
+          printedBoth = true;
+          await database.write(async () => {
+            const recModel = await database
+              .collections.get('t_recibos_pda2')
+              .find(recRaw.id);
+            await recModel.update(r => {
+              r.f_impresiones = (r.f_impresiones || 0) + 2;
+            });
+          });
+        }
       }
+      // Si alguna impresión falló (ok1 === false o ok2 === false),
 
 
       // 4) Intento de envío (hasta 2 veces)
@@ -375,15 +394,15 @@ export default function ConfirmarCobranza() {
                 <Ionicons name="add-outline" size={24} color="#fff" />
               </Pressable>
             </View>
-               <View style={styles.row}>
-            <Pressable
-              onPress={() => openBankModal('transfer')}
-              style={styles.bankButton}
-            >
-              <Text style={styles.buttonText}>
-                {transferenciaBanco?.f_nombre || 'Banco'}
-              </Text>
-            </Pressable>
+            <View style={styles.row}>
+              <Pressable
+                onPress={() => openBankModal('transfer')}
+                style={styles.bankButton}
+              >
+                <Text style={styles.buttonText}>
+                  {transferenciaBanco?.f_nombre || 'Banco'}
+                </Text>
+              </Pressable>
             </View>
           </View>
 
@@ -438,10 +457,12 @@ export default function ConfirmarCobranza() {
 
           <Pressable
             onPress={guardar}
-            style={[styles.saveButton, !validSum && styles.disabled]}
+            style={[styles.saveButton, (!validSum || isSending || isSaving) && styles.disabled]}
             disabled={!validSum || isSending || isSaving}
           >
-            <Text style={styles.saveText}>{isSending ? 'Enviando...' : 'Guardar y Enviar'}</Text>
+            <Text style={styles.saveText}>
+              {isSending ? 'Enviando...' : (isSaving ? 'Guardando...' : 'Guardar y Enviar')}
+            </Text>
           </Pressable>
 
           <Modal visible={showBankModal} transparent>

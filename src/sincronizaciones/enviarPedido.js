@@ -34,7 +34,7 @@ export const enviarPedido = async ({
     try {
         // Enviar encabezado a la API
         const responsePedido = await api.post('/pedidos/pedido', {
-            f_cliente: clienteSeleccionado.f_id,
+            f_cliente: clienteSeleccionado.f_id? parseInt(clienteSeleccionado.f_id, 10) : 3000,
             f_documento: documento,
             f_tipodoc: 'PED',
             f_nodoc: parseInt(fechaActual, 10),
@@ -89,7 +89,7 @@ export const enviarPedido = async ({
             setPedido({});
             await AsyncStorage.removeItem('pedido_guardado');
             setModalVisible(false);
-            setClienteSeleccionado(null);
+            setClienteSeleccionado({});
             setBalanceCliente(0);
             setDescuentoCredito(0);
 

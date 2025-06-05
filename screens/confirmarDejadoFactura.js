@@ -1,5 +1,5 @@
 // ConfirmarDejadoFactura.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { Q } from '@nozbe/watermelondb';
 import { formatear, formatearFecha } from '../assets/formatear';
 import { printTest } from './funciones/print';
 import { rDejado } from './reportes/rDejado';
+import { getVendedor1 } from '../src/sincronizaciones/secuenciaHelper';
+import { AuthContext } from './context/AuthContext';
+
 
 /*
   Este componente recibe por route.params:
@@ -43,6 +46,8 @@ export default function ConfirmarDejadoFactura() {
   const fechaHoy = new Date().toLocaleDateString('en-GB');
 
   const [clientesMap, setClientesMap] = useState({});
+
+  const { user } = useContext(AuthContext)
 
 
   // Carga todos los clientes en un mapa para impresión
@@ -92,9 +97,11 @@ export default function ConfirmarDejadoFactura() {
       // Preparamos variables para impresión
       let nuevoDejado = null;
       const detallesAGuardar = [];
+      const { vendedor } = await getVendedor1(user);
 
       // Escribimos en la base de datos local (watermelondb)
       await database.write(async () => {
+
         // 1) Creación del registro padre en t_dejar_factura_pda :contentReference[oaicite:2]{index=2}
         const dejarCol = database.collections.get('t_dejar_factura_pda');
         const padre = await dejarCol.create(df => {
@@ -104,7 +111,7 @@ export default function ConfirmarDejadoFactura() {
           df.f_monto = totalMonto;
           df.f_balance = totalBalance;
           df.f_documento = f_documento;
-          df.f_vendedor = clienteSeleccionado.f_vendedor;
+          df.f_vendedor = vendedor;
           df.f_enviado = false;
           df.f_observacion = observacion;
         });
@@ -142,7 +149,7 @@ export default function ConfirmarDejadoFactura() {
 
       setIsSaving(false);
       // Generar e imprimir el ticket usando el mismo print.js
-      
+
 
 
       Alert.alert('Éxito', '“Dejado de Factura” guardado correctamente.', [
@@ -152,14 +159,14 @@ export default function ConfirmarDejadoFactura() {
             // Regresamos a la primera pestaña del flow y reseteamos el stack
             const ticket = rDejado(nuevoDejado, detallesAGuardar, clientesMap);
             printTest(ticket).catch(err => console.error('Error al imprimir ticket:', err)).
-            then(() => navigation.reset({
-              index: 1,
-             routes: [
+              then(() => navigation.reset({
+                index: 1,
+                routes: [
                   { name: 'MenuPrincipal' },        // primera en el historial
                   { name: 'ConsultaDejadosFactura' }       // activa, a la que llegarás
-              ],
-            }));
-            
+                ],
+              }));
+
           },
         },
       ]);
@@ -191,14 +198,16 @@ export default function ConfirmarDejadoFactura() {
     <SafeAreaView style={styles.container}>
       {/* Header con datos del cliente y totales */}
       <View style={styles.header}>
-        <Text style={styles.title}>Confirmar “Dejar Factura”</Text>
+        <Text style={styles.title}>Confirmar “Dejar Factura”  ({fechaHoy})</Text>
         <Text style={styles.subtitle}>
           Cliente: ({clienteSeleccionado.f_id}) {clienteSeleccionado.f_nombre}
         </Text>
         <Text style={styles.subtitle}>
-          Total Monto: {totalMonto.toFixed(2)} | Total Balance: {totalBalance.toFixed(2)}
+          Total Monto: {formatear(totalMonto)}
         </Text>
-        <Text style={styles.subtitle}>Fecha: {fechaHoy}</Text>
+              <Text style={styles.subtitle}>
+         Total Balance: {formatear(totalBalance)}
+        </Text>
       </View>
 
       {/* Listado de facturas seleccionadas */}

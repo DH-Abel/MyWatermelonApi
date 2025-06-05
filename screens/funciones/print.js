@@ -81,7 +81,7 @@ export async function checkPrinterAvailability() {
   } catch (error) {
     console.error("Error verificando impresora:", error);
     Alert.alert("Error", "Ocurrió un error al verificar la impresora.");
-    return false;
+    return;
   }
 }
 
@@ -132,7 +132,7 @@ export async function printTest(texto) {
       "Error de conexión",
       "No se pudo conectar a la impresora. Asegúrate de que esté encendida y emparejada."
     );
-    return;
+    return false;
   }
 
   // Intentar enviar el texto a la impresora dentro de un try/catch
@@ -141,7 +141,7 @@ export async function printTest(texto) {
   } catch (error) {
     console.error("Error al imprimir:", error);
     Alert.alert("Error de impresión", "Ocurrió un error al intentar imprimir.");
-    return;
+    return false;
   }
 
   // Espera unos segundos para que se complete la impresión y cierra la conexión.
@@ -149,7 +149,9 @@ export async function printTest(texto) {
     BLEPrinter.closeConn();
     console.log("Conexión cerrada");
   }, 2000);
+  return true;
 }
+
 
 const PrinterExample = () => {
   useEffect(() => {
