@@ -450,10 +450,10 @@ export default function Pedido({
 
   useEffect(() => {
     if (clienteSeleccionado) {
-      const nuevoCredito = clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente;
+      const nuevoCredito = clienteSeleccionado.f_limite_credito - totalNeto - balanceCliente;
       setCreditoDisponible(nuevoCredito);
     }
-  }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
+  }, [totalNeto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
 
   // useEffect(() => {

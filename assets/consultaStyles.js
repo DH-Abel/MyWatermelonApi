@@ -88,17 +88,24 @@ export const consultaStyles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'flex-start',  // <--- Agregar
   },
   pedidoTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 6,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+
   },
   pedidoText: {
     fontSize: 16,
     color: '#555',
     marginBottom: 4,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   pedidoButtonRow: {
     flexDirection: 'row',
@@ -175,14 +182,20 @@ export const consultaStyles = StyleSheet.create({
     marginBottom: 8,
   },
   pedidoInfoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+
+    marginRight: 8,
+
   },
   pedidoButtonColumn: {
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginLeft: 8,
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    marginLeft: 0,
+    alignSelf: 'stretch',
+    flex: 2,
+
   },
   pedidoSmallButton: {
     backgroundColor: '#007AFF',
@@ -214,14 +227,14 @@ export const consultaStyles = StyleSheet.create({
     marginLeft: 8,
     padding: 4,
   },
-  searchInput:{
+  searchInput: {
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
     color: '#333',
     paddingVertical: 8,
     paddingHorizontal: 12,
-   
+
   }
 
 

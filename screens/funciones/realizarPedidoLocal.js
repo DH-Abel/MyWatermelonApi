@@ -20,7 +20,7 @@ export const realizarPedidoLocal = async ({
   setClienteSeleccionado,
   setBalanceCliente,
   setDescuentoCredito,
-  navigation,
+  navigation: parentNavigation,
   creditoDisponible,
   user
 }) => {
@@ -142,77 +142,20 @@ export const realizarPedidoLocal = async ({
       });
       console.log("Pedido guardado localmente con éxito");
       setIsSaving(false);
-      Alert.alert(
-        "Pedido guardado existosamente",
+     
+              parentNavigation.reset({
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                  { name: 'MenuPrincipal' },        // primera en el historial
+                  { name: 'ConsultaPedidos',
+                      params: {
+                        nuevoPedidos: documento
+                      }
+                   } ,      // activa, a la que llegarás
 
-        "¿Deseas enviar el pedido?",
-        [
-          {
-            text: "No",
-            onPress: async () => {
-              setPedido({});
-              setModalVisible(false);
-              await AsyncStorage.removeItem('pedido_guardado');
-              setClienteSeleccionado(null);
-              setBalanceCliente(0);
-              setDescuentoCredito(0);
-              navigation.reset({
-                index: 1,                            // la ruta activa será la segunda
-                routes: [
-                  { name: 'MenuPrincipal' },        // primera en el historial
-                  { name: 'ConsultaPedidos' }       // activa, a la que llegarás
                 ]
               });
-            },
-            style: "cancel"
-          },
-          {
-            text: "Si",
-            onPress: async () => {
-              await enviarPedido({
-                productosPedido,
-                documento,
-                fechaActual,
-                horaActual,
-                computedItbis,
-                computedDescuentoAplicado,
-                descuentoGlobal,
-                computedTotalNeto,
-                clienteSeleccionado,
-                condicionSeleccionada,
-                nota,
-                totalBruto,
-                setPedido,
-                setModalVisible,
-                setClienteSeleccionado,
-                setBalanceCliente,
-                setDescuentoCredito,
-                navigation,
-                setIsSaving,
-                pedido,
-                tipodoc, 
-                nodoc, 
-                vendedor
-              }),
-               console.log('Pedido enviado con éxito'),
-               setPedido({});
-              await AsyncStorage.removeItem('pedido_guardado');
-              await setModalVisible(false);
-              
-              await setBalanceCliente(0);
-              await setDescuentoCredito(0);
-              await navigation.reset({
-                index: 1,                            // la ruta activa será la segunda
-                routes: [
-                  { name: 'MenuPrincipal' },        // primera en el historial
-                  { name: 'ConsultaPedidos' }       // activa, a la que llegarás
-                ]
-              });
-              await setClienteSeleccionado(0);
-            }
-          }
-        ]
-      );
+        
     } catch (error) {
       console.error("Error al guardar localmente el pedido:", error);
       Alert.alert("Error", "No se pudo guardar el pedido localmente");

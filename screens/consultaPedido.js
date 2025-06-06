@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext,useRef  } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, SafeAreaView,
   Pressable, Modal, Alert, PermissionsAndroid, InteractionManager
 } from 'react-native';
 import { database } from '../src/database/database';
+import { useRoute } from '@react-navigation/native';
 import { Q } from '@nozbe/watermelondb';
 import NetInfo from '@react-native-community/netinfo';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -16,6 +17,7 @@ import { PrinterExample } from './funciones/print'
 import { printTest } from './funciones/print';
 import { rPedido } from './reportes/rPedido';
 import { MapsContext } from './components/mapsContext';
+import { FlashList } from '@shopify/flash-list';
 
 
 export default function Pedidos({ navigation }) {
@@ -37,7 +39,8 @@ export default function Pedidos({ navigation }) {
 
   //const [productosMap, setProductosMap] = useState({});
   //const [clientesMap, setClientesMap] = useState({});
-
+    const yaPreguntoRef = useRef(false);
+     const route = useRoute();
 
   const { productos: productosMap, clientes: clientesMap } = useContext(MapsContext);
 
@@ -80,6 +83,7 @@ export default function Pedidos({ navigation }) {
           const facturaCollection = database.collections.get('t_factura_pedido');
           const allPedidos = await facturaCollection.query().fetch();
           setFullPedidos(allPedidos);
+          
         } else {
           console.log("No hay pedidos para sincronizar");
         }
@@ -222,11 +226,6 @@ export default function Pedidos({ navigation }) {
         }
       }
 
-
-
-
-
-
       // Llama a la función enviarPedido
       await enviarPedido({
         productosPedido,
@@ -298,6 +297,104 @@ export default function Pedidos({ navigation }) {
   useEffect(() => {
     cargarEstado();
   }, [])
+    useEffect(() => {
+    // 2) Cuando llegue route.params.nuevoPedidos, mostrará el Alert
+    const idNuevoPedido = route.params?.nuevoPedidos;
+    if (idNuevoPedido && !yaPreguntoRef.current) {
+      yaPreguntoRef.current = true; // evitamos que se vuelva a ejecutar
+      Alert.alert(
+        'Enviar pedido',
+        `¿Deseas enviar el pedido ${idNuevoPedido} a la empresa?`,
+        [
+          {
+            text: 'No',
+            style: 'cancel',
+            onPress: () => {
+              // Si no quiere enviarlo, simplemente no hacemos nada.
+              // Podrías opcionalmente resetear route.params.nuevoPedidos = null, pero no es estrictamente necesario.
+            }
+          },
+          {
+            text: 'Sí',
+            onPress:async () => {
+              await enviarEsePedido(idNuevoPedido);
+              await cargarEstado();
+               await  navigation.reset({
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                  { name: 'MenuPrincipal' },        // primera en el historial
+                  { name: 'ConsultaPedidos',
+                  
+                   } 
+                  ]
+                });
+            }
+          }
+        ]
+      );
+    }
+  }, [route.params]);
+
+  const enviarEsePedido = async (documento) => {
+    try {
+      // 3) Llamas a tu función enviarPedido con los datos necesarios.
+      //    En tu caso, enviarPedido.js exporta una función que espera un objeto con muchos campos.
+      //    Debes recabar esos datos (productos, cliente, totales…) a partir de tu base local.
+      //
+      //    A modo de ejemplo (simplificado), algo así:
+      const detalleRaw = await database.collections
+        .get('t_detalle_factura_pedido')
+        .query(Q.where('f_documento', documento))
+        .fetch();
+      // Mapea detalleRaw a la forma que espera enviarPedido
+      const productosPedido = detalleRaw.map(d => ({
+        f_referencia: d._raw.f_referencia,
+        cantidad: d._raw.f_cantidad,
+        f_precio: d._raw.f_precio
+      }));
+      // Obtenemos la cabecera local:
+      const [cabecera] = await database.collections
+        .get('t_factura_pedido')
+        .query(Q.where('f_documento', documento))
+        .fetch();
+      if (!cabecera) {
+        Alert.alert('Error', `No se encontró el pedido ${documento} en la base local.`);
+        return;
+      }
+      // Ahora invocamos la función exportada de enviarPedido.js
+      await enviarPedido({
+        productosPedido,
+        documento,
+        fechaActual: cabecera._raw.f_fecha,
+        horaActual: cabecera._raw.f_hora_vendedor,
+        computedItbis: cabecera._raw.f_itbis,
+        computedDescuentoAplicado: cabecera._raw.f_descuento,
+        descuentoGlobal: cabecera._raw.f_porc_descuento,
+        computedTotalNeto: cabecera._raw.f_monto,
+        clienteSeleccionado: { f_id: cabecera._raw.f_cliente },
+        condicionSeleccionada: { id: cabecera._raw.f_condicion }, // u objeto similar
+        nota: cabecera._raw.f_observacion,
+        totalBruto: cabecera._raw.f_monto_bruto,
+        setPedido: () => {},          // si quieres limpiar algo en la pantalla
+        setModalVisible: () => {},
+        setClienteSeleccionado: () => {},
+        setBalanceCliente: () => {},
+        setDescuentoCredito: () => {},
+        navigation,
+        setIsSaving: () => {},        // muestra spinner si quieres
+        pedido: {},                   // no es estrictamente necesario
+        tipodoc: cabecera._raw.f_tipodoc,
+        nodoc: cabecera._raw.f_nodoc,
+        vendedor: cabecera._raw.f_vendedor
+      });
+      // 4) Una vez enviado, podrías recargar la lista de pedidos para que refleje "enviado = true"
+       await cargarEstado();
+    } catch (error) {
+      console.error('Error al enviar pedido desde ConsultaPedidos:', error);
+      Alert.alert('Error', 'No se pudo enviar el pedido. Intenta de nuevo más tarde.');
+    }
+  };
+
 
   useEffect(() => {
     const normalizedStartDate = new Date(startDate);
@@ -468,8 +565,9 @@ export default function Pedidos({ navigation }) {
       />
 
       {/* Listado de Pedidos */}
-      <FlatList
+      <FlashList
         data={pedidosOrdenados}
+        
         keyExtractor={(item) => item.f_documento.toString()}
         renderItem={({ item }) => {
           const cliente = clientesMap[item.f_cliente] || {};
@@ -477,18 +575,16 @@ export default function Pedidos({ navigation }) {
             <Pressable onPress={() => openDetalleModal(item)}>
 
               <View style={consultaStyles.pedidoCard}>
-                {/* Sección de Título: Documento y Nombre del Cliente */}
-                <View style={consultaStyles.pedidoTitleSection}>
-                  <Text style={consultaStyles.pedidoTitle}>Documento: {item.f_documento}</Text>
-                  <Text style={consultaStyles.pedidoTitle}>
-                    Cliente: ({item.f_cliente}) {cliente.f_nombre}
-                  </Text>
-                </View>
+                {/* Contenedor izquierdo: título e información */}
+                <View style={{ flex: 15 }}>
+                  <View style={consultaStyles.pedidoTitleSection}>
+                    <Text style={consultaStyles.pedidoTitle}>Documento: {item.f_documento}</Text>
+                    <Text style={consultaStyles.pedidoTitle}>
+                      Cliente: ({item.f_cliente}) {cliente.f_nombre}
+                    </Text>
+                  </View>
 
-                {/* Sección de Información y Botones */}
-                <View style={consultaStyles.pedidoInfoSection}>
-                  {/* Información: fecha, hora, total, etc. */}
-                  <View style={{ flex: 1 }}>
+                  <View style={consultaStyles.pedidoInfoSection}>
                     <Text style={consultaStyles.pedidoText}>
                       Fecha: {item.f_fecha} - {item.f_hora_vendedor}
                     </Text>
@@ -498,32 +594,26 @@ export default function Pedidos({ navigation }) {
                     <Text style={consultaStyles.pedidoText}>
                       Estado: {item.f_estado_pedido} || Factura: {item.f_factura}
                     </Text>
-
                     <Text style={consultaStyles.pedidoText}>
                       Enviado: {item._raw.f_enviado ? 'Sí' : 'No'}
                     </Text>
                   </View>
-                  {/* Botones pequeños en columna */}
-                  <View style={consultaStyles.pedidoButtonColumn}>
+                </View>
 
-                    <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
-                      <Ionicons name="create-outline" size={23} color="#fff" />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => imprimirPedidoDesdeLista(item)}
-                      style={consultaStyles.pedidoSmallButton}
-                    >
-                      <Ionicons name="print-outline" size={23} color="#fff" />
-                    </Pressable>
-
-
-
-                    <Pressable onPress={() => {
-                      handleEnviarPedido(item); cargarEstado()
-                    }} style={consultaStyles.pedidoSmallButton}>
-                      <Ionicons name="send-outline" size={23} color="#fff" />
-                    </Pressable>
-                  </View>
+                {/* Contenedor derecho: botones */}
+                <View style={consultaStyles.pedidoButtonColumn}>
+                  <Pressable onPress={() => handleEditarPedido(item)} style={consultaStyles.pedidoSmallButton}>
+                    <Ionicons name="create-outline" size={23} color="#fff" />
+                  </Pressable>
+                  <Pressable onPress={() => imprimirPedidoDesdeLista(item)} style={consultaStyles.pedidoSmallButton}>
+                    <Ionicons name="print-outline" size={23} color="#fff" />
+                  </Pressable>
+                  <Pressable onPress={() => handleEliminarPedido(item)} style={consultaStyles.pedidoSmallButton}>
+                    <Ionicons name="trash-outline" size={23} color="#fff" />
+                  </Pressable>
+                  <Pressable onPress={() => { handleEnviarPedido(item); cargarEstado(); }} style={consultaStyles.pedidoSmallButton}>
+                    <Ionicons name="send-outline" size={23} color="#fff" />
+                  </Pressable>
                 </View>
               </View>
             </Pressable>

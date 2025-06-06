@@ -65,7 +65,7 @@ export const enviarPedido = async ({
             });
             // console.log("Detalle enviado a la API:", responseDetalle.data);
         }
-        
+
         try {
             const facturaCollection = database.collections.get('t_factura_pedido');
             const pedidosLocal = await facturaCollection.query(Q.where('f_documento', documento)).fetch();
@@ -87,7 +87,15 @@ export const enviarPedido = async ({
 
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
-
+        if (currentRouteName !== 'ConsultaPedidos') {
+            await navigation.reset({
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                    { name: 'MenuPrincipal' },        // primera en el historial
+                    { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                ]
+            });
+        }
 
     } catch (error) {
         console.error("Error al enviar el pedido a la API:", error);
@@ -97,8 +105,18 @@ export const enviarPedido = async ({
             Alert.alert("Error", "El pedido se guardó localmente, pero no se pudo enviar a la API. Reintenta el envío más tarde.");
         }
 
-    } finally {
-        setIsSaving(false);
-        //console.log("Pedido procesado:", JSON.stringify(pedido));
+        if (currentRouteName !== 'ConsultaPedidos') {
+        await navigation.reset({
+            index: 1,                            // la ruta activa será la segunda
+            routes: [
+                { name: 'MenuPrincipal' },        // primera en el historial
+                { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+            ]
+        });
     }
+
+} finally {
+    setIsSaving(false);
+    //console.log("Pedido procesado:", JSON.stringify(pedido));
+}
 };
