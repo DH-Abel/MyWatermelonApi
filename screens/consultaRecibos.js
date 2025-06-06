@@ -113,10 +113,10 @@ export default function ConsultaRecibos({ navigation }) {
       const collection = database.collections.get('t_nota_credito_venta_pda2');
       // trae todos los registros
       const all = await collection.query().fetch();
-      console.log(`🏷️  Notas de crédito encontradas: ${all.length}`);
+      //console.log(`🏷️  Notas de crédito encontradas: ${all.length}`);
       //console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
-      console.log('*** NOTAS DE CRÉDITO ***');
+    //  console.log('*** NOTAS DE CRÉDITO ***');
       // console.log(all.map(rec => rec._raw));
       // si quieres guardarlos en estado para listarlos en pantalla, hazlo:
       setNotasNC(all.map(rec => rec._raw));
@@ -130,8 +130,8 @@ export default function ConsultaRecibos({ navigation }) {
       const collection = database.collections.get('t_aplicaciones_pda2');
       // trae todos los registros
       const all = await collection.query().fetch();
-      console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
-      console.log(all.map(r => r._raw));
+     // console.log(`🏷️  Aplicaciones encontradas: ${all.length}`);
+      //console.log(all.map(r => r._raw));
       // los registros _raw tienen exactamente todas las columnas
       //console.log('*** Aplicaciones ***');
       //console.log(all.map(rec => rec._raw));

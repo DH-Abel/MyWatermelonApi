@@ -191,6 +191,19 @@ export const realizarPedidoLocal = async ({
                 navigation,
                 setIsSaving,
                 pedido,
+              }),
+              setPedido({});
+              setModalVisible(false);
+              await AsyncStorage.removeItem('pedido_guardado');
+              setClienteSeleccionado(null);
+              setBalanceCliente(0);
+              setDescuentoCredito(0);
+               navigation.reset({
+                index: 1,                            // la ruta activa será la segunda
+                routes: [
+                  { name: 'MenuPrincipal' },        // primera en el historial
+                  { name: 'ConsultaPedidos' }       // activa, a la que llegarás
+                ]
               });
             }
           }

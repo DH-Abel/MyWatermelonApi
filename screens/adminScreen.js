@@ -72,8 +72,8 @@ export default function AdminUsersScreen() {
   }
 
   async function handleSave() {
-    const { usuario, password } = form
-    if (!usuario || !password) {
+    const { usuario, password, vendedor } = form
+    if (!usuario || !password || !vendedor) {
       return Alert.alert('Error', 'Vendedor, Usuario y contraseña son obligatorios')
     }
     try {
@@ -173,6 +173,7 @@ export default function AdminUsersScreen() {
               if (!form.vendedor) {
                 return Alert.alert('Error', 'Debes indicar un vendedor');
               }
+
               const { newItems, updatedItems } = await sincronizarSecuencias(
                 parseInt(form.vendedor, 10),
                 form.usuario
@@ -220,9 +221,22 @@ export default function AdminUsersScreen() {
               />
             ))}
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.primaryButton} onPress={() =>
-                isEditing ? handleSave() :
-                  Alert.alert('Sincronizar secuencia', 'Quieres actualizar la secuencia?',
+              <TouchableOpacity style={styles.primaryButton}
+                onPress={() => {
+                  // 1) Validación previa: no mostrar ninguna alerta de secuencia si falta vendedor/usuario/password
+                  if (!form.usuario || !form.password || !form.vendedor) {
+                    return Alert.alert('Error', 'Vendedor, Usuario y contraseña son obligatorios');
+                  }
+
+                  // 2) Si estoy en modo edición, simplemente actualizo:
+                  if (isEditing) {
+                    return handleSave();
+                  }
+
+                  // 3) Si no es edición (o sea, es "Crear"), muestro confirmación de sincronización
+                  Alert.alert(
+                    'Sincronizar secuencia',
+                    'Quieres actualizar la secuencia?',
                     [
                       {
                         text: 'No',
@@ -235,40 +249,41 @@ export default function AdminUsersScreen() {
                           const { newItems, updatedItems } = await sincronizarSecuencias(
                             parseInt(form.vendedor, 10),
                             form.usuario
-                          )
-                          let mensaje = ''
-                          if(newItems.length>0){
-                            const lineasNuevas = newItems.map(s=>`•${s.tabla} (noDoc: ${s.nodoc})`)
-                            .join(`\n`)
-                            mensaje += `Secuencias nuevas:\n${lineasNuevas}\n`
+                          );
+                          let mensaje = '';
+                          if (newItems.length > 0) {
+                            const lineasNuevas = newItems
+                              .map(s => `• ${s.tabla} - ${s.tipodoc} (NoDoc: ${s.nodoc})`)
+                              .join('\n');
+                            mensaje += `Secuencias nuevas:\n${lineasNuevas}\n\n`;
+                          } else {
+                            mensaje += 'No hay secuencias nuevas.\n\n';
                           }
-                          else{
-                            mensaje+='\n\n'
-                          }
-                          if(updatedItems.length>0){
-                            const lineasUpd = updatedItems.map(s=>`•${s.tabla} - ${s.tipodoc} (noDoc: ${s.nodoc})`)
-                            .join(`\n`)
-                            mensaje += `Secuencias actualizadas:\n${lineasUpd}\n\n`
-                          }
-                          else{
-                            mensaje+=``
+                          if (updatedItems.length > 0) {
+                            const lineasUpd = updatedItems
+                              .map(s => `• ${s.tabla} (NoDoc: ${s.nodoc})`)
+                              .join('\n');
+                            mensaje += `Secuencias actualizadas:\n${lineasUpd}`;
+                          } else {
+                            mensaje += 'No hay secuencias actualizadas.';
                           }
                           Alert.alert(
-                            'Resultado de la sincronizacion',
+                            'Resultado de la sincronización',
                             mensaje.trim(),
                             [
                               {
-                                text: `OK`,
+                                text: 'OK',
                                 onPress: () => {
-                                  handleSave()
+                                  handleSave();
                                 }
                               }
                             ]
-                          )
+                          );
                         }
-                      },
+                      }
                     ]
-                  )}>
+                  );
+                }}>
                 <Text style={styles.primaryButtonText}>{isEditing ? 'Actualizar' : 'Crear'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>

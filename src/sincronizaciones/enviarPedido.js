@@ -34,9 +34,9 @@ export const enviarPedido = async ({
     try {
         // Enviar encabezado a la API
         const responsePedido = await api.post('/pedidos/pedido', {
-            f_cliente: clienteSeleccionado.f_id? parseInt(clienteSeleccionado.f_id, 10) : 3000,
+            f_cliente: clienteSeleccionado.f_id ? parseInt(clienteSeleccionado.f_id, 10) : 3000,
             f_documento: documento,
-            f_tipodoc: 'PED',
+            f_tipodoc: 'PEDO',
             f_nodoc: parseInt(fechaActual, 10),
             f_fecha: fechaActual,
             f_hora_vendedor: horaActual,
@@ -84,23 +84,17 @@ export const enviarPedido = async ({
 
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
-        if (currentRouteName !== 'ConsultaPedidos') {
-            // Reiniciar estados y navegar a ConsultaPedidos
-            setPedido({});
-            await AsyncStorage.removeItem('pedido_guardado');
-            setModalVisible(false);
-            setClienteSeleccionado({});
-            setBalanceCliente(0);
-            setDescuentoCredito(0);
+        // if (currentRouteName !== 'ConsultaPedidos') {
+        //     // Reiniciar estados y navegar a ConsultaPedidos
+        //     setPedido({});
+        //     await AsyncStorage.removeItem('pedido_guardado');
+        //     setModalVisible(false);
+        //     // setClienteSeleccionado({});
+        //     setBalanceCliente(0);
+        //     setDescuentoCredito(0);
 
-            navigation.reset({
-                index: 1,                            // la ruta activa será la segunda
-                routes: [
-                    { name: 'MenuPrincipal' },        // primera en el historial
-                    { name: 'ConsultaPedidos' }       // activa, a la que llegarás
-                ]
-            });
-        }
+        
+        // }
 
     } catch (error) {
         console.error("Error al enviar el pedido a la API:", error);
@@ -109,23 +103,17 @@ export const enviarPedido = async ({
         } else {
             Alert.alert("Error", "El pedido se guardó localmente, pero no se pudo enviar a la API. Reintenta el envío más tarde.");
         }
-        if (currentRouteName !== 'ConsultaPedidos') {
-            // Reiniciar estados y navegar a ConsultaPedidos
-            setPedido({});
-            await AsyncStorage.removeItem('pedido_guardado');
-            setModalVisible(false);
-            setClienteSeleccionado(null);
-            setBalanceCliente(0);
-            setDescuentoCredito(0);
+        // if (currentRouteName !== 'ConsultaPedidos') {
+        //     // Reiniciar estados y navegar a ConsultaPedidos
+        //     setPedido({});
+        //     await AsyncStorage.removeItem('pedido_guardado');
+        //     setModalVisible(false);
+        //     // setClienteSeleccionado({});
+        //     setBalanceCliente(0);
+        //     setDescuentoCredito(0);
 
-            navigation.reset({
-                index: 1,                            // la ruta activa será la segunda
-                routes: [
-                    { name: 'MenuPrincipal' },        // primera en el historial
-                    { name: 'ConsultaPedidos' }       // activa, a la que llegarás
-                ]
-            });
-        }
+           
+        // }
     } finally {
         setIsSaving(false);
         //console.log("Pedido procesado:", JSON.stringify(pedido));

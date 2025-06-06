@@ -45,6 +45,7 @@ export default function Pedido({
   const [pedido, setPedido] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [balanceCliente, setBalanceCliente] = useState(0);
   const [modalEditVisible, setModalEditVisible] = useState(false);
   const [productoParaEditar, setProductoParaEditar] = useState(null);
@@ -233,24 +234,24 @@ export default function Pedido({
   );
 
   const productosFiltrados = useMemo(() => {
-  const terms = debouncedSearchTextProductos
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(t => t); // descarta posibles cadenas vacías
+    const terms = debouncedSearchTextProductos
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(t => t); // descarta posibles cadenas vacías
 
-  return productos.filter(producto => {
-    const haystack = [
-      producto.f_descripcion || '',
-      producto.f_referencia_suplidor || ''
-    ]
-      .join(' ')
-      .toLowerCase();
+    return productos.filter(producto => {
+      const haystack = [
+        producto.f_descripcion || '',
+        producto.f_referencia_suplidor || ''
+      ]
+        .join(' ')
+        .toLowerCase();
 
-    // verifica que cada término aparezca en el haystack
-    return terms.every(term => haystack.includes(term));
-  });
-}, [productos, debouncedSearchTextProductos]);
+      // verifica que cada término aparezca en el haystack
+      return terms.every(term => haystack.includes(term));
+    });
+  }, [productos, debouncedSearchTextProductos]);
 
 
   const productosFiltradosFinal = useMemo(() =>
@@ -296,28 +297,28 @@ export default function Pedido({
   }, [productosFiltradosFinal]);
 
   const actualizarCantidad = (f_referencia, cantidad, producto) => {
-  setPedido(prev => {
-    // ===== R A M A   1: cantidad vacía (borrar del pedido) =====
-    if (cantidad === '') {
-      const nuevo = { ...prev };
-      delete nuevo[f_referencia];
+    setPedido(prev => {
+      // ===== R A M A   1: cantidad vacía (borrar del pedido) =====
+      if (cantidad === '') {
+        const nuevo = { ...prev };
+        delete nuevo[f_referencia];
 
-      // Actualizar la vista para que el input aparezca vacío
-      const filasSin = productosFiltradosFinal.map(prod => ({
-        ...prod._raw,
-        cantidad: nuevo[prod._raw.f_referencia]?.cantidad?.toString() || ''
-      }));
-      setDataProvider(dp => dp.cloneWithRows(filasSin));
+        // Actualizar la vista para que el input aparezca vacío
+        const filasSin = productosFiltradosFinal.map(prod => ({
+          ...prod._raw,
+          cantidad: nuevo[prod._raw.f_referencia]?.cantidad?.toString() || ''
+        }));
+        setDataProvider(dp => dp.cloneWithRows(filasSin));
 
-      return nuevo;
-    }
+        return nuevo;
+      }
 
-    // ===== R A M A   2: cantidad NO vacía (agregar/editar) =====
-    const qtyNum = parseInt(cantidad, 10) || 0;
-    const basePrev = prev[f_referencia];
-    const nuevoProducto = basePrev
-      ? { ...basePrev, cantidad: qtyNum }
-      : {
+      // ===== R A M A   2: cantidad NO vacía (agregar/editar) =====
+      const qtyNum = parseInt(cantidad, 10) || 0;
+      const basePrev = prev[f_referencia];
+      const nuevoProducto = basePrev
+        ? { ...basePrev, cantidad: qtyNum }
+        : {
           f_referencia: producto.f_referencia,
           f_precio5: producto.f_precio5,
           cantidad: qtyNum,
@@ -326,57 +327,57 @@ export default function Pedido({
           f_existencia: producto.f_existencia,
         };
 
-    const next = {
-      ...prev,
-      [f_referencia]: nuevoProducto
-    };
+      const next = {
+        ...prev,
+        [f_referencia]: nuevoProducto
+      };
 
-    // ===== 3) L Ó G I C A   D E   O F E R T A S   (solo si qtyNum > 0) =====
-    const oferta = ofertas.find(o => o.f_referencia === f_referencia);
-    if (oferta && qtyNum > 0) {
-      const freeQty = Math.floor(qtyNum / oferta.f_cantidad_req) * oferta.f_cantidad;
-      const giftRef = oferta.f_referencia_oferta;
+      // ===== 3) L Ó G I C A   D E   O F E R T A S   (solo si qtyNum > 0) =====
+      const oferta = ofertas.find(o => o.f_referencia === f_referencia);
+      if (oferta && qtyNum > 0) {
+        const freeQty = Math.floor(qtyNum / oferta.f_cantidad_req) * oferta.f_cantidad;
+        const giftRef = oferta.f_referencia_oferta;
 
-      if (giftRef === f_referencia) {
-        next[f_referencia] = {
-          ...next[f_referencia],
-          freeCantidad: freeQty
-        };
-      } else {
-        delete next[giftRef];
-        if (freeQty > 0) {
-          const giftProd = productos.find(p => p.f_referencia === giftRef);
-          if (giftProd) {
-            next[giftRef] = {
-              f_referencia: giftProd.f_referencia,
-              f_precio5: 0,
-              cantidad: freeQty,
-              f_referencia_suplidor: giftProd.f_referencia_suplidor,
-              f_descripcion: giftProd.f_descripcion,
-              f_existencia: giftProd.f_existencia,
-              isGift: true,
-            };
+        if (giftRef === f_referencia) {
+          next[f_referencia] = {
+            ...next[f_referencia],
+            freeCantidad: freeQty
+          };
+        } else {
+          delete next[giftRef];
+          if (freeQty > 0) {
+            const giftProd = productos.find(p => p.f_referencia === giftRef);
+            if (giftProd) {
+              next[giftRef] = {
+                f_referencia: giftProd.f_referencia,
+                f_precio5: 0,
+                cantidad: freeQty,
+                f_referencia_suplidor: giftProd.f_referencia_suplidor,
+                f_descripcion: giftProd.f_descripcion,
+                f_existencia: giftProd.f_existencia,
+                isGift: true,
+              };
+            }
           }
         }
+      } else {
+        if (oferta) {
+          const giftRef = oferta.f_referencia_oferta;
+          delete next[giftRef];
+        }
       }
-    } else {
-      if (oferta) {
-        const giftRef = oferta.f_referencia_oferta;
-        delete next[giftRef];
-      }
-    }
 
-    // ===== 4) Actualizar DataProvider con la nueva “imagen” de cantidades =====
-    const filasCon = productosFiltradosFinal.map(prod => ({
-      ...prod._raw,
-      cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
-    }));
-    setDataProvider(dp => dp.cloneWithRows(filasCon));
+      // ===== 4) Actualizar DataProvider con la nueva “imagen” de cantidades =====
+      const filasCon = productosFiltradosFinal.map(prod => ({
+        ...prod._raw,
+        cantidad: next[prod._raw.f_referencia]?.cantidad?.toString() || ''
+      }));
+      setDataProvider(dp => dp.cloneWithRows(filasCon));
 
-    // ===== 5) Devolver el estado actualizado =====
-    return next;
-  });
-};
+      // ===== 5) Devolver el estado actualizado =====
+      return next;
+    });
+  };
 
 
 
@@ -441,13 +442,13 @@ export default function Pedido({
     if (clienteSeleccionado) {
       const fetchClientesCxc = async () => {
         try {
-          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id? clienteSeleccionado.f_id : 3000}`);
+          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id ? clienteSeleccionado.f_id : 3000}`);
           setBalanceCliente(response.data.f_balance || 0);
         } catch (error) {
           console.error('❌ Error al obtener cxc:', error);
           setBalanceCliente(0);
         } finally {
-          setLoading(false);
+          //setLoading(false);
         }
       };
       fetchClientesCxc();
@@ -511,6 +512,9 @@ export default function Pedido({
                       text: 'Sí',
                       onPress: () => {
                         setPedido(pedidoGuardado);
+                        AsyncStorage.removeItem(CLAVE_PEDIDO_GUARDADO)
+                          .then(() => console.log('Pedido guardado eliminado al cargar.'))
+                          .catch(err => console.error('Error eliminando AsyncStorage tras carga:', err));
                       },
                     },
                   ]
@@ -570,7 +574,11 @@ export default function Pedido({
 
 
   // if (loading) {
-  //   return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
+  //   return (
+  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+  //       <ActivityIndicator size="large" color="#007AFF" />
+  //     </View>
+  //   );
   // }
 
   // ─── Función para renderizar cada producto ───────────────────────────────
@@ -696,12 +704,20 @@ export default function Pedido({
 
       {/* Listado de productos */}
       <View style={pedidoStyles.productListContainer}>
-        <RecyclerListView
-          style={{ flex: 1 }}
-          layoutProvider={layoutProvider}
-          dataProvider={dataProvider}
-          rowRenderer={rowRenderer}
-        />
+
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#007AFF" />
+          </View>
+        ) : (
+          <RecyclerListView
+            style={{ flex: 1 }}
+            layoutProvider={layoutProvider}
+            dataProvider={dataProvider}
+            rowRenderer={rowRenderer}
+          />
+        )}
+
       </View>
 
       {/* Modal: Resumen del pedido */}
@@ -727,7 +743,7 @@ export default function Pedido({
                   <View style={pedidoStyles.modalContent}>
                     <Text style={pedidoStyles.modalTitle}>🛒 Resumen del Pedido</Text>
                     <Text style={pedidoStyles.modalSubtitle}>
-                      Cliente: ({clienteSeleccionado.f_id? clienteSeleccionado.f_id : 3000}) {clienteSeleccionado.f_nombre}
+                      Cliente: ({clienteSeleccionado.f_id ? clienteSeleccionado.f_id : 3000}) {clienteSeleccionado.f_nombre}
                     </Text>
                     <Text style={pedidoStyles.modalInfo}>
                       Crédito Disponible: {formatear(creditoDisponible)}
