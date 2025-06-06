@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { database } from "../../src/database/database";
 import { enviarPedido } from "../../src/sincronizaciones/enviarPedido";
 import { getNextPedidoSequence } from "../../src/sincronizaciones/secuenciaHelper";
-import {AuthContext} from '../context/AuthContext';
+import { AuthContext } from '../context/AuthContext';
 import React, { useContext } from 'react';
 
 
@@ -99,17 +99,16 @@ export const realizarPedidoLocal = async ({
   const guardarPedidoLocal = async () => {
     setIsSaving(true);
     try {
-      
-        const { tipodoc, nodoc,vendedor } = await getNextPedidoSequence(user);
-        const id = String(nodoc);
-        const documento = `${tipodoc}${String(id).padStart(6, '0')}`;
-        
+      const { tipodoc, nodoc, vendedor } = await getNextPedidoSequence(user);
+      const id = String(nodoc);
+      const documento = `${tipodoc}${String(id).padStart(6, '0')}`;
+
       await database.write(async () => {
         const facturaCollection = database.collections.get('t_factura_pedido');
         const detalleCollection = database.collections.get('t_detalle_factura_pedido');
 
-        
-        
+
+
         // Guarda el encabezado del pedido
         await facturaCollection.create(record => {
           record.f_cliente = clienteSeleccionado.f_id;
@@ -145,7 +144,7 @@ export const realizarPedidoLocal = async ({
       setIsSaving(false);
       Alert.alert(
         "Pedido guardado existosamente",
-        
+
         "¿Deseas enviar el pedido?",
         [
           {
@@ -191,20 +190,25 @@ export const realizarPedidoLocal = async ({
                 navigation,
                 setIsSaving,
                 pedido,
+                tipodoc, 
+                nodoc, 
+                vendedor
               }),
-              setPedido({});
-              setModalVisible(false);
+               console.log('Pedido enviado con éxito'),
+               setPedido({});
               await AsyncStorage.removeItem('pedido_guardado');
-              setClienteSeleccionado(null);
-              setBalanceCliente(0);
-              setDescuentoCredito(0);
-               navigation.reset({
+              await setModalVisible(false);
+              
+              await setBalanceCliente(0);
+              await setDescuentoCredito(0);
+              await navigation.reset({
                 index: 1,                            // la ruta activa será la segunda
                 routes: [
                   { name: 'MenuPrincipal' },        // primera en el historial
                   { name: 'ConsultaPedidos' }       // activa, a la que llegarás
                 ]
               });
+              await setClienteSeleccionado(0);
             }
           }
         ]

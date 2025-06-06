@@ -26,6 +26,9 @@ export const enviarPedido = async ({
     navigation,
     setIsSaving,
     pedido,
+    tipodoc,
+    nodoc,
+    vendedor
 }) => {
 
     const state = navigation.getState();
@@ -36,8 +39,8 @@ export const enviarPedido = async ({
         const responsePedido = await api.post('/pedidos/pedido', {
             f_cliente: clienteSeleccionado.f_id ? parseInt(clienteSeleccionado.f_id, 10) : 3000,
             f_documento: documento,
-            f_tipodoc: 'PEDO',
-            f_nodoc: parseInt(fechaActual, 10),
+            f_tipodoc: tipodoc,
+            f_nodoc: nodoc,
             f_fecha: fechaActual,
             f_hora_vendedor: horaActual,
             f_itbis: computedItbis.toFixed(2),
@@ -47,7 +50,7 @@ export const enviarPedido = async ({
             f_monto_bruto: totalBruto.toFixed(2),
             f_condicion: condicionSeleccionada ? condicionSeleccionada.id : null,
             f_estado_pedido: 1,
-            f_vendedor: 83,
+            f_vendedor: vendedor,
             f_observacion: nota
         });
         console.log("Pedido enviado a la API:", responsePedido.data);
@@ -84,17 +87,7 @@ export const enviarPedido = async ({
 
 
         Alert.alert("Éxito", "Pedido enviado a la empresa");
-        // if (currentRouteName !== 'ConsultaPedidos') {
-        //     // Reiniciar estados y navegar a ConsultaPedidos
-        //     setPedido({});
-        //     await AsyncStorage.removeItem('pedido_guardado');
-        //     setModalVisible(false);
-        //     // setClienteSeleccionado({});
-        //     setBalanceCliente(0);
-        //     setDescuentoCredito(0);
 
-        
-        // }
 
     } catch (error) {
         console.error("Error al enviar el pedido a la API:", error);
@@ -103,17 +96,7 @@ export const enviarPedido = async ({
         } else {
             Alert.alert("Error", "El pedido se guardó localmente, pero no se pudo enviar a la API. Reintenta el envío más tarde.");
         }
-        // if (currentRouteName !== 'ConsultaPedidos') {
-        //     // Reiniciar estados y navegar a ConsultaPedidos
-        //     setPedido({});
-        //     await AsyncStorage.removeItem('pedido_guardado');
-        //     setModalVisible(false);
-        //     // setClienteSeleccionado({});
-        //     setBalanceCliente(0);
-        //     setDescuentoCredito(0);
 
-           
-        // }
     } finally {
         setIsSaving(false);
         //console.log("Pedido procesado:", JSON.stringify(pedido));

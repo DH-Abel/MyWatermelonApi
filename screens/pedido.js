@@ -36,15 +36,17 @@ export default function Pedido({
   nota,
   condicionSeleccionada,
   orderToEdit,
-  setHasPedido
+  setHasPedido,
+  productos = [],              // <— recibiendo productos
+  loadingProductos = false,    // <— recibiendo loading
 }) {
   // ----- Estados y lógica (se mantiene sin cambios) -----
-  const [productos, setProductos] = useState([]);
+  //const [productos, setProductos] = useState([]);
   const [searchTextProductos, setSearchTextProductos] = useState('');
   const [searchCodeProductos, setSearchCodeProductos] = useState('');
   const [pedido, setPedido] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  //const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(true);
   const [balanceCliente, setBalanceCliente] = useState(0);
   const [modalEditVisible, setModalEditVisible] = useState(false);
@@ -54,6 +56,8 @@ export default function Pedido({
   const [checkBoxChecked, setCheckBoxChecked] = useState(false);
   const pedidoRef = React.useRef(pedido);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(initialClienteSeleccionado);
+
+  
 
   const database = useDatabase();
   const [ofertas, setOfertas] = useState([]);
@@ -165,21 +169,21 @@ export default function Pedido({
   };
 
 
-  const cargarProductos = async () => {
-    // Primero carga los productos locales para una respuesta inmediata
-    await cargarProductosLocales();
+  // const cargarProductos = async () => {
+  //   // Primero carga los productos locales para una respuesta inmediata
+  //   await cargarProductosLocales();
 
-    // Luego verifica si hay conexión a internet
-    const netState = await NetInfo.fetch();
-    if (netState.isConnected) {
-      try {
-        await sincronizarProductos();
-        await cargarProductosLocales();
-      } catch (error) {
-        console.error("Error al sincronizar, se mantienen los productos locales:", error);
-      }
-    }
-  };
+  //   // Luego verifica si hay conexión a internet
+  //   const netState = await NetInfo.fetch();
+  //   if (netState.isConnected) {
+  //     try {
+  //       await sincronizarProductos();
+  //       await cargarProductosLocales();
+  //     } catch (error) {
+  //       console.error("Error al sincronizar, se mantienen los productos locales:", error);
+  //     }
+  //   }
+  // };
 
   const limpiarPedido = () => {
     Alert.alert(
@@ -225,11 +229,12 @@ export default function Pedido({
   };
 
   const productosCodeFiltrados = useMemo(() =>
-    productos.filter((producto) =>
-      (producto.f_referencia ? producto.f_referencia.toString() : '')
-        .toLowerCase()
-        .includes(debouncedSearchCodeProductos.toLowerCase())
-    ),
+    productos.filter((producto) =>{
+      const referencia = producto.f_referencia ? producto.f_referencia.toString() : '';
+      const buscar = debouncedSearchCodeProductos.toLowerCase();
+
+      return referencia === buscar;
+    }),
     [productos, debouncedSearchCodeProductos.toLowerCase()]
   );
 
@@ -442,7 +447,7 @@ export default function Pedido({
     if (clienteSeleccionado) {
       const fetchClientesCxc = async () => {
         try {
-          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id ? clienteSeleccionado.f_id : 3000}`);
+          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado ? clienteSeleccionado.f_id : 0}`);
           setBalanceCliente(response.data.f_balance || 0);
         } catch (error) {
           console.error('❌ Error al obtener cxc:', error);
@@ -456,8 +461,11 @@ export default function Pedido({
   }, [clienteSeleccionado]);
 
   useEffect(() => {
-    const nuevoCredito = clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente;
+
+      const nuevoCredito = clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente;
     setCreditoDisponible(nuevoCredito);
+    
+    
   }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
 
   // useEffect(() => {
@@ -467,12 +475,12 @@ export default function Pedido({
   //   return () => clearInterval(intervalId);
   // }, []);
 
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      setLoading(true);
-      cargarProductos().finally(() => setLoading(false));
-    }
-  }, [clienteSeleccionado]);
+  // useEffect(() => {
+  //   if (clienteSeleccionado) {
+  //     setLoading(true);
+  //     cargarProductos().finally(() => setLoading(false));
+  //   }
+  // }, [clienteSeleccionado]);
 
   useEffect(() => {
     const guardarPedidoAsync = async () => {
@@ -705,7 +713,7 @@ export default function Pedido({
       {/* Listado de productos */}
       <View style={pedidoStyles.productListContainer}>
 
-        {loading ? (
+        {loadingProductos ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#007AFF" />
           </View>
@@ -743,7 +751,7 @@ export default function Pedido({
                   <View style={pedidoStyles.modalContent}>
                     <Text style={pedidoStyles.modalTitle}>🛒 Resumen del Pedido</Text>
                     <Text style={pedidoStyles.modalSubtitle}>
-                      Cliente: ({clienteSeleccionado.f_id ? clienteSeleccionado.f_id : 3000}) {clienteSeleccionado.f_nombre}
+                      Cliente: ({clienteSeleccionado? clienteSeleccionado.f_id : 0}) {clienteSeleccionado?clienteSeleccionado.f_nombre: 0}
                     </Text>
                     <Text style={pedidoStyles.modalInfo}>
                       Crédito Disponible: {formatear(creditoDisponible)}
