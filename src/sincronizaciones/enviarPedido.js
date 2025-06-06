@@ -65,7 +65,7 @@ export const enviarPedido = async ({
             });
             // console.log("Detalle enviado a la API:", responseDetalle.data);
         }
-
+        
         try {
             const facturaCollection = database.collections.get('t_factura_pedido');
             const pedidosLocal = await facturaCollection.query(Q.where('f_documento', documento)).fetch();

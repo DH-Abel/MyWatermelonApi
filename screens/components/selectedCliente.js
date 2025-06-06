@@ -7,49 +7,29 @@ import api from '../../api/axios';
 import ModalOptions from '../modal/condicionPedido';
 
 const SelectedCliente = ({
-  clienteSeleccionado,
-  setClienteSeleccionado,
-  creditoDisponible,
-  setCreditoDisponible,
+   clienteSeleccionado,
+  balanceCliente,            // ← viene desde MainTabs
+  descuentoGlobal,
   descuentoCredito,
   setDescuentoCredito,
-  descuentoGlobal,
-  totalNeto,
   condicionSeleccionada,
   condicionPedido,
   condicionPedidoElegida,
-  setModalVisibleCondicion,
   modalVisibleCondicion,
-  nota, setNota
+  setModalVisibleCondicion,
+  creditoDisponible,         // ← viene desde MainTabs
+  setCreditoDisponible,
+  nota,
+  setNota
 }) => {
 
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
-  const [balanceCliente, setBalanceCliente] = useState(0);
+  //const [balanceCliente, setBalanceCliente] = useState(0);
 
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      const nuevoCredito = clienteSeleccionado.f_limite_credito - balanceCliente;
-      setCreditoDisponible(nuevoCredito);
-    }
-  }, [clienteSeleccionado, balanceCliente]);
+ 
 
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      const fetchClientesCxc = async () => {
-        try {
-          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id}`);
-          setBalanceCliente(response.data.f_balance || 0);
-        } catch (error) {
-          console.error('❌ Error al obtener cxc:', error);
-          setBalanceCliente(0);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchClientesCxc();
-    }
-  }, [clienteSeleccionado]);
+  
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

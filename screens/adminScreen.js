@@ -166,7 +166,10 @@ export default function AdminUsersScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
+          
           <View style={styles.modalContent}>
+            
+        <ScrollView>
             <Text style={styles.modalTitle}>{isEditing ? 'Editar Usuario' : 'Crear Usuario'}</Text>
             {/* Sincronizar secuencia */}
             <Pressable onPress={async () => {
@@ -290,7 +293,10 @@ export default function AdminUsersScreen() {
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
+            
+        </ScrollView>
           </View>
+          
         </View>
       </Modal>
     </SafeAreaView>

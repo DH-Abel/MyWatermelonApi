@@ -1,22 +1,55 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import SelectedCliente from '../components/selectedCliente';
-import Pedido from '../pedido';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Alert } from 'react-native';
 import { DatabaseProvider } from '@nozbe/watermelondb/DatabaseProvider';
-import { database } from '../../src/database/database'; // ajusta la ruta si es necesario
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Q } from '@nozbe/watermelondb';
+import { useDatabase } from '@nozbe/watermelondb/hooks';
+import SelectedCliente from '../components/selectedCliente';
+import Pedido from '../pedido';
+import { database } from '../../src/database/database';
 import { useProductos } from '../funciones/useProductos';
+
 
 const Tab = createBottomTabNavigator();
 
-function TabsContent({ clienteSeleccionado, balanceCliente, orderToEdit, navigation }) {
+function TabsContent({ clienteSeleccionado, orderToEdit, navigation }) {
   const [modalVisibleCondicion, setModalVisibleCondicion] = useState(false);
   const [descuentoCredito, setDescuentoCredito] = useState("10");
   const [nota, setNota] = useState("");
   const [hasPedido, setHasPedido] = useState(false);
   const [storageHasPedido, setStorageHasPedido] = useState(false);
+
+  const databaseInstance = useDatabase();
+  const [balanceCliente, setBalanceCliente] = useState(0);
+  // ─────────────────────────────────────────────────────────────────────────────
+  //   1) Suscribirse al observable de WatermelonDB para que devuelva filas
+  //      instantáneamente (en caché) y cada vez que cambien.
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!clienteSeleccionado?.f_id) {
+      setBalanceCliente(0);
+      return;
+    }
+
+    const cuentasCollection = databaseInstance.collections.get('t_cuenta_cobrar');
+    const query = cuentasCollection.query(Q.where('f_idcliente', clienteSeleccionado.f_id));
+
+    // `observe()` emite primero el snapshot actual en caché y luego cada vez que hay cambios.
+    const subscription = query.observe().subscribe(filas => {
+      // Filtrar sólo aquellas con f_balance > 0 y sumar
+      const total = filas
+        .filter(row => parseFloat(row.f_balance) > 0)
+        .reduce((acc, row) => acc + parseFloat(row.f_balance), 0);
+      setBalanceCliente(total);
+    });
+
+    // Al desmount, cancelar la suscripción para evitar fugas
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [clienteSeleccionado, databaseInstance]);
 
   // — Aquí el hook corre dentro del DatabaseProvider, por eso ya no da error —
   const { productos, loading: loadingProductos } = useProductos(clienteSeleccionado);
@@ -40,6 +73,45 @@ function TabsContent({ clienteSeleccionado, balanceCliente, orderToEdit, navigat
       ? clienteSeleccionado.f_limite_credito - balanceCliente
       : 0
   );
+
+  useEffect(() => {
+    if (!clienteSeleccionado?.f_id) {
+      setBalanceCliente(0);
+      return;
+    }
+    const loadBalanceLocal = async () => {
+      try {
+        // 1) Obtener todas las cuentas por cobrar del cliente
+        const filas = await databaseInstance
+          .collections
+          .get('t_cuenta_cobrar')
+          .query(Q.where('f_idcliente', clienteSeleccionado.f_id))
+          .fetch();
+
+        // 2) Filtrar sólo aquellas con balance > 0
+        const activas = filas.filter(row => parseFloat(row.f_balance) > 0);
+
+        // 3) Sumar el campo f_balance de cada una
+        const total = activas.reduce(
+          (acc, row) => acc + parseFloat(row.f_balance),
+          0
+        );
+
+        setBalanceCliente(total);
+      } catch (err) {
+        console.error('Error calculando balance local en MainTabs:', err);
+        setBalanceCliente(0);
+      }
+    };
+
+    loadBalanceLocal();
+  }, [clienteSeleccionado, databaseInstance]);
+
+  useEffect(() => {
+    if (clienteSeleccionado?.f_limite_credito != null) {
+      setCreditoDisponible(clienteSeleccionado.f_limite_credito - balanceCliente);
+    }
+  }, [clienteSeleccionado, balanceCliente]);
 
   const condicionPedidoElegida = (option) => {
     if ((option.id === 3 || option.id === 1) && clienteSeleccionado.f_bloqueo_credito === true) {
@@ -165,6 +237,7 @@ function TabsContent({ clienteSeleccionado, balanceCliente, orderToEdit, navigat
             setHasPedido={setHasPedido}
             productos={productos}
             loadingProductos={loadingProductos}
+            balanceCliente={balanceCliente}
           />
         )}
         options={{ title: 'Productos' }}
@@ -186,7 +259,7 @@ const MainTabs = () => {
     <DatabaseProvider database={database}>
       <TabsContent
         clienteSeleccionado={clienteSeleccionado}
-        balanceCliente={balanceCliente}
+        // balanceCliente={balanceCliente}
         orderToEdit={orderToEdit}
         navigation={navigation}
       />

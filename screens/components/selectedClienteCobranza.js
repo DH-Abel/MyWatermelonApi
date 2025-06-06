@@ -13,35 +13,13 @@ const SelectedClienteCobranza = ({
   setCreditoDisponible,
   setModalVisibleCondicion,
   nota,
-  setNota
+  setNota,
+  balanceCliente,
 }) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
-  const [balanceCliente, setBalanceCliente] = useState(0);
+  //const [balanceCliente, setBalanceCliente] = useState(0);
 
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      const nuevoCredito = clienteSeleccionado.f_limite_credito - balanceCliente;
-      setCreditoDisponible(nuevoCredito);
-    }
-  }, [clienteSeleccionado, balanceCliente]);
-
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      const fetchClientesCxc = async () => {
-        try {
-          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado.f_id}`);
-          setBalanceCliente(response.data.f_balance || 0);
-        } catch (error) {
-          console.error('❌ Error al obtener cxc:', error);
-          setBalanceCliente(0);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchClientesCxc();
-    }
-  }, [clienteSeleccionado]);
 
   return (
     <KeyboardAvoidingView
@@ -67,13 +45,19 @@ const SelectedClienteCobranza = ({
           </View>
 
           {/* Condición de pedido */}
-        
+
 
           {/* Info financiera */}
           <View style={uiStyles.infoCard}>
-            <Text style={uiStyles.infoText}>💳 Límite de crédito: {formatear(clienteSeleccionado.f_limite_credito)}</Text>
-            <Text style={uiStyles.infoText}>📉 Balance actual: {formatear(balanceCliente)}</Text>
-            <Text style={uiStyles.infoText}>✅ Disponible: {formatear(creditoDisponible)}</Text>
+            <Text style={uiStyles.infoText}>
+              💳 Límite de crédito: {formatear(clienteSeleccionado.f_limite_credito)}
+            </Text>
+            <Text style={uiStyles.infoText}>
+              📉 Balance actual: {formatear(balanceCliente)}
+            </Text>
+            <Text style={uiStyles.infoText}>
+              ✅ Disponible: {formatear(creditoDisponible)}
+            </Text>
           </View>
 
           {/* Nota */}

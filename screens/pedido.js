@@ -39,6 +39,9 @@ export default function Pedido({
   setHasPedido,
   productos = [],              // <— recibiendo productos
   loadingProductos = false,    // <— recibiendo loading
+  balanceCliente,
+  setBalanceCliente,
+  
 }) {
   // ----- Estados y lógica (se mantiene sin cambios) -----
   //const [productos, setProductos] = useState([]);
@@ -48,7 +51,7 @@ export default function Pedido({
   const [modalVisible, setModalVisible] = useState(false);
   //const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(true);
-  const [balanceCliente, setBalanceCliente] = useState(0);
+  //const [balanceCliente, setBalanceCliente] = useState(0);
   const [modalEditVisible, setModalEditVisible] = useState(false);
   const [productoParaEditar, setProductoParaEditar] = useState(null);
   const [nuevaCantidad, setNuevaCantidad] = useState('');
@@ -443,30 +446,15 @@ export default function Pedido({
     }
   }, [clienteSeleccionado, descuentoGlobal]);
 
+ 
+
   useEffect(() => {
     if (clienteSeleccionado) {
-      const fetchClientesCxc = async () => {
-        try {
-          const response = await api.get(`/cuenta_cobrar/${clienteSeleccionado ? clienteSeleccionado.f_id : 0}`);
-          setBalanceCliente(response.data.f_balance || 0);
-        } catch (error) {
-          console.error('❌ Error al obtener cxc:', error);
-          setBalanceCliente(0);
-        } finally {
-          //setLoading(false);
-        }
-      };
-      fetchClientesCxc();
-    }
-  }, [clienteSeleccionado]);
-
-  useEffect(() => {
-
       const nuevoCredito = clienteSeleccionado.f_limite_credito - totalBruto - balanceCliente;
-    setCreditoDisponible(nuevoCredito);
-    
-    
+      setCreditoDisponible(nuevoCredito);
+    }
   }, [totalBruto, clienteSeleccionado, balanceCliente, setCreditoDisponible]);
+
 
   // useEffect(() => {
   //   const intervalId = setInterval(() => {

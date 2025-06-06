@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import SelectedClienteCobranza from '../components/selectedClienteCobranza';
-import SelectClientesCobranza from '../components/selectClientesCobranza';
-import Cobranza from '../cobranza';
 import { useRoute, useNavigation } from '@react-navigation/native';
+
+import { Q } from '@nozbe/watermelondb';
+import { database } from '../../src/database/database';
+import SelectedClienteCobranza from '../components/selectedClienteCobranza';
+import Cobranza from '../cobranza';
 
 
 
@@ -21,6 +23,41 @@ const MainTabsCobranza = () => {
   const [creditoDisponible, setCreditoDisponible] = useState(
     clienteSeleccionado.f_limite_credito - balanceCliente
   );
+
+  useEffect(() => {
+    if (!clienteSeleccionado?.f_id) {
+      setBalanceCliente(0);
+      return;
+    }
+    // 1) Carga todas las cuentas de cobrar para el cliente en WatermelonDB
+    const loadBalanceLocal = async () => {
+      try {
+        const rows = await database
+          .collections
+          .get('t_cuenta_cobrar')
+          .query(
+            Q.where('f_idcliente', clienteSeleccionado.f_id)
+          )
+          .fetch();
+
+        // 2) Filtrar sólo las filas con balance > 0 (activas)
+        const activas = rows.filter(row => parseFloat(row.f_balance) > 0);
+
+        // 3) Sumar el campo f_balance de cada una
+        const total = activas.reduce(
+          (acc, row) => acc + parseFloat(row.f_balance),
+          0
+        );
+
+        setBalanceCliente(total);
+      } catch (err) {
+        console.error('Error calculando balance local:', err);
+        setBalanceCliente(0);
+      }
+    };
+
+    loadBalanceLocal();
+  }, [clienteSeleccionado]);
 
   useEffect(() => {
     setCreditoDisponible(
